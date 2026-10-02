@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 4 (Secret feeling code)
+## Current state: Milestone 5 (Places & rules)
 
 Working now:
 
@@ -93,7 +93,26 @@ Working now:
   equal choice, styled the same as the rest.
 - Codes can be reopened, edited, or removed.
 
-Missions 5 and 6 are still **placeholders**, built in Milestones 5–8.
+### Mission 5 works
+
+- Five place cards: 🔒 Just me, 🏷️ My badge, 🏫 My class, 🖼️ School wall,
+  🏠 Home. Tapping one **flips it over** to five big on/off switches: Cover,
+  Boost, Feeling code, Voice, Codename.
+- **Everything is off by default**, and there is deliberately no "share
+  everything" button. A child who taps nothing has shared nothing, and that is
+  a complete, valid answer.
+- The front of each card then shows small icons of what is going there, so you
+  can see every decision at a glance without opening anything.
+
+### Mission 6 works
+
+- Three rule cards: ✋ Don't…, 👍 You can…, 💛 When I'm upset I need…
+- Three ways to answer, and **no typing anywhere**: tap any of the fourteen
+  icons, draw your own on a small sheet, or record it (🎤, 8 seconds).
+- Everything chosen appears as a chip with a ✕ to take it off again. Tapping a
+  recorded chip plays it back.
+
+Only the **Reveal ID card** is still a placeholder, built in Milestone 6.
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -203,6 +222,22 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 5
+
+- [ ] Does the card flip read as a card turning over, or just as a flicker?
+- [ ] **Check every card starts with everything off.** This is the one that
+      matters most — if any switch is on before a child touches it, stop.
+- [ ] Are the switches obviously on/off at a glance, from a standing adult's
+      distance as well as the child's?
+- [ ] Set something, go to another mission, come back. Still set?
+- [ ] In Mission 6, try all three ways in: tap an icon, draw one, record one.
+      Which do the children reach for? That is worth noting.
+- [ ] Tap a recorded rule chip. Does it play back?
+- [ ] Remove a chip with the ✕. Is it small enough to not get hit by accident,
+      but big enough to hit on purpose?
+- [ ] Rotate the iPad in both missions.
+- [ ] Close the app completely, reopen, **Continue**. Everything still there?
 
 ## Test checklist for Milestone 4
 

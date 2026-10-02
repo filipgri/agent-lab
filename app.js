@@ -23,6 +23,8 @@
     15. MISSION 2         boost: powers, aura, background (Milestone 2)
     16. MISSION 4         voice password: record + filters (Milestone 3)
     17. MISSION 3         secret feeling code (Milestone 4)
+    18. MISSION 5         where does my agent go? (Milestone 5)
+    19. MISSION 6         agent rules + shared drawing sheet (Milestone 5)
    ========================================================================== */
 
 
@@ -36,7 +38,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 4;
+const MILESTONE = 5;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -446,6 +448,8 @@ function goToMission(index, reasonAction) {
   else hideEditor();        // every other mission: put the shared editor away
 
   if (mission.id === 'm3') enterMission3();
+  if (mission.id === 'm5') enterMission5();
+  if (mission.id === 'm6') enterMission6();
   if (mission.id === 'm4') enterMission4();
 }
 
@@ -803,6 +807,8 @@ function wireUp() {
   wireMission2();
   wireMission3();
   wireMission4();
+  wireMission5();
+  wireMission6();
   $('#btn-stamp').addEventListener('click', stampMission);
   $('#btn-pass').addEventListener('click', passMission);
   $('#btn-finish').addEventListener('click', finishSession);
@@ -2130,7 +2136,8 @@ const coder = {
   drawing: false,
   points: [],         // the stroke being drawn
   undoStack: [],      // canvas snapshots, taken before each stroke
-  draft: null         // the code being built, before "Keep it"
+  draft: null,        // the code being built, before "Keep it"
+  canvas: null        // which canvas the brush is painting on right now
 };
 
 
@@ -2220,6 +2227,7 @@ function openCoder(index) {
   const existing = state.agent.feelingCodes[index];
 
   coder.index = index;
+  coder.canvas = $('#m3-canvas');
   coder.undoStack = [];
   coder.colour = CODE_COLOURS[0];
   // Editing works on a copy, so backing out of a change leaves the saved one
@@ -2255,12 +2263,15 @@ function closeCoder() {
   renderMission3();
 }
 
+/* The brush is shared: Mission 3 points it at the feeling-code canvas, and
+   Mission 6's drawing sheet points it at its own. Everything below works on
+   whichever `coder.canvas` currently is. */
 function codeCtx() {
-  return $('#m3-canvas').getContext('2d');
+  return coder.canvas.getContext('2d');
 }
 
 function clearCodeCanvas() {
-  const canvas = $('#m3-canvas');
+  const canvas = coder.canvas;
   codeCtx().clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -2280,7 +2291,7 @@ function drawPngToCanvas(png) {
    because a finger reports its position only every few milliseconds.
    ------------------------------------------------------------------------ */
 function codePoint(event) {
-  const canvas = $('#m3-canvas');
+  const canvas = coder.canvas;
   const rect = canvas.getBoundingClientRect();
   // The canvas is 320x320 inside but drawn bigger on screen, so screen
   // positions have to be scaled back into canvas coordinates.
@@ -2292,7 +2303,7 @@ function codePoint(event) {
 
 function codeDown(event) {
   event.preventDefault();
-  const canvas = $('#m3-canvas');
+  const canvas = coder.canvas;
 
   pushCodeUndo();
   coder.drawing = true;
@@ -2348,14 +2359,22 @@ function codeMove(event) {
 function codeUp() {
   if (!coder.drawing) return;
   coder.drawing = false;
-  if (coder.points.length > 0) logEvent('feeling_draw', { points: coder.points.length });
+  if (coder.points.length > 0) {
+    // The brush is shared between the feeling code and the rule sheet, so the
+    // event has to say which canvas it was. Without this the research log
+    // cannot tell a feeling code apart from a drawn rule.
+    logEvent('draw_stroke', {
+      where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule',
+      points: coder.points.length
+    });
+  }
   coder.points = [];
 }
 
 /* Undo keeps whole-canvas snapshots. A feeling code is a handful of strokes on
    a small canvas, so this is cheap and far simpler than replaying strokes. */
 function pushCodeUndo() {
-  const canvas = $('#m3-canvas');
+  const canvas = coder.canvas;
   coder.undoStack.push(codeCtx().getImageData(0, 0, canvas.width, canvas.height));
   if (coder.undoStack.length > 20) coder.undoStack.shift();
 }
@@ -2364,24 +2383,24 @@ function undoCode() {
   const previous = coder.undoStack.pop();
   if (!previous) return;
   codeCtx().putImageData(previous, 0, 0);
-  logEvent('undo', { where: 'feeling_code' });
+  logEvent('undo', { where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule' });
 }
 
 function clearCode() {
   pushCodeUndo();
   clearCodeCanvas();
-  logEvent('clear', { where: 'feeling_code' });
+  logEvent('clear', { where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule' });
 }
 
-function paintCodePalette() {
-  const box = $('#m3-palette');
+function paintCodePalette(selector) {
+  const box = $(selector || '#m3-palette');
   box.innerHTML = '';
   CODE_COLOURS.forEach(colour => {
     const swatch = document.createElement('button');
     swatch.className = 'swatch' + (colour === coder.colour ? ' is-on' : '');
     swatch.style.background = colour;
     swatch.setAttribute('aria-label', 'Colour ' + colour);
-    swatch.addEventListener('click', () => { coder.colour = colour; paintCodePalette(); });
+    swatch.addEventListener('click', () => { coder.colour = colour; paintCodePalette(selector); });
     box.appendChild(swatch);
   });
 }
@@ -2502,7 +2521,7 @@ async function recordCodeName() {
    KEEPING AND REMOVING A CODE
    ------------------------------------------------------------------------ */
 function canvasHasInk() {
-  const canvas = $('#m3-canvas');
+  const canvas = coder.canvas;
   const data = codeCtx().getImageData(0, 0, canvas.width, canvas.height).data;
   // Every 4th byte is the alpha channel: anything above 0 means ink.
   // Stepping 4 pixels at a time is plenty to notice a 14px-wide brush stroke.
@@ -2522,7 +2541,7 @@ async function keepCode() {
   const codes = state.agent.feelingCodes;
   const isNew = !codes[index];
 
-  coder.draft.png = $('#m3-canvas').toDataURL('image/png');
+  coder.draft.png = coder.canvas.toDataURL('image/png');
 
   // Codes fill the slots in order, so a code made in slot 3 while 1 and 2 are
   // empty still lands at the front of the list.
@@ -2564,12 +2583,17 @@ async function removeCode() {
 /* ---------------------------------------------------------------------------
    Wiring Mission 3 up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
-function wireMission3() {
-  const canvas = $('#m3-canvas');
+// Attach the shared brush to a canvas. Used by Mission 3 and by the drawing
+// sheet Mission 6 opens.
+function attachBrush(canvas) {
   canvas.addEventListener('pointerdown', codeDown);
   canvas.addEventListener('pointermove', codeMove);
   canvas.addEventListener('pointerup', codeUp);
   canvas.addEventListener('pointercancel', codeUp);
+}
+
+function wireMission3() {
+  attachBrush($('#m3-canvas'));
 
   $('#m3-undo').addEventListener('click', undoCode);
   $('#m3-clear').addEventListener('click', clearCode);
@@ -2589,4 +2613,441 @@ function enterMission3() {
   coder.draft = null;
   previewMove(null);
   renderMission3();
+}
+
+
+/* ==========================================================================
+   18. MISSION 5 - WHERE DOES MY AGENT GO? (added in Milestone 5)
+   ==========================================================================
+
+   WHAT MISSION 5 IS (spec §7)
+   Five places the agent might travel to, and five parts of the agent that
+   might travel. The child decides, part by part, place by place.
+
+   THE DEFAULT IS THE WHOLE POINT
+   Everything starts OFF. Sharing is always something a child switches on, not
+   something they have to notice and switch off. A child who taps nothing has
+   shared nothing, and that is a valid, complete answer - which is also why
+   there is no "share everything" shortcut anywhere on this screen.
+   ========================================================================== */
+
+// The keys here must match the data model in spec §8 exactly.
+const PLACES = [
+  { id: 'justMe', icon: '🔒', name: 'Just me' },
+  { id: 'badge',  icon: '🏷️', name: 'My badge' },
+  { id: 'class',  icon: '🏫', name: 'My class' },
+  { id: 'wall',   icon: '🖼️', name: 'School wall' },
+  { id: 'home',   icon: '🏠', name: 'Home' }
+];
+
+const PARTS = [
+  { id: 'cover',    icon: '🎨', label: 'Cover' },
+  { id: 'boost',    icon: '⚡', label: 'Boost' },
+  { id: 'feeling',  icon: '💛', label: 'Feeling code' },
+  { id: 'voice',    icon: '🎤', label: 'Voice' },
+  { id: 'codename', icon: '🕵️', label: 'Codename' }
+];
+
+let openPlace = null;        // which place card is flipped open
+
+
+/* ---------------------------------------------------------------------------
+   THE CARDS
+   The front of each card shows small icons of what is going there (spec §7),
+   so a child can see at a glance what they have agreed to without opening it.
+   ------------------------------------------------------------------------ */
+function renderMission5() {
+  if (!state.agent) return;
+  const row = $('#m5-cards');
+  row.innerHTML = '';
+
+  PLACES.forEach(place => {
+    const chosen = state.agent.places[place.id] || {};
+    const on = PARTS.filter(part => chosen[part.id]);
+
+    const card = document.createElement('button');
+    card.className = 'place-card' + (on.length ? ' has-parts' : '');
+    card.setAttribute('aria-label', place.name + ', ' +
+      (on.length ? on.map(p => p.label).join(', ') : 'nothing yet'));
+
+    card.innerHTML =
+      '<span class="place-icon">' + place.icon + '</span>' +
+      '<span class="place-name">' + place.name + '</span>' +
+      '<span class="place-tags">' +
+        (on.length
+          ? on.map(p => '<span>' + p.icon + '</span>').join('')
+          : '<span class="place-empty">nothing yet</span>') +
+      '</span>';
+
+    card.addEventListener('click', () => openPlaceCard(place.id));
+    row.appendChild(card);
+  });
+}
+
+
+/* ---------------------------------------------------------------------------
+   FLIPPING A CARD OVER
+   The card is rendered front-side-up, then flipped on the next frame, so the
+   child sees it turn over rather than simply appearing back-side-up.
+   ------------------------------------------------------------------------ */
+function openPlaceCard(placeId) {
+  const place = PLACES.find(p => p.id === placeId);
+  if (!place) return;
+  openPlace = placeId;
+
+  $('#m5-front-icon').textContent = place.icon;
+  $('#m5-front-name').textContent = place.name;
+  $('#m5-back-title').textContent = 'What goes to ' + place.name + '?';
+
+  $('#m5-cards-view').hidden = true;
+  $('#m5-detail').hidden = false;
+
+  const flip = $('#m5-flip');
+  flip.classList.remove('is-flipped');
+  // requestAnimationFrame waits for the browser to have drawn the front face.
+  // Without it the class is added in the same frame and there is nothing to
+  // animate from, so the card appears already turned over.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => flip.classList.add('is-flipped'));
+  });
+
+  paintPartToggles();
+  logEvent('place_open', { place: placeId });
+}
+
+function closePlaceCard() {
+  openPlace = null;
+  $('#m5-detail').hidden = true;
+  $('#m5-cards-view').hidden = false;
+  renderMission5();
+}
+
+/* The five big on/off switches on the back of a card. */
+function paintPartToggles() {
+  const box = $('#m5-parts');
+  box.innerHTML = '';
+  const chosen = state.agent.places[openPlace] || {};
+
+  PARTS.forEach(part => {
+    const on = Boolean(chosen[part.id]);
+
+    const row = document.createElement('button');
+    row.className = 'part-toggle' + (on ? ' is-on' : '');
+    // role=switch tells VoiceOver this is an on/off control, not a link.
+    row.setAttribute('role', 'switch');
+    row.setAttribute('aria-checked', on ? 'true' : 'false');
+    row.setAttribute('aria-label', part.label);
+
+    row.innerHTML =
+      '<span class="part-icon">' + part.icon + '</span>' +
+      '<span class="part-label">' + part.label + '</span>' +
+      '<span class="part-switch"><span class="part-knob"></span></span>' +
+      '<span class="part-word">' + (on ? 'Yes' : 'No') + '</span>';
+
+    row.addEventListener('click', () => togglePart(part.id));
+    box.appendChild(row);
+  });
+}
+
+function togglePart(partId) {
+  const places = state.agent.places;
+  if (!places[openPlace]) places[openPlace] = {};
+  const now = !places[openPlace][partId];
+  places[openPlace][partId] = now;
+
+  logEvent('place_toggle', { place: openPlace, part: partId, on: now });
+  paintPartToggles();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring Mission 5 up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wireMission5() {
+  $('#m5-done').addEventListener('click', closePlaceCard);
+}
+
+function enterMission5() {
+  if (!state.agent) return;
+  // Always arrive on the cards, never mid-flip from last time.
+  $('#m5-detail').hidden = true;
+  $('#m5-cards-view').hidden = false;
+  openPlace = null;
+  renderMission5();
+}
+
+
+/* ==========================================================================
+   19. MISSION 6 - AGENT RULES (added in Milestone 5)
+   ==========================================================================
+
+   WHAT MISSION 6 IS (spec §7)
+   Three rules the child sets for the people around their agent: what not to
+   do, what is fine to do, and what they need when they are upset.
+
+   NO TYPING ANYWHERE
+   A rule is an icon the child taps, a picture they draw, or something they
+   say out loud. Those are three different ways in, and a child who cannot
+   write is not shut out of any of them.
+   ========================================================================== */
+
+// The keys match the data model in spec §8.
+const RULE_CARDS = [
+  { id: 'dont',  icon: '✋', title: "Don't…" },
+  { id: 'can',   icon: '👍', title: 'You can…' },
+  { id: 'upset', icon: '💛', title: "When I'm upset I need…" }
+];
+
+// Spec §7 lists exactly these fourteen.
+const RULE_ICONS = ['🤫','🎧','🚶','🤗','🙅','💬','✋','🧃','⏳','👥','🧑‍🏫','🛋️','🎮','✏️'];
+
+let openRule = null;        // which rule card is open
+
+
+function renderMission6() {
+  if (!state.agent) return;
+  const row = $('#m6-cards');
+  row.innerHTML = '';
+
+  RULE_CARDS.forEach(rule => {
+    const items = state.agent.rules[rule.id] || [];
+
+    const card = document.createElement('button');
+    card.className = 'rule-card' + (items.length ? ' has-items' : '');
+    card.setAttribute('aria-label', rule.title + ', ' +
+      (items.length ? items.length + ' chosen' : 'nothing yet'));
+
+    card.innerHTML =
+      '<span class="place-icon">' + rule.icon + '</span>' +
+      '<span class="rule-title">' + rule.title + '</span>' +
+      '<span class="place-tags">' +
+        (items.length
+          ? items.map(ruleChipHtml).join('')
+          : '<span class="place-empty">nothing yet</span>') +
+      '</span>';
+
+    card.addEventListener('click', () => openRuleCard(rule.id));
+    row.appendChild(card);
+  });
+}
+
+/* One chosen rule, shown small: an icon, a drawing, or a recording. */
+function ruleChipHtml(item) {
+  if (item.icon) return '<span>' + item.icon + '</span>';
+  if (item.png)  return '<img class="rule-mini" alt="" src="' + item.png + '">';
+  return '<span>🎤</span>';
+}
+
+
+function openRuleCard(ruleId) {
+  const rule = RULE_CARDS.find(r => r.id === ruleId);
+  if (!rule) return;
+  openRule = ruleId;
+
+  $('#m6-title').textContent = rule.icon + ' ' + rule.title;
+  $('#m6-cards-view').hidden = true;
+  $('#m6-detail').hidden = false;
+
+  paintRuleIcons();
+  paintRuleChosen();
+  logEvent('rule_open', { rule: ruleId });
+}
+
+function closeRuleCard() {
+  openRule = null;
+  $('#m6-detail').hidden = true;
+  $('#m6-cards-view').hidden = false;
+  renderMission6();
+}
+
+/* The fourteen icons. Tapping one adds it; tapping it again takes it off. */
+function paintRuleIcons() {
+  const box = $('#m6-icons');
+  box.innerHTML = '';
+  const items = state.agent.rules[openRule] || [];
+
+  RULE_ICONS.forEach(icon => {
+    const on = items.some(i => i.icon === icon);
+    const button = document.createElement('button');
+    button.className = 'btn tool rule-icon-btn' + (on ? ' is-on' : '');
+    button.innerHTML = '<span class="filter-icon">' + icon + '</span>';
+    button.setAttribute('aria-label', 'Rule ' + icon + (on ? ', chosen' : ''));
+    button.addEventListener('click', () => toggleRuleIcon(icon));
+    box.appendChild(button);
+  });
+}
+
+function toggleRuleIcon(icon) {
+  const items = state.agent.rules[openRule];
+  const at = items.findIndex(i => i.icon === icon);
+
+  if (at === -1) items.push({ icon: icon, png: null, audioId: null });
+  else items.splice(at, 1);
+
+  logEvent('rule_set', { rule: openRule, icon: icon, on: at === -1 });
+  paintRuleIcons();
+  paintRuleChosen();
+  scheduleSave();
+}
+
+/* Everything chosen for this rule, each with a way to take it off again. */
+function paintRuleChosen() {
+  const box = $('#m6-chosen');
+  box.innerHTML = '';
+  const items = state.agent.rules[openRule] || [];
+
+  if (items.length === 0) {
+    box.innerHTML = '<span class="place-empty">Tap an icon, draw one, or say it</span>';
+    return;
+  }
+
+  items.forEach((item, index) => {
+    const chip = document.createElement('div');
+    chip.className = 'rule-chosen-chip';
+    chip.innerHTML = ruleChipHtml(item);
+
+    // A recording can be played back by tapping it.
+    if (item.audioId) {
+      chip.classList.add('is-audio');
+      chip.addEventListener('click', () => playRuleClip(item.audioId));
+    }
+
+    const remove = document.createElement('button');
+    remove.className = 'rule-chip-x';
+    remove.textContent = '✕';
+    remove.setAttribute('aria-label', 'Remove this');
+    remove.addEventListener('click', (event) => {
+      event.stopPropagation();
+      removeRuleItem(index);
+    });
+    chip.appendChild(remove);
+
+    box.appendChild(chip);
+  });
+}
+
+async function removeRuleItem(index) {
+  const items = state.agent.rules[openRule];
+  const item = items[index];
+  if (!item) return;
+
+  if (item.audioId) { Voice.forget(item.audioId); await Storage.deleteAudio(item.audioId); }
+  items.splice(index, 1);
+
+  logEvent('rule_remove', { rule: openRule });
+  paintRuleIcons();
+  paintRuleChosen();
+  scheduleSave();
+}
+
+async function playRuleClip(audioId) {
+  Voice.unlock();
+  const row = await Storage.loadAudio(audioId);
+  if (!row) return;
+  try { await Voice.play(audioId, row.blob, 'normal'); } catch (err) { /* ignore */ }
+}
+
+
+/* ---------------------------------------------------------------------------
+   SAYING A RULE OUT LOUD
+   ------------------------------------------------------------------------ */
+async function recordRule() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+
+  const button = $('#m6-record');
+  button.classList.add('is-recording');
+  logEvent('record_start', { slot: 'rule_' + openRule });
+
+  try {
+    const result = await Voice.record({ maxMs: 8000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    state.agent.rules[openRule].push({ icon: null, png: null, audioId: id });
+
+    logEvent('rule_set', { rule: openRule, kind: 'voice' });
+    paintRuleChosen();
+    scheduleSave();
+  } catch (err) {
+    toast('The microphone did not work');
+    logEvent('record_fail', { slot: 'rule_' + openRule });
+  }
+
+  button.classList.remove('is-recording');
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE SHARED DRAWING SHEET
+   Mission 6 opens this to draw a rule. It borrows the same brush Mission 3
+   uses by pointing `coder.canvas` at its canvas (see attachBrush).
+   `onKeep` is called with the PNG when the child keeps the drawing.
+   ------------------------------------------------------------------------ */
+let drawSheetKeep = null;
+
+function openDrawSheet(title, onKeep) {
+  drawSheetKeep = onKeep;
+  coder.canvas = $('#draw-canvas');
+  coder.undoStack = [];
+  coder.colour = CODE_COLOURS[0];
+
+  $('#draw-title').textContent = title;
+  clearCodeCanvas();
+  paintCodePalette('#draw-palette');
+  $('#draw-overlay').hidden = false;
+}
+
+function closeDrawSheet() {
+  $('#draw-overlay').hidden = true;
+  drawSheetKeep = null;
+  // Wipe it on the way out as well as on the way in. A child's drawing has no
+  // business sitting in a hidden canvas once they have finished with it.
+  clearCodeCanvas();
+  // Hand the brush back to Mission 3's canvas, so a later feeling code does
+  // not quietly paint onto the sheet's canvas instead.
+  coder.canvas = $('#m3-canvas');
+  coder.undoStack = [];
+}
+
+function keepDrawSheet() {
+  if (!canvasHasInk()) { toast('Draw something first'); return; }
+  const png = coder.canvas.toDataURL('image/png');
+  const keep = drawSheetKeep;
+  closeDrawSheet();
+  if (keep) keep(png);
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring Mission 6 up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wireMission6() {
+  attachBrush($('#draw-canvas'));
+
+  $('#m6-done').addEventListener('click', closeRuleCard);
+  $('#m6-record').addEventListener('click', recordRule);
+  $('#m6-draw').addEventListener('click', () => {
+    openDrawSheet('Draw your rule', (png) => {
+      state.agent.rules[openRule].push({ icon: null, png: png, audioId: null });
+      logEvent('rule_set', { rule: openRule, kind: 'draw' });
+      paintRuleChosen();
+      scheduleSave();
+    });
+  });
+
+  $('#draw-undo').addEventListener('click', undoCode);
+  $('#draw-clear').addEventListener('click', clearCode);
+  $('#draw-cancel').addEventListener('click', closeDrawSheet);
+  $('#draw-save').addEventListener('click', keepDrawSheet);
+}
+
+function enterMission6() {
+  if (!state.agent) return;
+  $('#m6-detail').hidden = true;
+  $('#m6-cards-view').hidden = false;
+  $('#draw-overlay').hidden = true;
+  openRule = null;
+  renderMission6();
 }

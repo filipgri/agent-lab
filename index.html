@@ -338,18 +338,58 @@
           </div>
         </article>
 
+        <!-- MISSION 5 - WHERE DOES MY AGENT GO? (spec §7).
+             EVERYTHING IS OFF BY DEFAULT. Sharing is always something the child
+             switches on, never something they have to find and switch off. -->
         <article class="mission-panel" data-mission="m5">
-          <p class="placeholder-note">Milestone 5 builds this.</p>
-          <div class="chip-row">
-            <span class="chip">🔒 Just me</span><span class="chip">🏷️ My badge</span><span class="chip">🏫 My class</span>
-            <span class="chip">🖼️ School wall</span><span class="chip">🏠 Home</span>
+
+          <div id="m5-cards-view" class="m5-cards-view">
+            <p class="m3-lead">Where does your agent go?</p>
+            <div id="m5-cards" class="m5-cards"></div>
+          </div>
+
+          <!-- Tapping a card flips it over to its back, where the big on/off
+               switches live. -->
+          <div id="m5-detail" class="m5-detail" hidden>
+            <div class="flip-card">
+              <div id="m5-flip" class="flip-inner">
+                <div class="flip-face flip-front">
+                  <span id="m5-front-icon" class="place-icon"></span>
+                  <span id="m5-front-name" class="place-name"></span>
+                </div>
+                <div class="flip-face flip-back">
+                  <h2 id="m5-back-title" class="m5-back-title"></h2>
+                  <div id="m5-parts" class="m5-parts"></div>
+                  <button id="m5-done" class="btn btn-primary m5-done">✓ Done</button>
+                </div>
+              </div>
+            </div>
           </div>
         </article>
 
+        <!-- MISSION 6 - AGENT RULES (spec §7).
+             Three rule cards. For each one the child taps icons, draws their
+             own, or records it - no typing anywhere. -->
         <article class="mission-panel" data-mission="m6">
-          <p class="placeholder-note">Milestone 5 builds this.</p>
-          <div class="chip-row">
-            <span class="chip">✋ Don't…</span><span class="chip">👍 You can…</span><span class="chip">💛 When I'm upset…</span>
+
+          <div id="m6-cards-view" class="m6-cards-view">
+            <p class="m3-lead">Make your agent rules.</p>
+            <div id="m6-cards" class="m6-cards"></div>
+          </div>
+
+          <div id="m6-detail" class="m6-detail" hidden>
+            <h2 id="m6-title" class="m6-title"></h2>
+
+            <!-- What the child has chosen so far, each removable. -->
+            <div id="m6-chosen" class="m6-chosen"></div>
+
+            <div id="m6-icons" class="m6-icons"></div>
+
+            <div class="tool-row m6-actions">
+              <button id="m6-draw" class="btn tool" aria-label="Draw your own rule">✏️<span class="tool-word">Draw</span></button>
+              <button id="m6-record" class="btn tool" aria-label="Say your rule">🎤<span class="tool-word">Say it</span></button>
+              <button id="m6-done" class="btn btn-primary m6-done">✓ Done</button>
+            </div>
           </div>
         </article>
 
@@ -490,6 +530,24 @@
 <!-- ============================================================ -->
 <!-- Overlays: "Something's missing", typing a codename, toasts    -->
 <!-- ============================================================ -->
+<!-- A small drawing sheet. Mission 6 uses it for "draw your own rule";
+     Milestone 8's 🧩 Something's missing popup will use it too. -->
+<div id="draw-overlay" class="overlay" hidden>
+  <div class="sheet sheet-draw">
+    <h3 id="draw-title">Draw it</h3>
+    <div class="m3-canvas-wrap draw-sheet-canvas">
+      <canvas id="draw-canvas" class="m3-canvas" width="320" height="320"></canvas>
+    </div>
+    <div id="draw-palette" class="palette"></div>
+    <div class="sheet-actions">
+      <button id="draw-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+      <button id="draw-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+      <button id="draw-cancel" class="btn">Cancel</button>
+      <button id="draw-save" class="btn btn-accent">✓ Keep</button>
+    </div>
+  </div>
+</div>
+
 <div id="missing-overlay" class="overlay" hidden>
   <div class="sheet">
     <h3>🧩 Something's missing</h3>

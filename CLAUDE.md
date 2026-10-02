@@ -85,17 +85,24 @@ before `app.js` when it arrives (Milestone 8).
   the optional Yes ×3 bonus slots. `Storage.deleteAudio()` added.
 - **Milestone 4 — done.** Mission 3: the secret feeling code. The blank tile
   comes first; "Need ideas?" reveals the six faces only when asked, and the
-  event log proves the order (`feeling_draw` before `need_ideas_open`). Up to
+  event log proves the order (`draw_stroke` before `need_ideas_open`). Up to
   three codes, each a PNG data URL from a small drawing canvas, with an
   optional recorded name, an optional face, and a movement the child picks.
   Then "which one is your agent wearing today?", with None as an equal choice.
   Brought in the five `.move-*` classes from §5a, previewed on the thumbnail
   only — the rest of §5a still waits for Milestone 8.
-- **Next: Milestone 5 — Where does my agent go? + Agent rules**
-  (spec §7, Missions 5 & 6).
+- **Milestone 5 — done.** Missions 5 and 6. Mission 5: five place cards that
+  flip over (`rotateY` with `backface-visibility`) to five big on/off switches
+  — **everything off by default, and there is no "share everything" shortcut**.
+  The front of each card then shows what is going there. Mission 6: three rule
+  cards, each taking tapped icons, a drawing, or a recording — no typing
+  anywhere. The drawing uses a shared sheet (`#draw-overlay`) that borrows
+  Mission 3's brush by pointing `coder.canvas` at its own canvas; Milestone 8's
+  🧩 Something's missing popup should reuse that sheet rather than add another.
+- **Next: Milestone 6 — Reveal ID card** with save-as-PNG (spec §7).
 
-Remaining order (spec §10): 5 Places & rules → 6 Reveal ID card → 7 Build and
-Draw doors → 8 Polish & juice (§5a) → 9 Offline PWA.
+Remaining order (spec §10): 6 Reveal ID card → 7 Build and Draw doors →
+8 Polish & juice (§5a) → 9 Offline PWA.
 
 ## Settled decisions
 
@@ -119,6 +126,10 @@ Draw doors → 8 Polish & juice (§5a) → 9 Offline PWA.
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **One brush, many canvases.** `coder.canvas` says which canvas the drawing
+  code is painting on; `attachBrush(el)` wires a canvas up. Anything that logs
+  a stroke must tag it (`draw_stroke` carries `where`), or the research log
+  cannot tell a feeling code apart from a drawn rule.
 - **A row that must stay reachable does not belong inside a scrolling column.**
   Mission 3's Keep it / Remove row sits in `.m3-side` *beside* the scrolling
   `.m3-tools`, because `margin-top:auto` inside a scroller pins a row to the

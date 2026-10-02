@@ -1287,3 +1287,291 @@ body[data-motion="calm"] .sticker.just-landed { animation: none; }
      mid-flow between two button groups. */
   .m3-tools .m4-question-small { flex: 1 1 100%; margin: 4px 0 0; }
 }
+
+
+/* ============================================================
+   MILESTONE 5 - MISSION 5, WHERE DOES MY AGENT GO? (spec §7)
+   ============================================================ */
+
+.m5-cards-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m5-cards { display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: center; }
+
+.place-card {
+  position: relative;
+  width: 168px;
+  min-height: 176px;
+  border: none;
+  border-radius: 20px;
+  background: var(--navy-2);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 10px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+  transition: transform 160ms ease;
+}
+.place-card:active { transform: scale(.97); }
+/* A card with something going to it is marked, but NOT in a way that makes an
+   empty card look unfinished - an empty card is a complete answer. */
+.place-card.has-parts { box-shadow: inset 0 0 0 2px var(--accent); }
+
+.place-icon { font-size: 50px; line-height: 1; }
+.place-name { font-size: 18px; font-weight: 600; text-align: center; }
+.place-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 19px;
+  min-height: 24px;
+}
+.place-empty { font-size: 13px; color: var(--muted); font-style: italic; }
+
+/* --- The card that flips over --- */
+.m5-detail { flex: 1; min-height: 0; display: grid; place-items: center; }
+
+/* perspective makes the rotation look like a card turning in space rather
+   than a flat squash. It belongs on the PARENT of the thing that rotates. */
+.flip-card {
+  perspective: 1200px;
+  width: min(100%, 520px);
+  height: 100%;
+  /* Tall enough that all five switches fit without scrolling. A child should
+     not have to discover that there is a fifth option below the fold. */
+  max-height: min(100%, 500px);
+}
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;        /* keeps the two faces in 3D space */
+  transition: transform 500ms cubic-bezier(.3,.8,.4,1);
+}
+.flip-inner.is-flipped { transform: rotateY(180deg); }
+
+.flip-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  background: var(--navy-2);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Hides whichever face is pointing away from us. The -webkit- prefix is
+     there for older iPad Safari. */
+  -webkit-backface-visibility: hidden;
+          backface-visibility: hidden;
+}
+.flip-front { justify-content: center; gap: 14px; }
+.flip-front .place-icon { font-size: 88px; }
+.flip-front .place-name { font-size: 26px; }
+
+.flip-back {
+  transform: rotateY(180deg);          /* starts facing away */
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 14px;
+}
+.m5-back-title { margin: 0; font-size: 20px; text-align: center; flex: 0 0 auto; }
+
+.m5-parts {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* One big switch per part. The whole row is the target, so it is far wider
+   than the 64px spec §5 asks for. */
+.part-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 16px;
+  background: var(--navy-3);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.07);
+}
+.part-icon { font-size: 26px; line-height: 1; }
+.part-label { flex: 1; text-align: left; font-weight: 600; }
+
+/* The switch itself: a track with a knob that slides across. */
+.part-switch {
+  position: relative;
+  width: 62px;
+  height: 34px;
+  border-radius: 999px;
+  background: #0a1830;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.1);
+  flex: 0 0 auto;
+}
+.part-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 180ms ease, background 180ms ease;
+}
+.part-toggle.is-on { box-shadow: inset 0 0 0 2px var(--accent); }
+.part-toggle.is-on .part-switch { background: #2c4a22; }
+.part-toggle.is-on .part-knob { transform: translateX(28px); background: var(--accent); }
+
+.part-word { width: 34px; text-align: right; font-weight: 700; color: var(--muted); }
+.part-toggle.is-on .part-word { color: var(--accent); }
+
+.m5-done { width: 100%; min-height: 64px; font-size: 19px; flex: 0 0 auto; }
+
+@media (orientation: portrait) {
+  .flip-card { max-height: none; height: min(100%, 560px); }
+}
+
+/* Motion off: the flip becomes an instant change rather than a turn. */
+body[data-motion="off"] .flip-inner { transition: none; }
+
+
+/* ============================================================
+   MILESTONE 5 - MISSION 6, AGENT RULES (spec §7)
+   ============================================================ */
+
+.m6-cards-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m6-cards { display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: center; }
+
+.rule-card {
+  width: 220px;
+  min-height: 190px;
+  border: none;
+  border-radius: 20px;
+  background: var(--navy-2);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 12px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+  transition: transform 160ms ease;
+}
+.rule-card:active { transform: scale(.97); }
+.rule-card.has-items { box-shadow: inset 0 0 0 2px var(--accent); }
+.rule-title { font-size: 18px; font-weight: 600; text-align: center; }
+.rule-mini {
+  width: 22px; height: 22px;
+  object-fit: contain;
+  vertical-align: middle;
+  background: rgba(255,255,255,.06);
+  border-radius: 5px;
+}
+
+/* --- One rule, opened --- */
+.m6-detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m6-title { margin: 0; font-size: 26px; text-align: center; }
+
+.m6-chosen {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  min-height: 72px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.04);
+}
+.rule-chosen-chip {
+  position: relative;
+  min-width: 64px;
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: var(--navy-3);
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.rule-chosen-chip.is-audio { cursor: pointer; }
+.rule-chosen-chip .rule-mini { width: 46px; height: 46px; }
+/* The little ✕ overlaps the chip's corner, so it stays reachable without
+   making every chip twice as wide. */
+.rule-chip-x {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.m6-icons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.rule-icon-btn { min-width: 72px; min-height: 72px; }
+.rule-icon-btn.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.m6-actions { justify-content: center; margin-top: auto; padding-top: 6px; }
+.m6-done { min-width: 160px; min-height: 72px; font-size: 19px; }
+#m6-record.is-recording { animation: record-pulse 1s ease-in-out infinite; }
+
+/* --- The shared drawing sheet --- */
+.sheet-draw { max-width: 440px; }
+.draw-sheet-canvas { width: min(100%, 320px); height: auto; margin: 0 auto; }
+.sheet-draw .palette { grid-template-columns: repeat(6, 1fr); }
+.sheet-draw .sheet-actions { flex-wrap: wrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  #m6-record.is-recording { animation: none; }
+}
