@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 8 (polish & juice)
+## Current state: Milestone 9 — all nine milestones built
 
 Working now:
 
@@ -156,7 +156,20 @@ Working now:
   particles, no idle motion) or **Off**. It defaults to Calm automatically if
   the iPad has Reduce Motion switched on.
 
-What remains is **offline support** (Milestone 9).
+### Offline works
+
+- Agent Lab installs to the home screen and **opens with the Wi-Fi off** once
+  it has been loaded through once. A school's patchy wireless cannot stop a
+  session any more.
+- A new version **never takes over mid-mission**. It waits, and a small
+  "✨ New version ready — tap to update" banner appears so an adult can pick
+  the moment.
+- The adult panel tells you plainly whether offline is actually working on
+  that iPad — check it before a session rather than hoping.
+
+**Releasing a new version:** bump `CACHE_VERSION` in `sw.js` *and* the `?v=`
+number on the five links in `index.html` (they must match the ones listed in
+`sw.js`). Miss this and the iPads keep running the old app.
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -266,6 +279,18 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 9
+
+- [ ] Open the https address in Safari on the iPad, then **Share → Add to
+      Home Screen**. Is the spy hat icon there, with the name "Agent Lab"?
+- [ ] Open it from the icon. Does it fill the screen with no Safari chrome?
+- [ ] In the adult panel, does it say **"Offline: ready — works offline ✅"**?
+      If not, do not rely on it in a session.
+- [ ] Now **turn Wi-Fi off** and open it from the icon again. Does it work?
+- [ ] Make an agent with the Wi-Fi still off. Does everything save?
+- [ ] Push an update, then reopen. Does the banner appear rather than the app
+      changing underneath you?
 
 ## Test checklist for Milestone 8
 

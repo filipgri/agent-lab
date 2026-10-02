@@ -20,11 +20,16 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'">
 
+  <!-- PWA: installable, and works with the Wi-Fi off (spec §4, Milestone 9) -->
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+
   <title>Agent Lab</title>
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=8">
+  <link rel="stylesheet" href="./style.css?v=9">
 </head>
 <body>
 
@@ -668,6 +673,13 @@
   </div>
 </div>
 
+<!-- Spec §9: a new version is never forced on a child mid-mission. It waits
+     here until someone taps. -->
+<div id="update-banner" class="update-banner" hidden>
+  <span>✨ New version ready</span>
+  <button id="btn-update" class="btn btn-accent">Tap to update</button>
+</div>
+
 <!-- Spec §5a: a scanner line sweeps down between missions. -->
 <div id="scanner" class="scanner" aria-hidden="true"></div>
 
@@ -676,9 +688,9 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=8"></script>
-<script src="./audio.js?v=8"></script>
-<script src="./effects.js?v=8"></script>
-<script src="./app.js?v=8"></script>
+<script src="./storage.js?v=9"></script>
+<script src="./audio.js?v=9"></script>
+<script src="./effects.js?v=9"></script>
+<script src="./app.js?v=9"></script>
 </body>
 </html>

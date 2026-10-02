@@ -50,6 +50,9 @@ external fonts or libraries, or text-heavy instructions.
 | `storage.js` | IndexedDB wrapper (agents, audio blobs, settings) |
 | `audio.js` | Microphone, 10s recorder, playback filters, sound effects |
 | `effects.js` | Particles on one canvas, and the screen shake (§5a) |
+| `sw.js` | Service worker: caches the app so it runs offline |
+| `manifest.json` | PWA settings (name, standalone, icons) |
+| `icons/make-icons.py` | Draws the three app icons; re-run if you change them |
 | `README.md` | Deploy steps, iPad setup, test checklists |
 
 `app.js` is numbered into sections with comment banners (1. CONFIG, 2. STATE …
@@ -124,10 +127,15 @@ release** or an iPad will keep running the old JavaScript against new HTML.
   bounce (AnalyserNode RMS, lerp 0.3), the 2.5s Boost power-up with ✨ replay,
   scanner sweep, decrypting titles, shimmering locks, tilting doors, and the
   Reveal finale — all skippable, all honouring Full / Calm / Off.
-- **Next: Milestone 9 — Offline PWA**: manifest, service worker, icons, the
-  update banner, final iPad test.
+- **Milestone 9 — done.** `manifest.json`, `sw.js`, and three icons drawn by
+  `icons/make-icons.py` (pure stdlib: zlib writes the PNG by hand, because
+  there is no image library here either). The service worker caches the app
+  shell and serves cache-first; a new version **waits** rather than taking
+  over, and a small "New version ready" banner lets an adult choose the
+  moment. The adult panel reports whether offline is actually working.
 
-Remaining order (spec §10): 9 Offline PWA.
+**All nine milestones are built.** What is left is testing with children.
+
 
 ## Settled decisions
 
@@ -151,6 +159,11 @@ Remaining order (spec §10): 9 Offline PWA.
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **⚠️ On every release, bump BOTH `CACHE_VERSION` in `sw.js` AND the `?v=`
+  on all five links in `index.html`, and keep the `?v=` in `sw.js`'s
+  `APP_FILES` identical to the HTML's.** A service worker caches URLs, so
+  `app.js` and `app.js?v=9` are different files to it. Get this wrong and
+  iPads keep running the old app, or cache a version that never loads.
 - **Sounds are generated, never loaded.** `Voice.sfx(name)` builds each one
   from an oscillator or a noise buffer, because §4 allows no files and §3 no
   downloads. Add new sounds to the `SFX` table in `audio.js`.

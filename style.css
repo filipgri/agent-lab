@@ -1895,3 +1895,32 @@ body[data-motion="off"] .scanner { display: none; }
   .scanner, .dossier.is-arriving, .dossier-stamp.is-slamming { animation: none !important; }
   .fx-canvas { display: none; }
 }
+
+
+/* ============================================================
+   MILESTONE 9 - THE UPDATE BANNER (spec §9)
+   ============================================================ */
+
+/* Deliberately small and out of the way. A new version is never urgent to a
+   child, and this must not look like something that has gone wrong. */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--navy-3);
+  color: var(--text);
+  font-size: 16px;
+  box-shadow: 0 10px 26px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.1);
+}
+.update-banner[hidden] { display: none; }
+.update-banner .btn { min-height: 48px; padding: 0 18px; font-size: 16px; }
+
+/* The adult panel's storage line now has two lines in it. */
+#storage-state { white-space: pre-line; }

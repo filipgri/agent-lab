@@ -28,6 +28,7 @@
     20. REVEAL            the agent ID card + save as PNG (Milestone 6)
     21. BUILD + DRAW      the other two Mission 1 doors (Milestone 7)
     22. POLISH & JUICE    §5a animation, sounds, spoken prompts (Milestone 8)
+    23. OFFLINE           service worker + update banner (Milestone 9)
    ========================================================================== */
 
 
@@ -41,7 +42,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 8;
+const MILESTONE = 9;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -880,12 +881,25 @@ async function boot() {
   paintMuteButtons();
   paintMotionButtons();
 
+  // Milestone 9: offline support.
+  registerServiceWorker();
+
   // Spec §3: ask iOS to keep our data.
   const persistence = await Storage.requestPersistence();
   $('#storage-state').textContent =
     'Storage persistence: ' + persistence +
     (window.navigator.standalone ? ' · opened from home screen ✅'
                                  : ' · opened in Safari (separate storage) ⚠️');
+
+  // Milestone 9: say plainly whether offline actually works on this iPad.
+  // Registration is asynchronous, so the first read is usually "installing".
+  // Reading again a second later gives the adult panel the real answer.
+  async function showOffline() {
+    const base = $('#storage-state').textContent.split('\nOffline:')[0];
+    $('#storage-state').textContent = base + '\nOffline: ' + (await offlineState());
+  }
+  await showOffline();
+  setTimeout(showOffline, 1500);
 
   rollCodename();
   await refreshContinueButton();
@@ -4451,4 +4465,98 @@ function wirePolish() {
       if ('speechSynthesis' in window) speechSynthesis.cancel();
     }
   });
+}
+
+
+/* ==========================================================================
+   23. OFFLINE (added in Milestone 9, spec §4 and §9)
+   ==========================================================================
+
+   The service worker in sw.js keeps a copy of the app so it opens with no
+   internet at all. This section is the page's half of that: it registers the
+   worker, and it shows the "New version" banner when a newer one is waiting.
+
+   WHY A NEW VERSION WAITS RATHER THAN TAKING OVER
+   A child may be halfway through making their agent. Swapping the app out
+   underneath them would be, at best, confusing. So a new worker sits and
+   waits, and the banner lets an adult choose the moment.
+
+   A SERVICE WORKER NEEDS HTTPS
+   Browsers only allow one over https, or on localhost. That is why this is
+   wrapped in a check rather than assumed - opening the files directly, or
+   over plain http from another machine, simply skips it.
+   ========================================================================== */
+
+// What actually happened when we tried. The adult panel reports this, and a
+// wrong answer there is worse than no answer: it is how an adult decides
+// whether the app is safe to use with the Wi-Fi off.
+let swStatus = 'not tried';
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) { swStatus = 'not supported'; return; }
+
+  navigator.serviceWorker.register('./sw.js').then(function (registration) {
+    swStatus = 'registered';
+
+    // One may already be waiting from a previous visit.
+    if (registration.waiting && navigator.serviceWorker.controller) {
+      showUpdateBanner(registration.waiting);
+    }
+
+    // A new one has been found and is downloading.
+    registration.addEventListener('updatefound', function () {
+      const incoming = registration.installing;
+      if (!incoming) return;
+
+      incoming.addEventListener('statechange', function () {
+        /* "installed" with a controller already present means this is an
+           UPDATE, not the first install. On a first install there is nothing
+           to tell anyone about - the app simply works offline from now on. */
+        if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateBanner(incoming);
+        }
+      });
+    });
+  }).catch(function (err) {
+    // No offline support. The app still works; it just needs the network.
+    swStatus = 'failed: ' + (err && err.name ? err.name : 'unknown');
+  });
+
+  /* When the new worker takes over, reload once so the page is running the
+     new files. The guard stops the endless reload loop this famously causes. */
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  });
+}
+
+function showUpdateBanner(worker) {
+  const banner = $('#update-banner');
+  if (!banner) return;
+  banner.hidden = false;
+
+  $('#btn-update').onclick = function () {
+    banner.hidden = true;
+    logEvent('update_apply', {});
+    // Tell the waiting worker to take over; controllerchange then reloads.
+    worker.postMessage({ type: 'SKIP_WAITING' });
+  };
+}
+
+/* The adult panel shows whether offline support is actually working, because
+   "it should work offline" is not the same as "it does". */
+async function offlineState() {
+  if (!('serviceWorker' in navigator)) return 'not supported by this browser ⚠️';
+  if (!window.isSecureContext) return 'needs https (or localhost) ⚠️';
+  if (swStatus.indexOf('failed') === 0) return swStatus + ' — NOT working offline ⚠️';
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return 'not registered — NOT working offline ⚠️';
+    if (navigator.serviceWorker.controller) return 'ready — works offline ✅';
+    return 'installing — close and reopen once to finish';
+  } catch (err) {
+    return 'unavailable ⚠️';
+  }
 }
