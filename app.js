@@ -27,6 +27,7 @@
     19. MISSION 6         agent rules + shared drawing sheet (Milestone 5)
     20. REVEAL            the agent ID card + save as PNG (Milestone 6)
     21. BUILD + DRAW      the other two Mission 1 doors (Milestone 7)
+    22. POLISH & JUICE    §5a animation, sounds, spoken prompts (Milestone 8)
    ========================================================================== */
 
 
@@ -40,7 +41,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 7;
+const MILESTONE = 8;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -429,7 +430,9 @@ function goToMission(index, reasonAction) {
   showScreen('mission');
 
   const mission = MISSIONS[state.missionIndex];
-  $('#mission-title').textContent = mission.title;
+  // Spec §5a: the scanner sweeps and the title decrypts as a mission opens.
+  scannerSweep();
+  decryptTitle($('#mission-title'), mission.title);
 
   // Show only this mission's panel.
   $$('.mission-panel').forEach(panel => {
@@ -483,13 +486,14 @@ function advance() {
   }
 }
 
-// The full stamp animation and thud sound arrive in Milestone 8. For now the
-// button gets a brief visual kick so the tap feels answered.
+// Spec §5a: the stamp lands with a thud and a few sparkles.
 function playStampFeedback() {
   const button = $('#btn-stamp');
   button.classList.remove('stamp-kick');
   void button.offsetWidth;           // forces the browser to restart the animation
   button.classList.add('stamp-kick');
+  playSfx('stamp');
+  Effects.burstAt(button, { count: 22, spread: 6 });
 }
 
 function openReveal() {
@@ -499,7 +503,7 @@ function openReveal() {
   renderStrip();
   renderPreview();
   logEvent('mission_enter', { mission: 'reveal' });
-  renderReveal();              // Milestone 6: fill in the ID card
+  renderReveal().then(playRevealFinale);   // Milestones 6 and 8
 }
 
 async function finishSession() {
@@ -519,6 +523,8 @@ async function finishSession() {
 
 async function toggleMute() {
   state.muted = !state.muted;
+  Voice.setMuted(state.muted);
+  if (state.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
   await Storage.setMeta('muted', state.muted);
   paintMuteButtons();
   logEvent('mute_toggle', { muted: state.muted });
@@ -814,6 +820,7 @@ function wireUp() {
   wireMission5();
   wireMission6();
   wireReveal();
+  wirePolish();
   $('#btn-stamp').addEventListener('click', stampMission);
   $('#btn-pass').addEventListener('click', passMission);
   $('#btn-finish').addEventListener('click', finishSession);
@@ -821,12 +828,8 @@ function wireUp() {
   // --- global buttons (there is one of each per screen) ---
   $$('[data-mute]').forEach(b => b.addEventListener('click', toggleMute));
   $$('[data-missing]').forEach(b => b.addEventListener('click', openMissing));
-  $$('[data-speak]').forEach(b => b.addEventListener('click', () => {
-    toast('Spoken prompts arrive in Milestone 8');
-  }));
-  $('#btn-missing-close').addEventListener('click', () => {
-    $('#missing-overlay').hidden = true;
-  });
+  $$('[data-speak]').forEach(b => b.addEventListener('click', speakPrompt));
+  $('#btn-missing-close').addEventListener('click', closeMissing);
 
   // --- adult panel ---
   buildPinPad();
@@ -873,6 +876,7 @@ async function boot() {
     state.motion = reduce ? 'calm' : 'full';
   }
   document.body.dataset.motion = state.motion;
+  Voice.setMuted(state.muted);
   paintMuteButtons();
   paintMotionButtons();
 
@@ -1503,6 +1507,7 @@ function addSticker(emoji, x, y) {
   p.stickers.push({ emoji: emoji, x: x, y: y, scale: 1, rotation: 0 });
   editor.selected = p.stickers.length - 1;
   logEvent('sticker_add', { emoji: emoji });
+  playSfx('pop');
   refreshAgentViews();
 
   // Spec §5a: the sticker lands with a bounce.
@@ -1824,6 +1829,10 @@ function enterMission2() {
   if (copied) scheduleSave();
 
   openEditor('#m2-editor-mount', 'boost');
+
+  // Spec §5a: the power-up plays once when Mission 2 opens. A moment later,
+  // so the editor has been laid out and the stage is where it will stay.
+  setTimeout(playBoostPowerUp, 350);
 }
 
 
@@ -3330,9 +3339,12 @@ async function playRevealVoice() {
   if (!agent.voice.audioId || !cardAssets.voiceBlob) return;
   Voice.unlock();
   logEvent('reveal_play', { filter: agent.voice.filter || 'normal' });
+  const art = $('#reveal-boost') || $('#reveal-cover');
   try {
     await Voice.play(agent.voice.audioId, cardAssets.voiceBlob,
-                     agent.voice.filter || 'normal');
+                     agent.voice.filter || 'normal',
+                     () => stopVoiceBounce(art));
+    startVoiceBounce(art);     // spec §5a item 2
   } catch (err) { toast('That recording would not play'); }
 }
 
@@ -3804,6 +3816,7 @@ function addShape(type, x, y) {
   });
   editor.selectedShape = p.shapes.length - 1;
   logEvent('shape_add', { shape: type, colour: editor.colour });
+  playSfx('pop');
   refreshAgentViews();
   scheduleSave();
 }
@@ -4034,5 +4047,408 @@ function wireDoors() {
     coder.mirror = !coder.mirror;
     logEvent('mirror_toggle', { on: coder.mirror });
     paintBrushButtons();
+  });
+}
+
+
+/* ==========================================================================
+   22. POLISH & JUICE (added in Milestone 8, spec §5a and §6)
+   ==========================================================================
+
+   Four things live here:
+     - the 🧩 Something's missing popup, now real and on every screen (§6);
+     - 🔊 spoken prompts, so nothing depends on being able to read (§6);
+     - sound effects, generated in audio.js rather than loaded (§5a);
+     - the animation sequences from §5a.
+
+   SPEC §5a'S GUARDRAILS, AND WHERE THEY ARE KEPT
+     - One big moment per mission: the Boost power-up and the Reveal finale
+       are the only two, and each plays once.
+     - Nothing flashes more than three times a second. The one white flash in
+       the power-up is a single pulse, not a strobe.
+     - Animation never blocks input, and every long sequence can be skipped
+       with a tap.
+     - Motion level Full / Calm / Off, honoured by checking motionLevel().
+   ========================================================================== */
+
+function motionLevel() {
+  return document.body.dataset.motion || 'full';
+}
+
+// Is the big, showy kind of animation allowed?
+function fullMotion() {
+  return motionLevel() === 'full';
+}
+
+// Sound only when not muted (spec §6).
+function playSfx(name) {
+  if (state.muted) return;
+  Voice.sfx(name);
+}
+
+
+/* ---------------------------------------------------------------------------
+   🔊 SPOKEN PROMPTS (spec §6)
+   A facilitator may record audio/m1.m4a and friends later. Until those exist,
+   the iPad reads the prompt out itself. Either way a child who cannot read
+   still knows what the mission is.
+   ------------------------------------------------------------------------ */
+const promptAudio = {};        // mission id -> HTMLAudioElement, or false
+
+function speakPrompt() {
+  const id = currentMissionId();
+  const mission = MISSIONS.find(m => m.id === id);
+  const text = mission ? mission.prompt
+             : id === 'reveal' ? 'Here is your agent.'
+             : 'Make your agent.';
+
+  logEvent('speak', { mission: id });
+  if (state.muted) { toast('Sound is off'); return; }
+
+  // A recorded file wins if the facilitator has provided one.
+  if (promptAudio[id] === undefined) {
+    const audio = new Audio('./audio/' + id + '.m4a');
+    audio.addEventListener('error', () => { promptAudio[id] = false; });
+    promptAudio[id] = audio;
+  }
+  const recorded = promptAudio[id];
+  if (recorded) {
+    recorded.currentTime = 0;
+    // play() rejects when the file is missing; fall through to the voice.
+    recorded.play().catch(() => { promptAudio[id] = false; speakWithVoice(text); });
+    return;
+  }
+  speakWithVoice(text);
+}
+
+function speakWithVoice(text) {
+  if (!('speechSynthesis' in window)) { toast(text); return; }
+  // Cancel anything still being said, or the prompts queue up and overlap.
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 0.95;         // a little slower than default, for children
+  utterance.pitch = 1.05;
+  speechSynthesis.speak(utterance);
+}
+
+
+/* ---------------------------------------------------------------------------
+   🧩 SOMETHING'S MISSING (spec §6)
+   On every screen, always. The child draws or says what the app did not let
+   them do, and it is saved against the screen they were on - which is the
+   point of it as research: it records the gaps in our own design.
+   ------------------------------------------------------------------------ */
+let missingAudioId = null;
+
+function openMissing() {
+  missingAudioId = null;
+  logEvent('missing_open', { screen: currentMissionId() });
+
+  coder.canvas = $('#missing-canvas');
+  coder.undoStack = [];
+  coder.colour = CODE_COLOURS[0];
+  coder.width = 14;
+  coder.mirror = false;
+  coder.onStroke = null;
+  clearCodeCanvas();
+  paintCodePalette('#missing-palette');
+  paintMissingRecordButton();
+
+  $('#missing-overlay').hidden = false;
+}
+
+function closeMissing() {
+  $('#missing-overlay').hidden = true;
+  clearCodeCanvas();
+  // Hand the brush back, so a later feeling code does not paint in here.
+  coder.canvas = $('#m3-canvas');
+  coder.undoStack = [];
+}
+
+function paintMissingRecordButton() {
+  const button = $('#missing-record');
+  button.classList.toggle('is-on', Boolean(missingAudioId));
+  $('#missing-record-word').textContent = missingAudioId ? 'Saved' : 'Say it';
+}
+
+async function recordMissing() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+
+  const button = $('#missing-record');
+  button.classList.add('is-recording');
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    if (missingAudioId) await Storage.deleteAudio(missingAudioId);
+    missingAudioId = id;
+    playSfx('pop');
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  button.classList.remove('is-recording');
+  paintMissingRecordButton();
+}
+
+async function saveMissing() {
+  if (!state.agent) { closeMissing(); return; }
+
+  const hasDrawing = canvasHasInk();
+  if (!hasDrawing && !missingAudioId) {
+    toast('Draw it or say it first');
+    return;
+  }
+
+  state.agent.missing.push({
+    screen: currentMissionId(),
+    png: hasDrawing ? coder.canvas.toDataURL('image/png') : null,
+    audioId: missingAudioId,
+    t: nowIso()
+  });
+
+  logEvent('missing_save', {
+    screen: currentMissionId(),
+    drawn: hasDrawing,
+    said: Boolean(missingAudioId)
+  });
+
+  missingAudioId = null;
+  closeMissing();
+  playSfx('pop');
+  toast('Thank you 🧩');
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE AGENT COMES ALIVE (spec §5a item 1)
+   Idle motion is only ever on the PREVIEW thumbnail, never on the agent while
+   it is being edited - that is the spec's golden rule.
+   ------------------------------------------------------------------------ */
+const TAP_REACTIONS = ['react-jump', 'react-spin', 'react-wobble'];
+
+function tapPreview() {
+  const art = $('#preview-art');
+  if (!art || !fullMotion()) return;
+
+  // A movement the child chose for a feeling code wins over a random reaction.
+  if (MOVES.some(m => art.classList.contains('move-' + m.id))) return;
+
+  TAP_REACTIONS.forEach(c => art.classList.remove(c));
+  void art.offsetWidth;                       // restart the animation
+  art.classList.add(pick(TAP_REACTIONS));
+  playSfx('tap');
+  logEvent('agent_tap', {});
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE VOICE DRIVES THE BODY (spec §5a item 2)
+   While the password plays, the agent grows and shrinks with how loud it is.
+   The movement is smoothed with a lerp so it glides instead of twitching.
+   ------------------------------------------------------------------------ */
+let bounceFrame = null;
+let bounceScale = 1;
+
+function startVoiceBounce(element) {
+  if (!element || !fullMotion()) return;
+  stopVoiceBounce(element);
+  bounceScale = 1;
+
+  function frame() {
+    const rms = Voice.loudness();
+    // Spec §5a: 1 + rms * 0.5, never past 1.25.
+    const target = Math.min(1.25, 1 + rms * 0.5);
+    // lerp 0.3: move three tenths of the way there each frame.
+    bounceScale += (target - bounceScale) * 0.3;
+    element.style.transform = 'scale(' + bounceScale.toFixed(3) + ') ' +
+                              'translateY(' + ((1 - bounceScale) * 30).toFixed(1) + 'px)';
+    bounceFrame = requestAnimationFrame(frame);
+  }
+  bounceFrame = requestAnimationFrame(frame);
+}
+
+function stopVoiceBounce(element) {
+  if (bounceFrame) cancelAnimationFrame(bounceFrame);
+  bounceFrame = null;
+  if (element) element.style.transform = '';
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE BOOST POWER-UP (spec §5a item 3)
+   About two and a half seconds, once, when Mission 2 opens, with a ✨ button
+   to see it again. The order is the spec's: shake, one flash, spin and grow,
+   sparkles, then the aura.
+   ------------------------------------------------------------------------ */
+let powerUpRunning = false;
+
+function playBoostPowerUp() {
+  const stageEl = stage();
+  if (!stageEl || powerUpRunning) return;
+  if (!fullMotion()) return;          // Calm and Off skip it entirely
+
+  powerUpRunning = true;
+  logEvent('boost_power_up', {});
+  stageEl.classList.remove('power-up');
+  void stageEl.offsetWidth;
+  stageEl.classList.add('power-up');
+  playSfx('power');
+
+  // The sparkles land as the spin finishes, not at the start.
+  setTimeout(() => {
+    if (!$('#editor').hidden) {
+      Effects.burstAt(stageEl, { count: 60, spread: 9 });
+      playSfx('sparkle');
+    }
+  }, 1300);
+
+  setTimeout(() => {
+    stageEl.classList.remove('power-up');
+    powerUpRunning = false;
+  }, 2500);
+}
+
+
+/* ---------------------------------------------------------------------------
+   SPY TRANSITIONS (spec §5a item 5)
+   ------------------------------------------------------------------------ */
+function scannerSweep() {
+  if (!fullMotion()) return;
+  const line = $('#scanner');
+  line.classList.remove('is-sweeping');
+  void line.offsetWidth;
+  line.classList.add('is-sweeping');
+  playSfx('whoosh');
+}
+
+/* The mission title "decrypts": random letters settle into the real ones.
+   Spaces are left alone so the shape of the words stays readable. */
+const SCRAMBLE = '!<>-_\\/[]{}—=+*^?#';
+
+function decryptTitle(element, finalText) {
+  if (!element) return;
+  if (!fullMotion()) { element.textContent = finalText; return; }
+
+  const start = performance.now();
+  const duration = 500;
+
+  /* A safety net. requestAnimationFrame stops in a backgrounded tab, and if it
+     stopped mid-decrypt the title would be left as nonsense. This guarantees
+     the real words land whatever happens to the frames. */
+  clearTimeout(element._decryptSafety);
+  element._decryptSafety = setTimeout(() => { element.textContent = finalText; },
+                                      duration + 150);
+
+  function frame(now) {
+    const progress = Math.min(1, (now - start) / duration);
+    // Letters settle left to right as the progress passes each one.
+    const settled = Math.floor(progress * finalText.length);
+    let out = '';
+    for (let i = 0; i < finalText.length; i++) {
+      if (i < settled || finalText[i] === ' ') out += finalText[i];
+      else out += SCRAMBLE[Math.floor(Math.random() * SCRAMBLE.length)];
+    }
+    element.textContent = out;
+    if (progress < 1) requestAnimationFrame(frame);
+    else element.textContent = finalText;
+  }
+  requestAnimationFrame(frame);
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE REVEAL FINALE (spec §5a item 6)
+   The dossier opens, the stamp lands, sparkles fly, and the password plays
+   itself once - which Safari permits, because it follows the tap that got
+   here. Tapping anywhere skips to the finished card.
+   ------------------------------------------------------------------------ */
+let finaleTimers = [];
+
+function playRevealFinale() {
+  clearFinale();
+  const dossier = $('#dossier');
+  if (!dossier) return;
+
+  if (!fullMotion()) { dossier.classList.add('is-open'); return; }
+
+  dossier.classList.remove('is-open');
+  dossier.classList.add('is-arriving');
+  playSfx('whoosh');
+
+  finaleTimers.push(setTimeout(() => {
+    dossier.classList.remove('is-arriving');
+    dossier.classList.add('is-open');
+  }, 600));
+
+  // The stamp slams down with a thud and a small screen shake.
+  finaleTimers.push(setTimeout(() => {
+    const stamp = $('.dossier-stamp');
+    stamp.classList.remove('is-slamming');
+    void stamp.offsetWidth;
+    stamp.classList.add('is-slamming');
+    playSfx('stamp');
+    Effects.shake($('#screen-reveal'), 6);
+  }, 800));
+
+  // Sparkles, then the password plays itself once with the bounce.
+  finaleTimers.push(setTimeout(() => {
+    Effects.burstAt($('#dossier'), { count: 50, spread: 8 });
+    playSfx('sparkle');
+  }, 1200));
+
+  finaleTimers.push(setTimeout(() => {
+    if (state.onReveal && state.agent && state.agent.voice.audioId) playRevealVoice();
+  }, 1600));
+}
+
+/* Spec §5a: tapping anywhere skips straight to the finished card. */
+function skipFinale() {
+  if (finaleTimers.length === 0) return;
+  clearFinale();
+  const dossier = $('#dossier');
+  dossier.classList.remove('is-arriving');
+  dossier.classList.add('is-open');
+  Effects.clear();
+  logEvent('reveal_skip', {});
+}
+
+function clearFinale() {
+  finaleTimers.forEach(clearTimeout);
+  finaleTimers = [];
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring Milestone 8 up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wirePolish() {
+  attachBrush($('#missing-canvas'));
+
+  $('#missing-record').addEventListener('click', recordMissing);
+  $('#missing-undo').addEventListener('click', undoCode);
+  $('#missing-clear').addEventListener('click', clearCode);
+  $('#missing-save').addEventListener('click', saveMissing);
+
+  // Tapping the preview makes the agent react (spec §5a item 1).
+  const art = $('#preview-art');
+  if (art) art.addEventListener('click', tapPreview);
+
+  // Tapping anywhere on the Reveal skips the finale.
+  $('#screen-reveal').addEventListener('pointerdown', skipFinale);
+
+  // The ✨ replay button on Mission 2.
+  const replay = $('#btn-power-replay');
+  if (replay) replay.addEventListener('click', playBoostPowerUp);
+
+  // Spec §5a: stop loops when the screen is hidden.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      stopVoiceBounce($('#dossier'));
+      clearFinale();
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+    }
   });
 }

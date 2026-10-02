@@ -48,7 +48,8 @@ external fonts or libraries, or text-heavy instructions.
 | `style.css` | Look and feel, layout, motion settings |
 | `app.js` | Navigation, missions, state, event log, adult panel, Mission 1 editor |
 | `storage.js` | IndexedDB wrapper (agents, audio blobs, settings) |
-| `audio.js` | Microphone, 10s recorder, the six playback filters |
+| `audio.js` | Microphone, 10s recorder, playback filters, sound effects |
+| `effects.js` | Particles on one canvas, and the screen shake (§5a) |
 | `README.md` | Deploy steps, iPad setup, test checklists |
 
 `app.js` is numbered into sections with comment banners (1. CONFIG, 2. STATE …
@@ -56,8 +57,9 @@ external fonts or libraries, or text-heavy instructions.
 file list (§4) only allows `audio.js` and `effects.js` to join, in later
 milestones.
 
-Script load order: `storage.js`, `audio.js`, then `app.js`. Add `effects.js`
-before `app.js` when it arrives (Milestone 8).
+Script load order: `storage.js`, `audio.js`, `effects.js`, then `app.js`.
+All four carry a `?v=` cache-buster in `index.html`; **bump it on every
+release** or an iPad will keep running the old JavaScript against new HTML.
 
 ## Progress
 
@@ -112,10 +114,20 @@ before `app.js` when it arrives (Milestone 8).
   canvas using the shared brush, with three thicknesses and a 🪞 mirror, saved
   as `drawingPng` after every stroke. Only the chosen door's rail tab is
   offered, and `clearAll()` clears only that door. The ID card draws all three.
-- **Next: Milestone 8 — Polish & juice** (spec §5a), including the
-  🧩 Something's missing popup everywhere and 🔊 spoken prompts.
+- **Milestone 8 — done.** New file `effects.js` (particles on one canvas,
+  capped at 80, plus the screen shake). Sound effects are *generated* with
+  oscillators in `audio.js` — nothing is loaded, because §4 allows no files.
+  🧩 Something's missing is real now and on every screen, saving a drawing
+  and/or a recording against the screen it came from. 🔊 speaks the prompt,
+  preferring `audio/<mission>.m4a` if a facilitator records one and falling
+  back to `speechSynthesis`. §5a: idle bob, tap reactions, voice-driven
+  bounce (AnalyserNode RMS, lerp 0.3), the 2.5s Boost power-up with ✨ replay,
+  scanner sweep, decrypting titles, shimmering locks, tilting doors, and the
+  Reveal finale — all skippable, all honouring Full / Calm / Off.
+- **Next: Milestone 9 — Offline PWA**: manifest, service worker, icons, the
+  update banner, final iPad test.
 
-Remaining order (spec §10): 8 Polish & juice (§5a) → 9 Offline PWA.
+Remaining order (spec §10): 9 Offline PWA.
 
 ## Settled decisions
 
@@ -139,6 +151,12 @@ Remaining order (spec §10): 8 Polish & juice (§5a) → 9 Offline PWA.
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **Sounds are generated, never loaded.** `Voice.sfx(name)` builds each one
+  from an oscillator or a noise buffer, because §4 allows no files and §3 no
+  downloads. Add new sounds to the `SFX` table in `audio.js`.
+- **Animation is gated on `fullMotion()`**, which reads `body[data-motion]`.
+  Anything showy must check it, or the adult panel's Calm and Off settings
+  stop meaning anything.
 - **`hidden` is an HTML property, not an SVG one.** `svg.hidden = true` sets a
   JavaScript property and leaves the attribute alone, so the `[hidden]` CSS
   rule goes on hiding it. Use `setAttribute`/`removeAttribute` on SVG.

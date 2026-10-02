@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 7 (all three doors)
+## Current state: Milestone 8 (polish & juice)
 
 Working now:
 
@@ -135,8 +135,28 @@ Working now:
   **Clear** only clears the door you are actually in.
 - The saved ID card draws whichever door was used.
 
-What remains is **polish and animation** (Milestone 8) and **offline support**
-(Milestone 9).
+### Polish and juice work
+
+- **🧩 Something's missing** is on every screen and is now real: the child
+  draws or says what the app would not let them do, and it is saved against
+  the screen they were on. **That is research data about our own design gaps**
+  — it comes out in the adult panel's export with everything else.
+- **🔊 speaks the prompt**, so nothing depends on being able to read. If you
+  record `audio/m1.m4a`, `audio/m2.m4a` and so on and put them next to the
+  app, those play instead of the synthetic voice.
+- **Sounds** — stamp, pop, whoosh, power-up — are generated in the app rather
+  than loaded, so there are still no files to download and nothing to go
+  missing offline. The 🔊 mute button silences all of it.
+- **Animation** per spec §5a: the agent bobs and reacts to a tap, grows with
+  its own voice while the password plays, a 2.5-second power-up when the Boost
+  opens (with a ✨ to see it again), a scanner sweep and decrypting title
+  between missions, and the dossier finale at the Reveal. **Tap anywhere to
+  skip** any long sequence.
+- **Motion level** in the adult panel: **Full**, **Calm** (no shake, no
+  particles, no idle motion) or **Off**. It defaults to Calm automatically if
+  the iPad has Reduce Motion switched on.
+
+What remains is **offline support** (Milestone 9).
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -246,6 +266,20 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 8
+
+- [ ] Is any of it too much? **Calm is one tap away in the adult panel** —
+      use it if a child is overwhelmed, and note that you did.
+- [ ] Tap 🔊 on each mission. Is the synthetic voice clear enough, or should
+      you record the prompts yourself?
+- [ ] Tap 🧩 on a few screens, draw something, send it. Does it come out in
+      the adult panel's export, tagged with the right screen?
+- [ ] Does the Boost power-up land, and do children ask to see it again?
+- [ ] At the Reveal, does tapping skip the finale?
+- [ ] **Watch for anyone startled by the sounds.** Mute is in the top bar.
+- [ ] Turn on Reduce Motion in iPad Settings and reopen. Does the app come up
+      in Calm by itself?
 
 ## Test checklist for Milestone 7
 

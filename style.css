@@ -1742,3 +1742,156 @@ body[data-motion="off"] .flip-inner { transition: none; }
 @media (orientation: portrait) {
   .shape-tray { grid-template-columns: repeat(7, 1fr); }
 }
+
+
+/* ============================================================
+   MILESTONE 8 - POLISH & JUICE (spec §5a)
+   ============================================================
+   Everything here animates transform and opacity only, which are the two
+   properties a browser can move without re-laying-out the page. That is what
+   keeps it smooth on an older iPad.
+   ============================================================ */
+
+/* The particle canvas from effects.js: over everything, catches nothing. */
+.fx-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 90;
+}
+
+/* --- The scanner line that sweeps between missions --- */
+.scanner {
+  position: fixed;
+  left: 0; right: 0; top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 80;
+}
+.scanner.is-sweeping { animation: scan 600ms ease-out; }
+@keyframes scan {
+  0%   { opacity: 0;   transform: translateY(0); }
+  10%  { opacity: .85; }
+  100% { opacity: 0;   transform: translateY(100vh); }
+}
+
+/* --- Tap reactions on the preview thumbnail (spec §5a item 1) --- */
+.react-jump   { animation: react-jump 400ms cubic-bezier(.34,1.56,.64,1); }
+.react-spin   { animation: react-spin 400ms ease-in-out; }
+.react-wobble { animation: react-wobble 400ms ease-in-out; }
+@keyframes react-jump {
+  0%,100% { transform: translateY(0) scale(1); }
+  40%     { transform: translateY(-18px) scale(1.06); }
+}
+@keyframes react-spin {
+  0%   { transform: rotate(0) scale(1); }
+  50%  { transform: rotate(180deg) scale(1.08); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes react-wobble {
+  0%,100% { transform: rotate(0); }
+  25%     { transform: rotate(-9deg); }
+  75%     { transform: rotate(9deg); }
+}
+
+/* --- Idle bob, only on the preview (spec §5a: never while editing) --- */
+.preview-art { animation: idle-bob 3s ease-in-out infinite; }
+@keyframes idle-bob {
+  0%,100% { transform: translateY(0) scale(1); }
+  50%     { transform: translateY(-4px) scale(1.02); }
+}
+/* A chosen movement, a tap reaction or the voice bounce all beat the idle. */
+.preview-art.move-bounce, .preview-art.move-shake, .preview-art.move-sway,
+.preview-art.move-spin, .preview-art.move-still,
+.preview-art.react-jump, .preview-art.react-spin, .preview-art.react-wobble {
+  animation-name: none;
+}
+.preview-art.react-jump   { animation: react-jump 400ms cubic-bezier(.34,1.56,.64,1); }
+.preview-art.react-spin   { animation: react-spin 400ms ease-in-out; }
+.preview-art.react-wobble { animation: react-wobble 400ms ease-in-out; }
+
+/* --- The Boost power-up (spec §5a item 3) ---
+   2.5s, in the spec's order: shake, ONE flash, spin while growing, settle.
+   The flash is a single pulse, not a strobe - §5a forbids more than three
+   flashes a second and this is one in two and a half. */
+.agent-view.power-up { animation: power-up 2500ms ease-in-out; }
+@keyframes power-up {
+  0%   { transform: translateX(0) rotate(0) scale(1); filter: brightness(1); }
+  4%   { transform: translateX(-4px); }
+  8%   { transform: translateX(4px); }
+  12%  { transform: translateX(-3px); }
+  16%  { transform: translateX(0); }
+  24%  { filter: brightness(2.4); }           /* the single flash */
+  34%  { filter: brightness(1); }
+  58%  { transform: rotate(360deg) scale(1.3); }
+  74%  { transform: rotate(360deg) scale(1); }
+  100% { transform: rotate(360deg) scale(1); filter: brightness(1); }
+}
+
+.btn-replay {
+  min-height: 48px;
+  width: 100%;
+  font-size: 22px;
+  background: var(--navy-3);
+  padding: 0;
+}
+
+/* --- The Reveal finale (spec §5a item 6) --- */
+.dossier.is-arriving { animation: dossier-in 600ms cubic-bezier(.2,.8,.3,1); }
+@keyframes dossier-in {
+  0%   { opacity: 0; transform: translateY(60px) rotateY(-28deg); }
+  100% { opacity: 1; transform: translateY(0) rotateY(0); }
+}
+.dossier-stamp.is-slamming { animation: stamp-slam 320ms cubic-bezier(.3,1.5,.5,1); }
+@keyframes stamp-slam {
+  0%   { transform: rotate(-8deg) scale(3); opacity: 0; }
+  60%  { transform: rotate(-8deg) scale(.92); opacity: .95; }
+  100% { transform: rotate(-8deg) scale(1); opacity: .85; }
+}
+
+/* --- Door cards tilt when pressed (spec §5a item 5) --- */
+.door-card { transition: transform 140ms ease; }
+.door-card:active { transform: rotate(-2deg) scale(.97); }
+
+/* --- Locked progress icons shimmer slowly (spec §5a item 5) --- */
+.pip.is-locked { position: relative; overflow: hidden; }
+.pip.is-locked::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%,
+              rgba(255,80,80,.22) 50%, transparent 60%);
+  animation: laser 3.5s linear infinite;
+  pointer-events: none;
+}
+@keyframes laser {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+/* ============================================================
+   MOTION LEVELS (spec §5a)
+   Calm keeps the app usable and quiet: no shake, no particles, no idle bob,
+   and transitions become plain fades. Off stops everything.
+   ============================================================ */
+body[data-motion="calm"] .preview-art,
+body[data-motion="calm"] .pip.is-locked::before,
+body[data-motion="calm"] .agent-view.power-up,
+body[data-motion="calm"] .scanner,
+body[data-motion="calm"] .record-btn.is-recording { animation: none; }
+body[data-motion="calm"] .fx-canvas { display: none; }
+body[data-motion="calm"] .door-card:active { transform: scale(.98); }
+
+body[data-motion="off"] .fx-canvas { display: none; }
+body[data-motion="off"] .scanner { display: none; }
+
+/* The iPad's own Reduce Motion setting stops the showy ones outright. */
+@media (prefers-reduced-motion: reduce) {
+  .preview-art, .pip.is-locked::before, .agent-view.power-up,
+  .scanner, .dossier.is-arriving, .dossier-stamp.is-slamming { animation: none !important; }
+  .fx-canvas { display: none; }
+}

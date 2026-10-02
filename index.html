@@ -21,7 +21,10 @@
         content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'">
 
   <title>Agent Lab</title>
-  <link rel="stylesheet" href="./style.css">
+  <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
+       these files hard, and until the service worker arrives at Milestone 9
+       this is what makes an updated app actually load on an iPad. -->
+  <link rel="stylesheet" href="./style.css?v=8">
 </head>
 <body>
 
@@ -248,6 +251,7 @@
             <!-- The untouched Mission 1 agent, for comparison only. -->
             <aside class="cover-aside">
               <div class="cover-label">Cover</div>
+              <button id="btn-power-replay" class="btn btn-replay" aria-label="Play the boost again">✨</button>
               <div id="m2-cover" class="agent-view cover-thumb">
                 <canvas class="agent-pixels" width="16" height="16"></canvas>
                 <img class="agent-drawing" alt="" hidden>
@@ -631,14 +635,23 @@
   </div>
 </div>
 
+<!-- 🧩 SOMETHING'S MISSING (spec §6). On every screen. The child draws or
+     says what the app would not let them do, and it is saved against the
+     screen they were on - which is the research point of it. -->
 <div id="missing-overlay" class="overlay" hidden>
-  <div class="sheet">
-    <h3>🧩 Something's missing</h3>
-    <p class="placeholder-note">
-      The drawing canvas and record button arrive in Milestone 8.
-      For now this records <i>that</i> you opened it, and on which screen.
-    </p>
-    <button id="btn-missing-close" class="btn btn-accent">OK</button>
+  <div class="sheet sheet-draw">
+    <h3>🧩 Draw or say what's missing</h3>
+    <div class="m3-canvas-wrap draw-sheet-canvas">
+      <canvas id="missing-canvas" class="m3-canvas" width="320" height="320"></canvas>
+    </div>
+    <div id="missing-palette" class="palette"></div>
+    <div class="sheet-actions">
+      <button id="missing-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+      <button id="missing-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+      <button id="missing-record" class="btn tool" aria-label="Say what is missing">🎤<span id="missing-record-word" class="tool-word">Say it</span></button>
+      <button id="btn-missing-close" class="btn">Cancel</button>
+      <button id="missing-save" class="btn btn-accent">✓ Send</button>
+    </div>
   </div>
 </div>
 
@@ -655,13 +668,17 @@
   </div>
 </div>
 
+<!-- Spec §5a: a scanner line sweeps down between missions. -->
+<div id="scanner" class="scanner" aria-hidden="true"></div>
+
 <div id="toast" class="toast" hidden></div>
 
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js"></script>
-<script src="./audio.js"></script>
-<script src="./app.js"></script>
+<script src="./storage.js?v=8"></script>
+<script src="./audio.js?v=8"></script>
+<script src="./effects.js?v=8"></script>
+<script src="./app.js?v=8"></script>
 </body>
 </html>

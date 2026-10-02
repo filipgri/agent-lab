@@ -328,6 +328,8 @@ const Voice = (function () {
     const filter = FILTERS.find(f => f.id === filterId) || FILTERS[0];
     const tail = filter.build(source);
     tail.connect(ctx.destination);
+    // Spec §5a: the voice drives the body, so playback is tapped for loudness.
+    attachAnalyser(tail);
 
     source.onended = function () {
       cleanUp(source);
@@ -373,8 +375,126 @@ const Voice = (function () {
     }
   }
 
+  /* ==========================================================================
+     SOUND EFFECTS (spec §5a, added in Milestone 8)
+     ==========================================================================
+     Every sound is MADE here rather than loaded, because spec §4 allows no
+     files from anywhere and §3 allows no downloads. An oscillator with a
+     falling volume is a surprisingly convincing thud or pop.
+
+     Nothing plays while the app is muted; app.js passes that in.
+     ========================================================================== */
+
+  let muted = false;
+  function setMuted(value) { muted = Boolean(value); }
+
+  /* One note. `type` is the waveform, and the gain envelope is what turns a
+     continuous tone into a short sound: up quickly, then down to silence. */
+  function tone(opts) {
+    if (muted) return;
+    unlock();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = opts.type || 'sine';
+    osc.frequency.setValueAtTime(opts.from, now);
+    if (opts.to && opts.to !== opts.from) {
+      // A falling pitch reads as a thud; a rising one reads as a success.
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, opts.to), now + opts.length);
+    }
+
+    const peak = (opts.volume === undefined ? 0.25 : opts.volume);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(peak, now + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + opts.length);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + opts.length + 0.02);
+  }
+
+  /* A short burst of noise, for anything that should sound like a thud or a
+     rustle rather than a note. Random samples ARE noise. */
+  function noise(length, volume, filterHz) {
+    if (muted) return;
+    unlock();
+    if (!ctx) return;
+
+    const frames = Math.floor(ctx.sampleRate * length);
+    const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) {
+      // Fade it out across its length, or it ends with an audible click.
+      data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+
+    const low = ctx.createBiquadFilter();
+    low.type = 'lowpass';
+    low.frequency.value = filterHz || 900;
+
+    const gain = ctx.createGain();
+    gain.gain.value = volume === undefined ? 0.3 : volume;
+
+    src.connect(low);
+    low.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+  }
+
+  // The named sounds the app asks for.
+  const SFX = {
+    pop:    () => tone({ type: 'sine',     from: 520, to: 900, length: 0.12, volume: 0.22 }),
+    tap:    () => tone({ type: 'triangle', from: 420, to: 520, length: 0.07, volume: 0.14 }),
+    stamp:  () => { noise(0.18, 0.35, 600);
+                    tone({ type: 'sine', from: 180, to: 60, length: 0.22, volume: 0.3 }); },
+    whoosh: () => noise(0.3, 0.12, 1800),
+    power:  () => tone({ type: 'sawtooth', from: 160, to: 860, length: 0.5, volume: 0.18 }),
+    sparkle:() => tone({ type: 'sine',     from: 1200, to: 1900, length: 0.18, volume: 0.12 }),
+    error:  () => tone({ type: 'square',   from: 220, to: 160, length: 0.18, volume: 0.12 })
+  };
+
+  function sfx(name) {
+    const play = SFX[name];
+    if (play) play();
+  }
+
+  /* ==========================================================================
+     LOUDNESS WHILE A RECORDING PLAYS (spec §5a item 2)
+     An AnalyserNode is a tap on the audio: it hands back the waveform as it
+     passes. RMS - root mean square - is the usual way of turning a block of
+     samples into one "how loud is it right now" number.
+     ========================================================================== */
+  let analyser = null;
+
+  function attachAnalyser(node) {
+    if (!ctx) return null;
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 256;
+    node.connect(analyser);     // a tap, not a redirect: the sound still plays
+    return analyser;
+  }
+
+  function loudness() {
+    if (!analyser) return 0;
+    const data = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+    return Math.sqrt(sum / data.length);          // 0 = silence, ~1 = very loud
+  }
+
   // Everything listed here becomes available as Voice.<name> in app.js.
   return {
+    sfx: sfx,
+    setMuted: setMuted,
+    loudness: loudness,
     MAX_MS: MAX_MS,
     FILTERS: FILTERS,
     unlock: unlock,
