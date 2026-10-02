@@ -99,10 +99,16 @@ before `app.js` when it arrives (Milestone 8).
   anywhere. The drawing uses a shared sheet (`#draw-overlay`) that borrows
   Mission 3's brush by pointing `coder.canvas` at its own canvas; Milestone 8's
   🧩 Something's missing popup should reuse that sheet rather than add another.
-- **Next: Milestone 6 — Reveal ID card** with save-as-PNG (spec §7).
+- **Milestone 6 — done.** The Reveal ID card: codename, Cover and Boost, the
+  worn feeling code, a ▶️ that plays the voice password in its chosen filter,
+  and the rule icons. **Save card** renders the card again by hand onto a
+  canvas (`drawCardToCanvas`) and shares it with `navigator.share({files})`,
+  falling back to a download link. Pictures are loaded when the Reveal opens,
+  not on the tap, because Safari only allows `share()` straight off a gesture.
+- **Next: Milestone 7 — Build and Draw doors** (spec §7, Mission 1).
 
-Remaining order (spec §10): 6 Reveal ID card → 7 Build and Draw doors →
-8 Polish & juice (§5a) → 9 Offline PWA.
+Remaining order (spec §10): 7 Build and Draw doors → 8 Polish & juice (§5a) →
+9 Offline PWA.
 
 ## Settled decisions
 
@@ -126,6 +132,12 @@ Remaining order (spec §10): 6 Reveal ID card → 7 Build and Draw doors →
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **The ID card is drawn twice.** Once as DOM for the screen, once onto a
+  canvas in `drawCardToCanvas()` for the saved PNG, because no HTML-to-image
+  library is allowed (§4). Change one and you must change the other. Pixels go
+  through a 16×16 offscreen canvas scaled up in a single `drawImage` — drawing
+  256 squares individually gave each one its own aura shadow and left a grid
+  of seams across the agent.
 - **One brush, many canvases.** `coder.canvas` says which canvas the drawing
   code is painting on; `attachBrush(el)` wires a canvas up. Anything that logs
   a stroke must tag it (`draw_stroke` carries `where`), or the research log

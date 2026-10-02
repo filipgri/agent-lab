@@ -420,20 +420,63 @@
   </header>
 
   <main class="reveal-main">
-    <div class="dossier">
+    <!-- THE AGENT ID CARD (spec §7).
+         Everything the child made, on one card. The full folder-opening
+         sequence from §5a arrives at Milestone 8; this is the card itself. -->
+    <div id="dossier" class="dossier">
       <div class="dossier-stamp">CLASSIFIED</div>
-      <div class="dossier-row">
-        <div class="dossier-art"><span id="reveal-emoji" class="preview-emoji">🦅</span></div>
-        <div class="dossier-info">
-          <div class="dossier-label">CODENAME</div>
-          <div id="reveal-name" class="dossier-name">Silent Falcon</div>
-          <p class="placeholder-note">Milestone 6 builds the full ID card.</p>
+
+      <!-- The emoji sits beside the name, not at the far right: the top-right
+           corner belongs to the CLASSIFIED stamp. -->
+      <div class="dossier-head">
+        <div class="dossier-label">CODENAME</div>
+        <div class="dossier-name-row">
+          <span id="reveal-emoji" class="dossier-emoji">🦅</span>
+          <span id="reveal-name" class="dossier-name">Silent Falcon</span>
         </div>
       </div>
+
+      <div class="dossier-grid">
+
+        <!-- The two agents, side by side -->
+        <figure class="dossier-cell">
+          <figcaption class="dossier-label">COVER</figcaption>
+          <div id="reveal-cover" class="agent-view dossier-agent">
+            <canvas class="agent-pixels" width="16" height="16"></canvas>
+            <div class="sticker-layer"></div>
+          </div>
+        </figure>
+
+        <figure class="dossier-cell">
+          <figcaption class="dossier-label">BOOST</figcaption>
+          <div id="reveal-boost" class="agent-view dossier-agent">
+            <canvas class="agent-pixels" width="16" height="16"></canvas>
+            <div class="sticker-layer"></div>
+          </div>
+        </figure>
+
+        <!-- The feeling code the agent is wearing today -->
+        <figure class="dossier-cell">
+          <figcaption class="dossier-label">FEELING CODE</figcaption>
+          <div id="reveal-feeling" class="dossier-feeling"></div>
+        </figure>
+
+        <!-- The voice password, in the voice the child chose -->
+        <figure class="dossier-cell">
+          <figcaption class="dossier-label">VOICE PASSWORD</figcaption>
+          <button id="reveal-play" class="dossier-play">▶️<span id="reveal-voice-name">Normal</span></button>
+        </figure>
+      </div>
+
+      <!-- The rules, as the child set them -->
+      <div id="reveal-rules" class="dossier-rules"></div>
     </div>
   </main>
 
   <footer class="bottombar">
+    <button id="btn-save-card" class="btn btn-stamp">
+      <span class="btn-icon">💾</span><span class="btn-label">Save card</span>
+    </button>
     <button id="btn-finish" class="btn btn-accent btn-stamp">
       <span class="btn-icon">🏁</span><span class="btn-label">Finish</span>
     </button>

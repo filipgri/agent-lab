@@ -1575,3 +1575,96 @@ body[data-motion="off"] .flip-inner { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   #m6-record.is-recording { animation: none; }
 }
+
+
+/* ============================================================
+   MILESTONE 6 - THE AGENT ID CARD (spec §7)
+   ============================================================ */
+
+.reveal-main { overflow-y: auto; -webkit-overflow-scrolling: touch; align-items: start; }
+
+.dossier {
+  width: min(760px, 94vw);
+  min-width: 0;
+  padding: 26px 30px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: auto;
+}
+
+.dossier-head { display: flex; flex-direction: column; gap: 2px; }
+/* Room kept clear on the right for the CLASSIFIED stamp. */
+.dossier-name-row { display: flex; align-items: center; gap: 14px; padding-right: 200px; }
+.dossier-emoji { font-size: 52px; line-height: 1; }
+
+/* Two agents on the top row, feeling code and voice beneath. */
+.dossier-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.dossier-cell { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* The agents are the same .agent-view used everywhere else, so there is one
+   drawing function to keep correct (see renderAgentView). */
+.dossier-agent {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+}
+
+.dossier-feeling {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  /* Dark, like the canvas it was drawn on. A white sign on a cream panel is
+     all but invisible. */
+  background: #16263f;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.dossier-feeling img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+.dossier-face { position: absolute; top: 8px; right: 10px; font-size: 30px; }
+.dossier-none { color: #6a5c3c; font-style: italic; font-size: 18px; }
+
+/* ▶️ the voice password, in the voice the child chose */
+.dossier-play {
+  flex: 1;
+  min-height: 64px;
+  border: none;
+  border-radius: 14px;
+  background: #e2d5ba;
+  color: #1a1203;
+  font-size: 30px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.dossier-play span { font-size: 19px; }
+.dossier-play:disabled { opacity: .5; cursor: default; }
+
+.dossier-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 2px solid rgba(26,18,3,.12);
+}
+.dossier-rule-row { display: flex; align-items: center; gap: 12px; }
+.dossier-rule-title { flex: 0 0 auto; font-size: 16px; font-weight: 600; min-width: 190px; }
+.dossier-rule-items { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; font-size: 22px; }
+.dossier-rule-items .rule-mini { background: #16263f; }
+
+/* Narrow screens: one column, and the rule rows stack. */
+@media (max-width: 620px) {
+  .dossier-grid { grid-template-columns: 1fr; }
+  .dossier-rule-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .dossier-rule-title { min-width: 0; }
+}

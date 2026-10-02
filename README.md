@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 5 (Places & rules)
+## Current state: Milestone 6 (Reveal ID card)
 
 Working now:
 
@@ -112,7 +112,18 @@ Working now:
 - Everything chosen appears as a chip with a ✕ to take it off again. Tapping a
   recorded chip plays it back.
 
-Only the **Reveal ID card** is still a placeholder, built in Milestone 6.
+### The Reveal works
+
+- The dossier card shows everything the child made: codename, the Cover and
+  Boost agents side by side, the feeling code they are wearing, a ▶️ that
+  plays their voice password **in the voice they chose**, and their rules.
+- **Save card** renders it to a PNG and offers the iPad share sheet
+  (`navigator.share`), so it can go to Photos, Files, AirDrop or Messages.
+  Browsers without file sharing get an ordinary download instead.
+
+Every mission and the Reveal are now built. What remains is the **Build and
+Draw doors** (Milestone 7), **polish and animation** (Milestone 8) and
+**offline support** (Milestone 9).
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -222,6 +233,19 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 6
+
+- [ ] Does the card show everything the child actually made?
+- [ ] Tap ▶️. Does the password play in the voice they chose, not plain?
+- [ ] **Tap Save card on the real iPad.** Does the share sheet appear, and can
+      you save to Photos? This is the one I could not test — the browser I
+      build in has no share sheet, so only the fallback path was exercised.
+- [ ] Open the saved PNG. Does it match the card on screen?
+- [ ] Try it from the **home-screen icon** as well as Safari: plain downloads
+      are unreliable there, which is why sharing is the main route.
+- [ ] Try a nearly empty agent (pass everything). Does the card still make
+      sense, with "none" where things are missing?
 
 ## Test checklist for Milestone 5
 

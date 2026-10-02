@@ -25,6 +25,7 @@
     17. MISSION 3         secret feeling code (Milestone 4)
     18. MISSION 5         where does my agent go? (Milestone 5)
     19. MISSION 6         agent rules + shared drawing sheet (Milestone 5)
+    20. REVEAL            the agent ID card + save as PNG (Milestone 6)
    ========================================================================== */
 
 
@@ -38,7 +39,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 5;
+const MILESTONE = 6;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -497,6 +498,7 @@ function openReveal() {
   renderStrip();
   renderPreview();
   logEvent('mission_enter', { mission: 'reveal' });
+  renderReveal();              // Milestone 6: fill in the ID card
 }
 
 async function finishSession() {
@@ -809,6 +811,7 @@ function wireUp() {
   wireMission4();
   wireMission5();
   wireMission6();
+  wireReveal();
   $('#btn-stamp').addEventListener('click', stampMission);
   $('#btn-pass').addEventListener('click', passMission);
   $('#btn-finish').addEventListener('click', finishSession);
@@ -3050,4 +3053,408 @@ function enterMission6() {
   $('#draw-overlay').hidden = true;
   openRule = null;
   renderMission6();
+}
+
+
+/* ==========================================================================
+   20. REVEAL - THE AGENT ID CARD (added in Milestone 6)
+   ==========================================================================
+
+   WHAT THE REVEAL IS (spec §7)
+   Everything the child made, gathered onto one card: codename, both agents,
+   the feeling code they are wearing, their voice password, and their rules.
+
+   SAVING IT AS A PICTURE
+   There is no library to turn HTML into an image (spec §4 forbids any), so the
+   card is DRAWN A SECOND TIME onto a canvas, by hand, in drawCardToCanvas().
+   That means the screen version and the saved version are two separate pieces
+   of code describing the same card - if you change one, change the other.
+
+   WHY IMAGES ARE LOADED BEFORE THE BUTTON IS PRESSED
+   iPad Safari only allows navigator.share() to run as a direct result of a
+   tap. Loading an image is slow and would break that chain, so every picture
+   the card needs is fetched when the Reveal opens, and the Save button then
+   only has to draw and share.
+   ========================================================================== */
+
+// Pictures the card needs, loaded ahead of the Save button being pressed.
+const cardAssets = { feeling: null, rules: {}, voiceBlob: null };
+
+// Canvas versions of the Mission 2 backgrounds (CSS gradients cannot be read
+// back out, so the saved card paints its own approximation).
+const BG_CANVAS = {
+  plain:  ['#0e2240', '#0e2240'],
+  space:  ['#1a0b3d', '#050418'],
+  city:   ['#35206b', '#0b1b33'],
+  jungle: ['#0d4f2b', '#06301a'],
+  sea:    ['#0a6ea8', '#03243f'],
+  sunset: ['#ff8e3c', '#3a1c5a']
+};
+
+/* Load one image and hand back a Promise. Resolves with null rather than
+   failing, so one missing picture can never stop the card being saved. */
+function loadImage(src) {
+  return new Promise(resolve => {
+    if (!src) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE CARD ON SCREEN
+   ------------------------------------------------------------------------ */
+async function renderReveal() {
+  if (!state.agent) return;
+  const agent = state.agent;
+
+  $('#reveal-name').textContent  = agent.codename || '';
+  $('#reveal-emoji').textContent = agent.codenameEmoji || '🕵️';
+
+  // The two agents.
+  renderAgentView($('#reveal-cover'), agent.cover || {}, false);
+  renderAgentView($('#reveal-boost'), agent.boost || {}, false);
+
+  // The feeling code being worn, if there is one.
+  const worn = agent.feelingCodes[agent.feelingWorn];
+  const feelingBox = $('#reveal-feeling');
+  feelingBox.innerHTML = worn
+    ? '<img alt="" src="' + worn.png + '">' +
+      (worn.face ? '<span class="dossier-face">' + worn.face + '</span>' : '')
+    : '<span class="dossier-none">none</span>';
+
+  // The voice password, in whichever voice was chosen.
+  const filter = Voice.FILTERS.find(f => f.id === (agent.voice.filter || 'normal'));
+  $('#reveal-voice-name').textContent = agent.voice.audioId
+    ? (filter ? filter.label : 'Normal')
+    : 'none';
+  $('#reveal-play').disabled = !agent.voice.audioId;
+
+  renderRevealRules();
+
+  // Fetch everything the Save button will need, now rather than on the tap.
+  await preloadCardAssets();
+}
+
+function renderRevealRules() {
+  const box = $('#reveal-rules');
+  box.innerHTML = '';
+
+  RULE_CARDS.forEach(rule => {
+    const items = state.agent.rules[rule.id] || [];
+    const row = document.createElement('div');
+    row.className = 'dossier-rule-row';
+    row.innerHTML =
+      '<span class="dossier-rule-title">' + rule.icon + ' ' + rule.title + '</span>' +
+      '<span class="dossier-rule-items">' +
+        (items.length
+          ? items.map(ruleChipHtml).join('')
+          : '<span class="dossier-none">none</span>') +
+      '</span>';
+    box.appendChild(row);
+  });
+}
+
+async function preloadCardAssets() {
+  const agent = state.agent;
+
+  const worn = agent.feelingCodes[agent.feelingWorn];
+  cardAssets.feeling = await loadImage(worn ? worn.png : null);
+
+  cardAssets.rules = {};
+  for (const rule of RULE_CARDS) {
+    const items = agent.rules[rule.id] || [];
+    cardAssets.rules[rule.id] = [];
+    for (const item of items) {
+      cardAssets.rules[rule.id].push(item.png ? await loadImage(item.png) : null);
+    }
+  }
+
+  // The voice password, ready for the ▶️ button.
+  cardAssets.voiceBlob = null;
+  if (agent.voice.audioId) {
+    const row = await Storage.loadAudio(agent.voice.audioId);
+    cardAssets.voiceBlob = row ? row.blob : null;
+  }
+}
+
+async function playRevealVoice() {
+  const agent = state.agent;
+  if (!agent.voice.audioId || !cardAssets.voiceBlob) return;
+  Voice.unlock();
+  logEvent('reveal_play', { filter: agent.voice.filter || 'normal' });
+  try {
+    await Voice.play(agent.voice.audioId, cardAssets.voiceBlob,
+                     agent.voice.filter || 'normal');
+  } catch (err) { toast('That recording would not play'); }
+}
+
+
+/* ---------------------------------------------------------------------------
+   DRAWING THE CARD ONTO A CANVAS
+   Plain 2D canvas calls. Emoji are drawn as text, which is why no picture
+   files are needed for any of them.
+   ------------------------------------------------------------------------ */
+
+const CARD_W = 1000;
+const CARD_H = 1250;
+
+function drawCardToCanvas(canvas) {
+  const agent = state.agent;
+  const ctx = canvas.getContext('2d');
+  canvas.width = CARD_W;
+  canvas.height = CARD_H;
+
+  // --- the paper ---
+  ctx.fillStyle = '#f4ead6';
+  ctx.fillRect(0, 0, CARD_W, CARD_H);
+
+  // --- CLASSIFIED stamp, top right, tilted ---
+  ctx.save();
+  ctx.translate(CARD_W - 190, 96);
+  ctx.rotate(-8 * Math.PI / 180);
+  ctx.globalAlpha = 0.85;
+  ctx.strokeStyle = '#ff5f56';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(-110, -34, 220, 68);
+  ctx.fillStyle = '#ff5f56';
+  ctx.font = '700 34px ' + CARD_FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('CLASSIFIED', 0, 2);
+  ctx.restore();
+
+  // --- codename ---
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  label(ctx, 'CODENAME', 60, 90);
+  ctx.fillStyle = '#1a1203';
+  ctx.font = '800 64px ' + CARD_FONT;
+  ctx.fillText(agent.codename || '', 60, 152);
+  ctx.font = '60px ' + CARD_FONT;
+  ctx.fillText(agent.codenameEmoji || '🕵️', 60, 230);
+
+  // --- the two agents ---
+  label(ctx, 'COVER', 60, 290);
+  drawAgentToCanvas(ctx, agent.cover || {}, 60, 310, 380, false);
+
+  label(ctx, 'BOOST', 560, 290);
+  drawAgentToCanvas(ctx, agent.boost || {}, 560, 310, 380, true);
+
+  // --- feeling code ---
+  label(ctx, 'FEELING CODE', 60, 760);
+  roundedBox(ctx, 60, 780, 380, 300, '#16263f');   // dark, so white ink reads
+  const worn = agent.feelingCodes[agent.feelingWorn];
+  if (cardAssets.feeling) {
+    ctx.drawImage(cardAssets.feeling, 100, 790, 280, 280);
+    if (worn && worn.face) {
+      ctx.font = '54px ' + CARD_FONT;
+      ctx.textAlign = 'right';
+      ctx.fillText(worn.face, 426, 836);
+      ctx.textAlign = 'left';
+    }
+  } else {
+    none(ctx, 250, 940);
+  }
+
+  // --- voice password ---
+  label(ctx, 'VOICE PASSWORD', 560, 760);
+  roundedBox(ctx, 560, 780, 380, 300);
+  if (agent.voice.audioId) {
+    const filter = Voice.FILTERS.find(f => f.id === (agent.voice.filter || 'normal'));
+    ctx.font = '96px ' + CARD_FONT;
+    ctx.textAlign = 'center';
+    ctx.fillText(filter ? filter.icon : '🙂', 750, 920);
+    ctx.fillStyle = '#1a1203';
+    ctx.font = '700 34px ' + CARD_FONT;
+    ctx.fillText(filter ? filter.label : 'Normal', 750, 1000);
+    ctx.textAlign = 'left';
+  } else {
+    none(ctx, 750, 940);
+  }
+
+  // --- the rules ---
+  label(ctx, 'AGENT RULES', 60, 1130);
+  let y = 1160;
+  RULE_CARDS.forEach(rule => {
+    const items = agent.rules[rule.id] || [];
+    ctx.fillStyle = '#1a1203';
+    ctx.font = '600 24px ' + CARD_FONT;
+    ctx.textAlign = 'left';
+    ctx.fillText(rule.icon + ' ' + rule.title, 60, y);
+
+    let x = 470;
+    items.forEach((item, index) => {
+      if (item.icon) {
+        ctx.font = '30px ' + CARD_FONT;
+        ctx.fillText(item.icon, x, y);
+      } else if (item.png) {
+        const img = (cardAssets.rules[rule.id] || [])[index];
+        if (img) {
+          ctx.fillStyle = '#16263f';
+          ctx.fillRect(x, y - 26, 30, 30);
+          ctx.drawImage(img, x, y - 26, 30, 30);
+        }
+      } else {
+        ctx.font = '30px ' + CARD_FONT;
+        ctx.fillText('🎤', x, y);
+      }
+      x += 40;
+    });
+    if (items.length === 0) {
+      ctx.fillStyle = '#6a5c3c';
+      ctx.font = 'italic 22px ' + CARD_FONT;
+      ctx.fillText('none', 470, y);
+    }
+    y += 34;
+  });
+}
+
+// The system font stack, as one string canvas can use.
+const CARD_FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+function label(ctx, text, x, y) {
+  ctx.fillStyle = '#6a5c3c';
+  ctx.font = '600 20px ' + CARD_FONT;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  // Canvas has no letter-spacing in older Safari, so the gaps are drawn in.
+  let cursor = x;
+  for (const ch of text) {
+    ctx.fillText(ch, cursor, y);
+    cursor += ctx.measureText(ch).width + 3;
+  }
+}
+
+function none(ctx, cx, cy) {
+  ctx.fillStyle = '#6a5c3c';
+  ctx.font = 'italic 28px ' + CARD_FONT;
+  ctx.textAlign = 'center';
+  ctx.fillText('none', cx, cy);
+  ctx.textAlign = 'left';
+}
+
+function roundedBox(ctx, x, y, w, h, fill) {
+  ctx.fillStyle = fill || '#e2d5ba';
+  ctx.beginPath();
+  // roundRect is not on older iPad Safari, so fall back to a plain rectangle.
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 18);
+  else ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+
+/* One agent: background, then pixels, then stickers. `withExtras` adds the
+   Boost's background and aura. */
+function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
+  // background
+  const bg = withExtras ? (data.background || 'plain') : 'plain';
+  const pair = BG_CANVAS[bg] || BG_CANVAS.plain;
+  const grad = ctx.createLinearGradient(x, y, x, y + size);
+  grad.addColorStop(0, pair[0]);
+  grad.addColorStop(1, pair[1]);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, size, size, 18);
+  else ctx.rect(x, y, size, size);
+  ctx.fill();
+
+  ctx.save();
+  // The aura is a glow, which on canvas is a shadow.
+  const aura = withExtras ? AURAS.find(a => a.id === data.aura) : null;
+  if (aura && aura.colour) {
+    ctx.shadowColor = aura.colour;
+    ctx.shadowBlur = 26;
+  }
+
+  /* PIXELS. They are painted onto a 16x16 offscreen canvas first and then
+     blown up in ONE drawImage. Drawing 256 separate squares straight onto the
+     card would give each square its own shadow, and all those little glows
+     overlapping drew a grid of seams across the agent's face. One image means
+     one glow around the whole shape, which is what the aura is meant to be.
+     imageSmoothingEnabled = false keeps the pixels crisp as they scale up. */
+  const off = document.createElement('canvas');
+  off.width = GRID;
+  off.height = GRID;
+  const octx = off.getContext('2d');
+  const pixels = data.pixels || [];
+  for (let i = 0; i < pixels.length; i++) {
+    if (!pixels[i]) continue;
+    octx.fillStyle = pixels[i];
+    octx.fillRect(i % GRID, Math.floor(i / GRID), 1, 1);
+  }
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, x, y, size, size);
+
+  // stickers, in the same relative positions the editor stored (spec §8)
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  (data.stickers || []).forEach(sticker => {
+    ctx.save();
+    ctx.translate(x + sticker.x * size, y + sticker.y * size);
+    ctx.rotate((sticker.rotation || 0) * Math.PI / 180);
+    ctx.font = Math.round(size * 0.14 * (sticker.scale || 1)) + 'px ' + CARD_FONT;
+    ctx.fillText(sticker.emoji, 0, 0);
+    ctx.restore();
+  });
+
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+
+/* ---------------------------------------------------------------------------
+   SAVING THE CARD (spec §7, §9)
+   navigator.share({files}) is the reliable route on an iPad added to the home
+   screen; <a download> often does nothing there. The download link is the
+   fallback for everything else.
+   ------------------------------------------------------------------------ */
+async function saveCard() {
+  if (!state.agent) return;
+
+  const canvas = document.createElement('canvas');
+  drawCardToCanvas(canvas);
+
+  const safeName = (state.agent.codename || 'agent').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+  const filename = 'agent-' + safeName + '.png';
+
+  canvas.toBlob(async function (blob) {
+    if (!blob) { toast('The card could not be made'); return; }
+
+    const file = new File([blob], filename, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Agent ID card' });
+        logEvent('card_save', { how: 'share' });
+        return;
+      } catch (err) {
+        // A cancelled share is not a failure - the child changed their mind.
+        if (err && err.name === 'AbortError') { logEvent('card_save_cancel', {}); return; }
+      }
+    }
+
+    // Fallback: an ordinary download link, clicked for them.
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // Freeing the URL immediately can cancel the download on some browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    logEvent('card_save', { how: 'download' });
+    toast('Card saved 💾');
+  }, 'image/png');
+}
+
+function wireReveal() {
+  $('#btn-save-card').addEventListener('click', saveCard);
+  $('#reveal-play').addEventListener('click', playRevealVoice);
+  watchAgentView($('#reveal-cover'));
+  watchAgentView($('#reveal-boost'));
 }
