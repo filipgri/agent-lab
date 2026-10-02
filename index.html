@@ -100,6 +100,8 @@
       <div id="preview-art" class="preview-art">
         <div id="preview-view" class="agent-view">
           <canvas class="agent-pixels" width="16" height="16"></canvas>
+          <img class="agent-drawing" alt="" hidden>
+          <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
           <div class="sticker-layer"></div>
         </div>
         <span id="preview-emoji" class="preview-emoji">🦅</span>
@@ -125,13 +127,11 @@
             <button class="door-card" data-door="pixel">
               <span class="door-icon">🟦</span><span>Pixel</span>
             </button>
-            <button class="door-card is-later" data-door="build">
+            <button class="door-card" data-door="build">
               <span class="door-icon">🔺</span><span>Build</span>
-              <span class="door-later">Milestone 7</span>
             </button>
-            <button class="door-card is-later" data-door="draw">
+            <button class="door-card" data-door="draw">
               <span class="door-icon">✏️</span><span>Draw</span>
-              <span class="door-later">Milestone 7</span>
             </button>
           </div>
 
@@ -145,6 +145,11 @@
             <div class="editor-stage-wrap">
               <div id="editor-stage" class="agent-view is-interactive">
                 <canvas class="agent-pixels" width="16" height="16"></canvas>
+                <!-- The live Draw-door canvas. Bigger than the 16x16 pixel one
+                     because a brush stroke needs real resolution. -->
+                <canvas id="door-canvas" class="door-canvas" width="640" height="640" hidden></canvas>
+                <img class="agent-drawing" alt="" hidden>
+                <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
                 <div class="sticker-layer"></div>
               </div>
             </div>
@@ -155,7 +160,9 @@
                    two extra Boost tools (spec §7, Mission 2); app.js unhides
                    them only while the Boost version is being edited. -->
               <div class="rail-tabs">
-                <button class="btn seg" data-rail="paint">🎨 Paint</button>
+                <button class="btn seg" data-rail="paint" data-door-only="pixel">🎨 Paint</button>
+                <button class="btn seg" data-rail="build" data-door-only="build" hidden>🔺 Shapes</button>
+                <button class="btn seg" data-rail="draw" data-door-only="draw" hidden>✏️ Brush</button>
                 <button class="btn seg" data-rail="stickers">🧩 Stickers</button>
                 <button class="btn seg" data-rail="aura" data-boost-only hidden>✨ Aura</button>
                 <button class="btn seg" data-rail="background" data-boost-only hidden>🌌 Place</button>
@@ -169,6 +176,33 @@
                   <button class="btn tool" data-tool="erase" aria-label="Eraser">🧽<span class="tool-word">Rub out</span></button>
                   <button class="btn tool" data-tool="fill"  aria-label="Fill">🪣<span class="tool-word">Fill</span></button>
                 </div>
+              </div>
+
+              <!-- --- Build: a tray of shapes to drag on (spec §7) --- -->
+              <div id="rail-build" class="rail-body" hidden>
+                <div id="shape-tray" class="shape-tray"></div>
+                <div id="build-palette" class="palette"></div>
+                <!-- Shown only while a shape is selected. Buttons, not pinch
+                     gestures, exactly as spec §7 asks. -->
+                <div id="shape-controls" class="sticker-controls" hidden>
+                  <button class="btn tool" data-shape="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
+                  <button class="btn tool" data-shape="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
+                  <button class="btn tool" data-shape="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
+                  <button class="btn tool" data-shape="front"   aria-label="Bring to front">⬆️<span class="tool-word">Front</span></button>
+                  <button class="btn tool" data-shape="back"    aria-label="Send to back">⬇️<span class="tool-word">Back</span></button>
+                  <button class="btn tool btn-danger" data-shape="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
+                </div>
+              </div>
+
+              <!-- --- Draw: a thick brush in three sizes, with a mirror --- -->
+              <div id="rail-draw" class="rail-body" hidden>
+                <div id="draw-door-palette" class="palette"></div>
+                <div class="tool-row">
+                  <button class="btn tool" data-brush="8"  aria-label="Thin brush">·<span class="tool-word">Thin</span></button>
+                  <button class="btn tool" data-brush="18" aria-label="Medium brush">•<span class="tool-word">Medium</span></button>
+                  <button class="btn tool" data-brush="34" aria-label="Thick brush">⬤<span class="tool-word">Thick</span></button>
+                </div>
+                <button id="btn-mirror" class="btn tool btn-mirror" aria-label="Mirror">🪞<span class="tool-word">Mirror</span></button>
               </div>
 
               <!-- --- Stickers --- -->
@@ -216,6 +250,8 @@
               <div class="cover-label">Cover</div>
               <div id="m2-cover" class="agent-view cover-thumb">
                 <canvas class="agent-pixels" width="16" height="16"></canvas>
+                <img class="agent-drawing" alt="" hidden>
+                <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
                 <div class="sticker-layer"></div>
               </div>
             </aside>
@@ -443,6 +479,8 @@
           <figcaption class="dossier-label">COVER</figcaption>
           <div id="reveal-cover" class="agent-view dossier-agent">
             <canvas class="agent-pixels" width="16" height="16"></canvas>
+            <img class="agent-drawing" alt="" hidden>
+            <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
             <div class="sticker-layer"></div>
           </div>
         </figure>
@@ -451,6 +489,8 @@
           <figcaption class="dossier-label">BOOST</figcaption>
           <div id="reveal-boost" class="agent-view dossier-agent">
             <canvas class="agent-pixels" width="16" height="16"></canvas>
+            <img class="agent-drawing" alt="" hidden>
+            <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
             <div class="sticker-layer"></div>
           </div>
         </figure>

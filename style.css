@@ -630,7 +630,11 @@ body[data-motion="off"] *::after {
 }
 
 /* --- Stickers sit on top of the pixels --- */
-.sticker-layer { position: absolute; inset: 0; }
+/* The layer itself must not catch taps: it covers the whole stage, and the
+   Build door's shapes sit underneath it. Only the stickers themselves take
+   pointer events; everything else falls through to the stage or the shapes. */
+.sticker-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.sticker { pointer-events: auto; }
 
 .sticker {
   position: absolute;
@@ -1667,4 +1671,74 @@ body[data-motion="off"] .flip-inner { transition: none; }
   .dossier-grid { grid-template-columns: 1fr; }
   .dossier-rule-row { flex-direction: column; align-items: flex-start; gap: 4px; }
   .dossier-rule-title { min-width: 0; }
+}
+
+
+/* ============================================================
+   MILESTONE 7 - THE BUILD AND DRAW DOORS (spec §7)
+   ============================================================ */
+
+/* All three doors stack inside the same .agent-view, and renderAgentView
+   shows whichever one the child chose. */
+.agent-drawing,
+.door-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.agent-shapes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* The live Draw canvas sits above the saved picture and takes the strokes. */
+.door-canvas { touch-action: none; z-index: 1; }
+
+/* The grid is a Pixel-door thing; it would be noise behind a drawing. */
+.agent-view.is-interactive:not([data-door="pixel"])::after { content: none; }
+
+/* --- Build: the shape tray --- */
+.shape-tray {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.tray-shape {
+  aspect-ratio: 1;
+  min-height: 56px;
+  border: none;
+  border-radius: 14px;
+  background: var(--navy-3);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  touch-action: none;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.07);
+}
+.tray-shape svg { width: 100%; height: 100%; }
+
+/* A selected shape gets a dashed outline, like a selected sticker. */
+.agent-shapes g { cursor: grab; }
+.agent-shapes g.is-selected > * {
+  stroke: var(--accent);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;   /* the outline stays thin when scaled up */
+}
+.agent-view:not(.is-interactive) .agent-shapes g { pointer-events: none; }
+
+/* --- Draw: the three brush sizes and the mirror --- */
+[data-brush] { flex: 1; font-size: 20px; }
+[data-brush].is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.btn-mirror { width: 100%; }
+.btn-mirror.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* Four rail tabs wrap two-by-two; see .rail-tabs.is-four. */
+@media (orientation: portrait) {
+  .shape-tray { grid-template-columns: repeat(7, 1fr); }
 }

@@ -26,6 +26,7 @@
     18. MISSION 5         where does my agent go? (Milestone 5)
     19. MISSION 6         agent rules + shared drawing sheet (Milestone 5)
     20. REVEAL            the agent ID card + save as PNG (Milestone 6)
+    21. BUILD + DRAW      the other two Mission 1 doors (Milestone 7)
    ========================================================================== */
 
 
@@ -39,7 +40,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 6;
+const MILESTONE = 7;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -806,6 +807,7 @@ function wireUp() {
 
   // --- missions ---
   wireMission1();
+  wireDoors();
   wireMission2();
   wireMission3();
   wireMission4();
@@ -964,6 +966,7 @@ const editor = {
   colour: PALETTE[9],   // the red, a friendly starting colour
   tab: 'head',
   selected: null,       // index of the selected sticker, or null
+  selectedShape: null,  // index of the selected shape (Build door), or null
   undoStack: [],
   painting: false,
   paintedCells: 0,      // counted so one event is logged per finger lift
@@ -1016,6 +1019,7 @@ function ensurePixels() {
     p.pixels = new Array(GRID * GRID).fill(null);
   }
   if (!Array.isArray(p.stickers)) p.stickers = [];
+  if (!Array.isArray(p.shapes)) p.shapes = [];
   return p;
 }
 
@@ -1030,18 +1034,29 @@ function pushUndo() {
   const p = ensurePixels();
   editor.undoStack.push({
     pixels: p.pixels.slice(),                         // slice() copies the array
-    stickers: p.stickers.map(s => Object.assign({}, s))
+    stickers: p.stickers.map(s => Object.assign({}, s)),
+    shapes: p.shapes.map(s => Object.assign({}, s))   // Milestone 7: Build door
   });
   if (editor.undoStack.length > 40) editor.undoStack.shift();   // cap the memory
 }
 
 function undo() {
+  // The Draw door keeps whole-canvas snapshots instead, because a brush stroke
+  // is not a list of things the way pixels and shapes are.
+  if (state.agent && state.agent.door === 'draw') {
+    undoCode();
+    saveDoorDrawing();
+    return;
+  }
+
   const previous = editor.undoStack.pop();
   if (!previous) return;
   const p = ensurePixels();
   p.pixels = previous.pixels;
   p.stickers = previous.stickers;
+  p.shapes = previous.shapes || [];
   editor.selected = null;
+  editor.selectedShape = null;
   logEvent('undo', {});
   refreshAgentViews();
   scheduleSave();
@@ -1053,7 +1068,7 @@ function undo() {
    renderAgentView() paints one .agent-view: the canvas, then the stickers.
    refreshAgentViews() updates every copy on screen at once.
    ------------------------------------------------------------------------ */
-function renderAgentView(view, data, interactive) {
+function renderAgentView(view, data, interactive, door) {
   // MILESTONE 2: the Boost carries a background and an aura. Both are pure CSS,
   // set here as an attribute and a custom property, so the same function draws
   // a plain Cover and a glowing Boost in a space scene.
@@ -1062,15 +1077,50 @@ function renderAgentView(view, data, interactive) {
   view.style.setProperty('--aura', aura && aura.colour ? aura.colour : 'transparent');
   view.classList.toggle('has-aura', Boolean(aura && aura.colour));
 
+  /* MILESTONE 7: there are three doors now, and each keeps its own work
+     (spec §7). Only the chosen one is shown - otherwise a child who tried
+     Pixel, then switched to Draw, would see both at once. */
+  const which = door || (state.agent && state.agent.door) || 'pixel';
+  view.dataset.door = which;          // CSS uses this to hide the pixel grid
+
   const canvas = $('canvas.agent-pixels', view);
+  canvas.hidden = which !== 'pixel';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, GRID, GRID);
 
-  const pixels = data.pixels || [];
-  for (let i = 0; i < pixels.length; i++) {
-    if (!pixels[i]) continue;                  // null = empty square
-    ctx.fillStyle = pixels[i];
-    ctx.fillRect(i % GRID, Math.floor(i / GRID), 1, 1);
+  if (which === 'pixel') {
+    const pixels = data.pixels || [];
+    for (let i = 0; i < pixels.length; i++) {
+      if (!pixels[i]) continue;                  // null = empty square
+      ctx.fillStyle = pixels[i];
+      ctx.fillRect(i % GRID, Math.floor(i / GRID), 1, 1);
+    }
+  }
+
+  // --- the Draw door's picture ---
+  const drawing = $('img.agent-drawing', view);
+  if (drawing) {
+    const show = which === 'draw' && Boolean(data.drawingPng);
+    drawing.hidden = !show;
+    if (show && drawing.getAttribute('src') !== data.drawingPng) {
+      drawing.src = data.drawingPng;
+    }
+  }
+
+  // --- the Build door's shapes ---
+  const svg = $('svg.agent-shapes', view);
+  if (svg) {
+    /* `hidden` is a property of HTML elements, not SVG ones: setting svg.hidden
+       quietly sets a JavaScript property and leaves the HTML attribute in
+       place, so the CSS rule for [hidden] goes on hiding it. The attribute has
+       to be set and removed by hand. */
+    if (which === 'build') {
+      svg.removeAttribute('hidden');
+      renderShapes(svg, data.shapes || [], interactive);
+    } else {
+      svg.setAttribute('hidden', '');
+      svg.innerHTML = '';
+    }
   }
 
   const layer = $('.sticker-layer', view);
@@ -1140,10 +1190,6 @@ function showDoors() {
 }
 
 function chooseDoor(door) {
-  if (door !== 'pixel') {
-    toast(door === 'build' ? 'Build arrives in Milestone 7' : 'Draw arrives in Milestone 7');
-    return;
-  }
   const switching = state.agent.door && state.agent.door !== door;
   state.agent.door = door;
   logEvent(switching ? 'door_switch' : 'door_choose', { door: door });
@@ -1166,12 +1212,28 @@ function openEditor(mountSelector, which) {
   const isBoost = editor.part === 'boost';
   $$('[data-boost-only]').forEach(el => { el.hidden = !isBoost; });
   $('#btn-change-door').hidden = isBoost;
-  $('.rail-tabs').classList.toggle('is-four', isBoost);
 
-  setRail('paint');
+  /* MILESTONE 7: only the chosen door's tab is offered. A child in the Draw
+     door has no use for a pixel palette, and three unusable tabs would just
+     be three more things to get wrong. */
+  const door = (state.agent.door) || 'pixel';
+  $$('[data-door-only]').forEach(el => { el.hidden = el.dataset.doorOnly !== door; });
+  $('#door-canvas').hidden = door !== 'draw';
+  editor.selectedShape = null;
+
+  const tabCount = 2 + (isBoost ? 2 : 0);
+  $('.rail-tabs').classList.toggle('is-four', tabCount > 2);
+
+  if (door === 'draw') openDrawDoor();
+  else { coder.onStroke = null; }
+  if (door === 'build') buildShapeTray();
+
+  setRail(door === 'pixel' ? 'paint' : door);
   paintPalette();
   paintToolButtons();
   buildStickerTray();
+  paintShapeControls();
+  if (door === 'build') paintPalette('#build-palette');
   if (isBoost) { paintAuraSwatches(); paintBackgroundOptions(); }
   refreshAgentViews();
 }
@@ -1196,6 +1258,17 @@ function cellFromPointer(event, stageEl) {
 function stageDown(event) {
   // A tap on a sticker is handled by the sticker itself.
   if (event.target.classList.contains('sticker')) return;
+
+  // Only the Pixel door paints on the stage. Build has its shapes, and Draw
+  // has its own canvas on top, which takes the pointer events itself.
+  if (state.agent && state.agent.door !== 'pixel') {
+    if (editor.selectedShape !== null) {
+      editor.selectedShape = null;
+      refreshAgentViews();
+      paintShapeControls();
+    }
+    return;
+  }
 
   // Tapping bare canvas clears the selection.
   if (editor.selected !== null) {
@@ -1321,10 +1394,22 @@ function floodFill(start) {
 function clearAll() {
   pushUndo();
   const p = ensurePixels();
-  p.pixels = new Array(GRID * GRID).fill(null);
+  const door = (state.agent && state.agent.door) || 'pixel';
+
+  // Only clear the door the child is actually using. Wiping all three would
+  // throw away work they cannot see and did not ask about.
+  if (door === 'pixel') p.pixels = new Array(GRID * GRID).fill(null);
+  if (door === 'build') p.shapes = [];
+  if (door === 'draw') {
+    pushCodeUndo();
+    clearCodeCanvas();
+    p.drawingPng = null;
+  }
   p.stickers = [];
+
   editor.selected = null;
-  logEvent('clear', {});
+  editor.selectedShape = null;
+  logEvent('clear', { door: door });
   refreshAgentViews();
   scheduleSave();
 }
@@ -1335,14 +1420,18 @@ function clearAll() {
    ------------------------------------------------------------------------ */
 function setRail(which) {
   // One body per tab. Milestone 2 added Aura and Place.
-  ['paint', 'stickers', 'aura', 'background'].forEach(name => {
+  ['paint', 'build', 'draw', 'stickers', 'aura', 'background'].forEach(name => {
     $('#rail-' + name).hidden = which !== name;
   });
   $$('[data-rail]').forEach(b => b.classList.toggle('is-on', b.dataset.rail === which));
 }
 
-function paintPalette() {
-  const palette = $('#palette');
+/* The same sixteen colours serve the Pixel door and the Build door, so a child
+   has the same skin tones available whichever way they make their agent. */
+function paintPalette(selector) {
+  const target = selector || '#palette';
+  const palette = $(target);
+  if (!palette) return;
   palette.innerHTML = '';
   PALETTE.forEach(colour => {
     const swatch = document.createElement('button');
@@ -1353,8 +1442,15 @@ function paintPalette() {
       editor.colour = colour;
       // Picking a colour means you want to paint with it.
       if (editor.tool === 'erase') editor.tool = 'paint';
-      paintPalette();
+      paintPalette('#palette');
+      paintPalette('#build-palette');
       paintToolButtons();
+
+      // On the Build door the palette doubles as "recolour this shape".
+      if (state.agent && state.agent.door === 'build') {
+        buildShapeTray();
+        if (editor.selectedShape !== null) shapeAction('colour');
+      }
     });
     palette.appendChild(swatch);
   });
@@ -1606,7 +1702,7 @@ function wireMission1() {
 function enterMission1() {
   if (!state.agent) return;
   ensurePixels();
-  if (state.agent.door === 'pixel') openEditor('#m1-editor-mount', 'cover');
+  if (state.agent.door) openEditor('#m1-editor-mount', 'cover');
   else showDoors();
 }
 
@@ -2140,7 +2236,10 @@ const coder = {
   points: [],         // the stroke being drawn
   undoStack: [],      // canvas snapshots, taken before each stroke
   draft: null,        // the code being built, before "Keep it"
-  canvas: null        // which canvas the brush is painting on right now
+  canvas: null,       // which canvas the brush is painting on right now
+  width: 14,          // brush thickness; the Draw door offers three (spec §7)
+  mirror: false,      // Draw door 🪞: every stroke is copied left/right
+  onStroke: null      // called when a stroke finishes, so the Draw door saves
 };
 
 
@@ -2316,9 +2415,21 @@ function codeDown(event) {
   // A single tap should still leave a dot.
   const ctx = codeCtx();
   ctx.fillStyle = coder.colour;
+  const p0 = coder.points[0];
   ctx.beginPath();
-  ctx.arc(coder.points[0].x, coder.points[0].y, 7, 0, Math.PI * 2);
+  ctx.arc(p0.x, p0.y, coder.width / 2, 0, Math.PI * 2);
   ctx.fill();
+  if (coder.mirror) {
+    ctx.beginPath();
+    ctx.arc(mirrorX(p0.x), p0.y, coder.width / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* The mirror flips a point across the middle of the canvas, so a stroke on the
+   left is copied to the right. Drawing a face becomes much easier. */
+function mirrorX(x) {
+  return coder.canvas.width - x;
 }
 
 function codeMove(event) {
@@ -2330,7 +2441,7 @@ function codeMove(event) {
 
   const ctx = codeCtx();
   ctx.strokeStyle = coder.colour;
-  ctx.lineWidth = 14;
+  ctx.lineWidth = coder.width;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
@@ -2339,10 +2450,18 @@ function codeMove(event) {
      first two points, and a quick stroke leaves its opening dot stranded in
      space - which looked like a bug and was one. */
   if (pts.length === 2) {
+    const midX = (pts[0].x + pts[1].x) / 2;
+    const midY = (pts[0].y + pts[1].y) / 2;
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
-    ctx.lineTo((pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
+    ctx.lineTo(midX, midY);
     ctx.stroke();
+    if (coder.mirror) {
+      ctx.beginPath();
+      ctx.moveTo(mirrorX(pts[0].x), pts[0].y);
+      ctx.lineTo(mirrorX(midX), midY);
+      ctx.stroke();
+    }
     return;
   }
 
@@ -2357,17 +2476,27 @@ function codeMove(event) {
   // b is the "control point": the curve bends towards it without touching it.
   ctx.quadraticCurveTo(b.x, b.y, to.x, to.y);
   ctx.stroke();
+
+  // Spec §7: the 🪞 mirror copies every stroke across the left/right axis.
+  if (coder.mirror) {
+    ctx.beginPath();
+    ctx.moveTo(mirrorX(from.x), from.y);
+    ctx.quadraticCurveTo(mirrorX(b.x), b.y, mirrorX(to.x), to.y);
+    ctx.stroke();
+  }
 }
 
 function codeUp() {
   if (!coder.drawing) return;
   coder.drawing = false;
+  if (coder.points.length > 0 && coder.onStroke) coder.onStroke();
   if (coder.points.length > 0) {
     // The brush is shared between the feeling code and the rule sheet, so the
     // event has to say which canvas it was. Without this the research log
     // cannot tell a feeling code apart from a drawn rule.
     logEvent('draw_stroke', {
-      where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule',
+      where: coder.canvas.id === 'm3-canvas' ? 'feeling_code'
+           : coder.canvas.id === 'door-canvas' ? 'draw_door' : 'rule',
       points: coder.points.length
     });
   }
@@ -2386,13 +2515,13 @@ function undoCode() {
   const previous = coder.undoStack.pop();
   if (!previous) return;
   codeCtx().putImageData(previous, 0, 0);
-  logEvent('undo', { where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule' });
+  logEvent('undo', { where: coder.canvas.id });
 }
 
 function clearCode() {
   pushCodeUndo();
   clearCodeCanvas();
-  logEvent('clear', { where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule' });
+  logEvent('clear', { where: coder.canvas.id });
 }
 
 function paintCodePalette(selector) {
@@ -2403,7 +2532,16 @@ function paintCodePalette(selector) {
     swatch.className = 'swatch' + (colour === coder.colour ? ' is-on' : '');
     swatch.style.background = colour;
     swatch.setAttribute('aria-label', 'Colour ' + colour);
-    swatch.addEventListener('click', () => { coder.colour = colour; paintCodePalette(selector); });
+    swatch.addEventListener('click', () => {
+      coder.colour = colour;
+      paintCodePalette(selector);
+      // On the Build door the palette is also "change this shape's colour".
+      if (selector === '#build-palette') {
+        editor.colour = colour;
+        buildShapeTray();
+        if (editor.selectedShape !== null) shapeAction('colour');
+      }
+    });
     box.appendChild(swatch);
   });
 }
@@ -3078,7 +3216,8 @@ function enterMission6() {
    ========================================================================== */
 
 // Pictures the card needs, loaded ahead of the Save button being pressed.
-const cardAssets = { feeling: null, rules: {}, voiceBlob: null };
+const cardAssets = { feeling: null, rules: {}, voiceBlob: null,
+                     coverDrawing: null, boostDrawing: null };
 
 // Canvas versions of the Mission 2 backgrounds (CSS gradients cannot be read
 // back out, so the saved card paints its own approximation).
@@ -3163,6 +3302,11 @@ async function preloadCardAssets() {
 
   const worn = agent.feelingCodes[agent.feelingWorn];
   cardAssets.feeling = await loadImage(worn ? worn.png : null);
+
+  // Milestone 7: the Draw door's picture has to be loaded too, or a child who
+  // used Draw would get a blank agent on the saved card.
+  cardAssets.coverDrawing = await loadImage((agent.cover || {}).drawingPng);
+  cardAssets.boostDrawing = await loadImage((agent.boost || {}).drawingPng);
 
   cardAssets.rules = {};
   for (const rule of RULE_CARDS) {
@@ -3369,6 +3513,28 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
     ctx.shadowBlur = 26;
   }
 
+  const door = (state.agent && state.agent.door) || 'pixel';
+
+  if (door === 'draw') {
+    // The Draw door: one picture, already loaded by preloadCardAssets().
+    const img = withExtras ? cardAssets.boostDrawing : cardAssets.coverDrawing;
+    if (img) ctx.drawImage(img, x, y, size, size);
+    drawStickersToCanvas(ctx, data.stickers || [], x, y, size);
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    return;
+  }
+
+  if (door === 'build') {
+    drawShapesToCanvas(ctx, data.shapes || [], x, y, size);
+    drawStickersToCanvas(ctx, data.stickers || [], x, y, size);
+    ctx.restore();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    return;
+  }
+
   /* PIXELS. They are painted onto a 16x16 offscreen canvas first and then
      blown up in ONE drawImage. Drawing 256 separate squares straight onto the
      card would give each square its own shadow, and all those little glows
@@ -3388,10 +3554,18 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(off, x, y, size, size);
 
-  // stickers, in the same relative positions the editor stored (spec §8)
+  drawStickersToCanvas(ctx, data.stickers || [], x, y, size);
+
+  ctx.restore();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+}
+
+/* Stickers, in the same relative positions the editor stored (spec §8). */
+function drawStickersToCanvas(ctx, stickers, x, y, size) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  (data.stickers || []).forEach(sticker => {
+  stickers.forEach(sticker => {
     ctx.save();
     ctx.translate(x + sticker.x * size, y + sticker.y * size);
     ctx.rotate((sticker.rotation || 0) * Math.PI / 180);
@@ -3399,10 +3573,53 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
     ctx.fillText(sticker.emoji, 0, 0);
     ctx.restore();
   });
+}
 
-  ctx.restore();
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
+/* The Build door's shapes, drawn with canvas rather than SVG. The outlines
+   match shapeElement() above: both describe the same seven shapes in a
+   20-unit box centred on zero, so the card matches the screen. */
+function drawShapesToCanvas(ctx, shapes, x, y, size) {
+  const k = size / 100;                 // the SVG viewBox is 100 units wide
+  shapes.forEach(shape => {
+    ctx.save();
+    ctx.translate(x + shape.x * size, y + shape.y * size);
+    ctx.rotate((shape.rotation || 0) * Math.PI / 180);
+    ctx.scale((shape.size || 1) * k, (shape.size || 1) * k);
+    ctx.fillStyle = shape.colour;
+    ctx.beginPath();
+
+    if (shape.type === 'circle') ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    else if (shape.type === 'oval') ctx.ellipse(0, 0, 10, 6.5, 0, 0, Math.PI * 2);
+    else if (shape.type === 'square') ctx.rect(-9, -9, 18, 18);
+    else if (shape.type === 'rounded') {
+      if (ctx.roundRect) ctx.roundRect(-9, -9, 18, 18, 4.5);
+      else ctx.rect(-9, -9, 18, 18);
+    }
+    else if (shape.type === 'triangle') {
+      ctx.moveTo(0, -10); ctx.lineTo(9.5, 8); ctx.lineTo(-9.5, 8); ctx.closePath();
+    }
+    else if (shape.type === 'star') {
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? 10 : 4.2;
+        const a = (Math.PI / 5) * i - Math.PI / 2;
+        const px = Math.cos(a) * r, py = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    }
+    else {
+      // blob: the same curves as the SVG version
+      ctx.moveTo(0, -9);
+      ctx.bezierCurveTo(6, -9, 10, -4, 9, 1);
+      ctx.bezierCurveTo(8, 6, 4, 9, 0, 9);
+      ctx.bezierCurveTo(-5, 9, -10, 6, -9, 0);
+      ctx.bezierCurveTo(-8, -5, -6, -9, 0, -9);
+      ctx.closePath();
+    }
+
+    ctx.fill();
+    ctx.restore();
+  });
 }
 
 
@@ -3457,4 +3674,365 @@ function wireReveal() {
   $('#reveal-play').addEventListener('click', playRevealVoice);
   watchAgentView($('#reveal-cover'));
   watchAgentView($('#reveal-boost'));
+}
+
+
+/* ==========================================================================
+   21. MISSION 1 - BUILD AND DRAW DOORS (added in Milestone 7)
+   ==========================================================================
+
+   Mission 1 offers three doors (spec §7). Pixel arrived at Milestone 1; these
+   are the other two. Each door keeps its own work in its own place in the data
+   model, so a child can try all three and lose nothing:
+
+     pixel -> part().pixels        a flat array of 256 colours
+     draw  -> part().drawingPng    one PNG data URL
+     build -> part().shapes        a list of { type, x, y, size, rotation, colour }
+
+   Shapes store x, y and size as fractions of the stage (0-1), exactly like
+   stickers do (spec §8), so they keep their places at any screen size.
+   ========================================================================== */
+
+// Spec §7 names these seven.
+const SHAPES = [
+  { id: 'circle',  label: 'Circle' },
+  { id: 'oval',    label: 'Oval' },
+  { id: 'square',  label: 'Square' },
+  { id: 'rounded', label: 'Rounded' },
+  { id: 'triangle',label: 'Triangle' },
+  { id: 'star',    label: 'Star' },
+  { id: 'blob',    label: 'Blob' }
+];
+
+// The three brush sizes the Draw door offers (spec §7).
+const BRUSHES = [8, 18, 34];
+
+const DOOR_CANVAS_SIZE = 640;
+
+
+/* ---------------------------------------------------------------------------
+   DRAWING THE SHAPES
+   Everything is SVG inside a 100x100 box, so a shape scales with the stage
+   without any of it being redrawn.
+   ------------------------------------------------------------------------ */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/* The outline of each shape, drawn centred on 0,0 in a 20-unit box. The
+   transform on the group then moves, turns and sizes it. */
+function shapeElement(type) {
+  if (type === 'circle')  return make('circle', { cx: 0, cy: 0, r: 10 });
+  if (type === 'oval')    return make('ellipse', { cx: 0, cy: 0, rx: 10, ry: 6.5 });
+  if (type === 'square')  return make('rect', { x: -9, y: -9, width: 18, height: 18 });
+  if (type === 'rounded') return make('rect', { x: -9, y: -9, width: 18, height: 18, rx: 4.5 });
+  if (type === 'triangle')return make('polygon', { points: '0,-10 9.5,8 -9.5,8' });
+  if (type === 'star') {
+    // Ten points, alternating far and near, which is what makes a star.
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? 10 : 4.2;
+      const a = (Math.PI / 5) * i - Math.PI / 2;
+      pts.push((Math.cos(a) * r).toFixed(2) + ',' + (Math.sin(a) * r).toFixed(2));
+    }
+    return make('polygon', { points: pts.join(' ') });
+  }
+  // blob: four curves that do not quite agree with each other
+  return make('path', {
+    d: 'M0,-9 C6,-9 10,-4 9,1 C8,6 4,9 0,9 C-5,9 -10,6 -9,0 C-8,-5 -6,-9 0,-9 Z'
+  });
+}
+
+function make(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const key in attrs) el.setAttribute(key, attrs[key]);
+  return el;
+}
+
+function renderShapes(svg, shapes, interactive) {
+  svg.innerHTML = '';
+  shapes.forEach((shape, index) => {
+    const group = make('g', {
+      // Order matters: move first, then turn, then size.
+      transform: 'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
+                 'rotate(' + (shape.rotation || 0) + ') ' +
+                 'scale(' + (shape.size || 1) + ')'
+    });
+    const el = shapeElement(shape.type);
+    el.setAttribute('fill', shape.colour);
+    group.appendChild(el);
+
+    if (interactive && index === editor.selectedShape) {
+      group.setAttribute('class', 'is-selected');
+    }
+    if (interactive) {
+      group.dataset.index = index;
+      group.addEventListener('pointerdown', startShapeDrag);
+    }
+    svg.appendChild(group);
+  });
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE SHAPE TRAY
+   ------------------------------------------------------------------------ */
+function buildShapeTray() {
+  const tray = $('#shape-tray');
+  tray.innerHTML = '';
+  SHAPES.forEach(shape => {
+    const button = document.createElement('button');
+    button.className = 'tray-shape';
+    button.setAttribute('aria-label', 'Shape ' + shape.label);
+
+    // A little preview of the shape itself, rather than a word.
+    const svg = make('svg', { viewBox: '-12 -12 24 24' });
+    const el = shapeElement(shape.id);
+    el.setAttribute('fill', editor.colour);
+    svg.appendChild(el);
+    button.appendChild(svg);
+
+    button.addEventListener('pointerdown', event => startShapeTrayDrag(event, shape.id));
+    tray.appendChild(button);
+  });
+}
+
+function addShape(type, x, y) {
+  pushUndo();
+  const p = ensurePixels();
+  p.shapes.push({
+    type: type, x: x, y: y,
+    size: 1.6, rotation: 0, colour: editor.colour
+  });
+  editor.selectedShape = p.shapes.length - 1;
+  logEvent('shape_add', { shape: type, colour: editor.colour });
+  refreshAgentViews();
+  scheduleSave();
+}
+
+/* Dragging a shape out of the tray, the same way stickers work. */
+function startShapeTrayDrag(event, type) {
+  event.preventDefault();
+  const tray = event.currentTarget;
+  try { tray.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
+
+  const startX = event.clientX, startY = event.clientY;
+
+  function up(e) {
+    tray.removeEventListener('pointermove', move);
+    tray.removeEventListener('pointerup', up);
+    tray.removeEventListener('pointercancel', up);
+
+    const moved = Math.hypot(e.clientX - startX, e.clientY - startY);
+    const rect = stage().getBoundingClientRect();
+    const inside =
+      e.clientX >= rect.left && e.clientX <= rect.right &&
+      e.clientY >= rect.top  && e.clientY <= rect.bottom;
+
+    if (inside) {
+      addShape(type, (e.clientX - rect.left) / rect.width,
+                     (e.clientY - rect.top) / rect.height);
+    } else if (moved < 12) {
+      addShape(type, 0.5, 0.5);       // a tap drops it in the middle
+    }
+  }
+  function move() { /* the shape itself is the preview; nothing to follow */ }
+
+  tray.addEventListener('pointermove', move);
+  tray.addEventListener('pointerup', up);
+  tray.addEventListener('pointercancel', up);
+}
+
+/* Moving a shape already on the agent. Same 8px threshold as stickers, so a
+   tap selects without nudging. */
+function startShapeDrag(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const group = event.currentTarget;
+  const index = Number(group.dataset.index);
+  const stageEl = stage();
+
+  /* Update the highlight WITHOUT rebuilding the shapes. Rebuilding would
+     destroy `group` - the very element this drag is attached to - and the drag
+     would die on the first move. (The sticker drag has the same trap.) */
+  editor.selectedShape = index;
+  editor.selected = null;
+  paintShapeSelection();
+  paintShapeControls();
+
+  const startX = event.clientX, startY = event.clientY;
+  const rect0 = stageEl.getBoundingClientRect();
+  const shape0 = ensurePixels().shapes[index];
+  const offsetX = shape0 ? shape0.x - (startX - rect0.left) / rect0.width : 0;
+  const offsetY = shape0 ? shape0.y - (startY - rect0.top) / rect0.height : 0;
+
+  let moved = false;
+  let snapshotTaken = false;
+
+  function move(e) {
+    if (!state.agent) return;
+    if (!moved && Math.hypot(e.clientX - startX, e.clientY - startY) < 8) return;
+    if (!snapshotTaken) { pushUndo(); snapshotTaken = true; }
+    moved = true;
+
+    const rect = stageEl.getBoundingClientRect();
+    const shape = ensurePixels().shapes[index];
+    if (!shape) return;
+    shape.x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width + offsetX));
+    shape.y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height + offsetY));
+
+    // Move the group directly rather than rebuilding: rebuilding would destroy
+    // the element this drag is attached to.
+    group.setAttribute('transform',
+      'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
+      'rotate(' + (shape.rotation || 0) + ') scale(' + (shape.size || 1) + ')');
+  }
+
+  function up() {
+    group.removeEventListener('pointermove', move);
+    group.removeEventListener('pointerup', up);
+    group.removeEventListener('pointercancel', up);
+    if (moved) { logEvent('shape_move', {}); scheduleSave(); }
+  }
+
+  try { group.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
+  group.addEventListener('pointermove', move);
+  group.addEventListener('pointerup', up);
+  group.addEventListener('pointercancel', up);
+}
+
+/* Move the selection outline without touching the elements themselves. */
+function paintShapeSelection() {
+  const svg = $('svg.agent-shapes', stage());
+  if (!svg) return;
+  Array.from(svg.children).forEach(g => {
+    const on = Number(g.dataset.index) === editor.selectedShape;
+    if (on) g.setAttribute('class', 'is-selected');
+    else g.removeAttribute('class');
+  });
+}
+
+function paintShapeControls() {
+  const controls = $('#shape-controls');
+  if (controls) controls.hidden = editor.selectedShape === null;
+}
+
+/* Spec §7: buttons rather than pinch gestures - easier to code, and far
+   easier for a child who finds two-finger gestures hard. */
+function shapeAction(what) {
+  const p = ensurePixels();
+  const index = editor.selectedShape;
+  const shape = p.shapes[index];
+  if (!shape) return;
+  pushUndo();
+
+  if (what === 'bigger')  shape.size = Math.min(5, (shape.size || 1) + 0.3);
+  if (what === 'smaller') shape.size = Math.max(0.3, (shape.size || 1) - 0.3);
+  if (what === 'rotate')  shape.rotation = ((shape.rotation || 0) + 30) % 360;
+  if (what === 'colour')  shape.colour = editor.colour;
+
+  // Last in the list is drawn last, so "front" means moving to the end.
+  if (what === 'front') {
+    p.shapes.splice(index, 1);
+    p.shapes.push(shape);
+    editor.selectedShape = p.shapes.length - 1;
+  }
+  if (what === 'back') {
+    p.shapes.splice(index, 1);
+    p.shapes.unshift(shape);
+    editor.selectedShape = 0;
+  }
+  if (what === 'delete') {
+    p.shapes.splice(index, 1);
+    editor.selectedShape = null;
+    logEvent('shape_remove', { shape: shape.type });
+  }
+
+  if (what !== 'delete') logEvent('shape_change', { what: what, shape: shape.type });
+  refreshAgentViews();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE DRAW DOOR
+   A big canvas with the shared brush pointed at it. The picture is kept as a
+   PNG data URL (spec §8: part().drawingPng).
+   ------------------------------------------------------------------------ */
+function openDrawDoor() {
+  const canvas = $('#door-canvas');
+  coder.canvas = canvas;
+  coder.undoStack = [];
+  coder.width = BRUSHES[1];
+  coder.mirror = false;
+  coder.colour = editor.colour;
+  // Every finished stroke is kept, so there is no Save button here either.
+  coder.onStroke = saveDoorDrawing;
+
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Put back whatever was drawn before.
+  const existing = part().drawingPng;
+  if (existing) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    img.src = existing;
+  }
+
+  paintDrawDoorPalette();
+  paintBrushButtons();
+}
+
+/* The Draw door's palette sets the brush colour (coder.colour), and keeps
+   editor.colour in step so switching doors does not change colour underfoot. */
+function paintDrawDoorPalette() {
+  const box = $('#draw-door-palette');
+  box.innerHTML = '';
+  PALETTE.forEach(colour => {
+    const swatch = document.createElement('button');
+    swatch.className = 'swatch' + (colour === coder.colour ? ' is-on' : '');
+    swatch.style.background = colour;
+    swatch.setAttribute('aria-label', 'Colour ' + colour);
+    swatch.addEventListener('click', () => {
+      coder.colour = colour;
+      editor.colour = colour;
+      paintDrawDoorPalette();
+    });
+    box.appendChild(swatch);
+  });
+}
+
+function saveDoorDrawing() {
+  part().drawingPng = $('#door-canvas').toDataURL('image/png');
+  renderPreview();
+  scheduleSave();
+}
+
+function paintBrushButtons() {
+  $$('[data-brush]').forEach(b =>
+    b.classList.toggle('is-on', Number(b.dataset.brush) === coder.width));
+  $('#btn-mirror').classList.toggle('is-on', coder.mirror);
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring the two new doors up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wireDoors() {
+  attachBrush($('#door-canvas'));
+
+  $$('[data-shape]').forEach(b =>
+    b.addEventListener('click', () => shapeAction(b.dataset.shape)));
+
+  $$('[data-brush]').forEach(b => b.addEventListener('click', () => {
+    coder.width = Number(b.dataset.brush);
+    logEvent('brush_size', { width: coder.width });
+    paintBrushButtons();
+  }));
+
+  $('#btn-mirror').addEventListener('click', () => {
+    coder.mirror = !coder.mirror;
+    logEvent('mirror_toggle', { on: coder.mirror });
+    paintBrushButtons();
+  });
 }

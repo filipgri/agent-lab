@@ -105,10 +105,17 @@ before `app.js` when it arrives (Milestone 8).
   canvas (`drawCardToCanvas`) and shares it with `navigator.share({files})`,
   falling back to a download link. Pictures are loaded when the Reveal opens,
   not on the tap, because Safari only allows `share()` straight off a gesture.
-- **Next: Milestone 7 — Build and Draw doors** (spec §7, Mission 1).
+- **Milestone 7 — done.** The other two Mission 1 doors. **Build**: a tray of
+  seven shapes dragged onto the stage, each selectable and changed with
+  buttons (bigger, smaller, turn, front, back, colour, remove) rather than
+  pinch gestures, drawn as SVG in a 100×100 viewBox. **Draw**: a 640×640
+  canvas using the shared brush, with three thicknesses and a 🪞 mirror, saved
+  as `drawingPng` after every stroke. Only the chosen door's rail tab is
+  offered, and `clearAll()` clears only that door. The ID card draws all three.
+- **Next: Milestone 8 — Polish & juice** (spec §5a), including the
+  🧩 Something's missing popup everywhere and 🔊 spoken prompts.
 
-Remaining order (spec §10): 7 Build and Draw doors → 8 Polish & juice (§5a) →
-9 Offline PWA.
+Remaining order (spec §10): 8 Polish & juice (§5a) → 9 Offline PWA.
 
 ## Settled decisions
 
@@ -132,6 +139,16 @@ Remaining order (spec §10): 7 Build and Draw doors → 8 Polish & juice (§5a) 
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **`hidden` is an HTML property, not an SVG one.** `svg.hidden = true` sets a
+  JavaScript property and leaves the attribute alone, so the `[hidden]` CSS
+  rule goes on hiding it. Use `setAttribute`/`removeAttribute` on SVG.
+- **A drag handler must not rebuild the thing it is attached to.** Both the
+  sticker drag and the shape drag update the selection highlight in place
+  (`paintSelection`, `paintShapeSelection`) rather than re-rendering, or the
+  element the listeners live on is destroyed on the first move.
+- **`.sticker-layer` is `pointer-events: none`** with `auto` on the stickers
+  themselves, because it covers the whole stage and the Build door's shapes
+  sit underneath it.
 - **The ID card is drawn twice.** Once as DOM for the screen, once onto a
   canvas in `drawCardToCanvas()` for the saved PNG, because no HTML-to-image
   library is allowed (§4). Change one and you must change the other. Pixels go

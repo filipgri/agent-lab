@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 6 (Reveal ID card)
+## Current state: Milestone 7 (all three doors)
 
 Working now:
 
@@ -121,9 +121,22 @@ Working now:
   (`navigator.share`), so it can go to Photos, Files, AirDrop or Messages.
   Browsers without file sharing get an ordinary download instead.
 
-Every mission and the Reveal are now built. What remains is the **Build and
-Draw doors** (Milestone 7), **polish and animation** (Milestone 8) and
-**offline support** (Milestone 9).
+### The Build and Draw doors work
+
+- **Build:** a tray of seven shapes — circle, oval, square, rounded square,
+  triangle, star, blob. Drag one on, or tap it to drop it in the middle. Tap a
+  shape to select it, then use **buttons** to make it bigger or smaller, turn
+  it, send it to the front or back, recolour it, or remove it. Buttons rather
+  than pinch gestures, which are much harder for small hands.
+- **Draw:** a big canvas with a smoothed brush in three thicknesses, the full
+  sixteen-colour palette, undo and clear — plus a **🪞 Mirror** that copies
+  every stroke left-to-right, which makes drawing a face far easier.
+- Each door keeps its own work. Switching between them loses nothing, and
+  **Clear** only clears the door you are actually in.
+- The saved ID card draws whichever door was used.
+
+What remains is **polish and animation** (Milestone 8) and **offline support**
+(Milestone 9).
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -233,6 +246,19 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 7
+
+- [ ] Try all three doors with the same agent. Does each keep its own work?
+- [ ] In Build, is dragging a shape out of the tray easy, or do children tap
+      instead? Both work — worth noting which they reach for.
+- [ ] Are the shape buttons (bigger / turn / front / back) understood without
+      explanation?
+- [ ] In Draw, try the 🪞 mirror. Do children use it for faces?
+- [ ] Is the thin brush too thin on a real iPad?
+- [ ] Press Clear in one door. Does it leave the other doors alone?
+- [ ] Make an agent in Build or Draw, go to the Reveal, and **save the card**.
+      Does the agent appear on it?
 
 ## Test checklist for Milestone 6
 
