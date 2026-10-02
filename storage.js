@@ -114,6 +114,11 @@ const Storage = (function () {
   function listAudio() {
     return tx(STORE_AUDIO, 'readonly', s => s.getAll());
   }
+  // Spec §7: only the LAST voice recording is kept, so the one it replaced is
+  // removed rather than left taking up room on the iPad forever.
+  function deleteAudio(id) {
+    return tx(STORE_AUDIO, 'readwrite', s => s.delete(id));
+  }
   function clearAudio() {
     return tx(STORE_AUDIO, 'readwrite', s => s.clear());
   }
@@ -148,7 +153,7 @@ const Storage = (function () {
   // Everything listed here becomes available as Storage.<name> elsewhere.
   return {
     openDb, saveAgent, loadAgent, deleteAgent, listAgents, clearAgents,
-    saveAudio, loadAudio, listAudio, clearAudio,
+    saveAudio, loadAudio, listAudio, deleteAudio, clearAudio,
     getMeta, setMeta, requestPersistence
   };
 })();

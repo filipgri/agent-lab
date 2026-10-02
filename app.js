@@ -21,6 +21,7 @@
     13. BOOT              what runs when the app opens
     14. MISSION 1         pixel door + sticker layer (Milestone 1)
     15. MISSION 2         boost: powers, aura, background (Milestone 2)
+    16. MISSION 4         voice password: record + filters (Milestone 3)
    ========================================================================== */
 
 
@@ -31,6 +32,10 @@
 // Spec §14: this PIN is visible in public code on purpose. It is a speed bump
 // to stop a curious child wandering into the adult panel, not real security.
 const ADULT_PIN = '2468';
+
+// Which milestone this build is up to. Stamped into every export so a file
+// found later can be matched to the version of the app that made it.
+const MILESTONE = 3;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -403,6 +408,9 @@ async function refreshContinueButton() {
 
 // Record that we are leaving wherever we were, so the time maths works.
 function leaveCurrent() {
+  // Milestone 3: a recording or a playback must never carry on into the next
+  // screen. Stopping the recorder also hands the microphone back (spec §9).
+  if (typeof Voice !== 'undefined') { Voice.stop(); Voice.stopPlayback(); }
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -433,6 +441,8 @@ function goToMission(index, reasonAction) {
   if (mission.id === 'm1') enterMission1();
   else if (mission.id === 'm2') enterMission2();
   else hideEditor();        // every other mission: put the shared editor away
+
+  if (mission.id === 'm4') enterMission4();
 }
 
 // Stamp it ✓ : this mission is done, move on.
@@ -675,7 +685,7 @@ async function exportAll() {
     const payload = {
       app: 'Agent Lab',
       exportedAt: nowIso(),
-      milestone: 0,
+      milestone: MILESTONE,
       agentCount: agents.length,
       agents: agents,
       audio: audio
@@ -787,6 +797,7 @@ function wireUp() {
   // --- missions ---
   wireMission1();
   wireMission2();
+  wireMission4();
   $('#btn-stamp').addEventListener('click', stampMission);
   $('#btn-pass').addEventListener('click', passMission);
   $('#btn-finish').addEventListener('click', finishSession);
@@ -1703,4 +1714,366 @@ function enterMission2() {
   if (copied) scheduleSave();
 
   openEditor('#m2-editor-mount', 'boost');
+}
+
+
+/* ==========================================================================
+   16. MISSION 4 - VOICE PASSWORD (added in Milestone 3)
+   ==========================================================================
+
+   WHAT MISSION 4 IS (spec §7)
+   The child records a secret password in their own voice, hears it back as it
+   really is, then tries it through six different voices and keeps the one they
+   like. The filters are playback only: the recording itself is never altered.
+
+   HOW THE PIECES FIT
+     audio.js   does the microphone and the Web Audio work and knows nothing
+                about screens.
+     storage.js keeps the recording as a Blob in its own IndexedDB store,
+                under an audioId (spec §8).
+     this file  keeps `agent.voice = { audioId, filter, yesClips }` and drives
+                the buttons.
+
+   WHY THE BLOB IS HELD IN MEMORY TOO
+   `voiceClip` below is the Blob we just recorded or loaded. Keeping it saves
+   fetching it out of IndexedDB on every single play.
+   ========================================================================== */
+
+// The recording currently loaded, and the three bonus clips, as Blobs.
+let voiceClip = null;
+let yesClips = [null, null, null];
+
+// Which slot is recording right now: 'main', or 0/1/2 for a Yes slot.
+let recordingSlot = null;
+
+// The ring is a circle of this length; shortening the dash fills it up.
+const RING_LENGTH = 2 * Math.PI * 54;      // r=54 in the SVG
+
+
+/* ---------------------------------------------------------------------------
+   DRAWING THE SCREEN
+   One function paints the whole mission from the agent's data, so there is
+   never a half-updated screen to reason about.
+   ------------------------------------------------------------------------ */
+function renderMission4() {
+  if (!state.agent) return;
+  const voice = state.agent.voice;
+  const hasClip = Boolean(voice.audioId && voiceClip);
+
+  // Steps 2 and 3 only exist once something has been recorded.
+  $('#m4-after').hidden = !hasClip;
+  $('#m4-yes-block').hidden = !hasClip;
+
+  const recording = recordingSlot === 'main';
+  $('#m4-record-icon').textContent = recording ? '⏹️' : '🎤';
+  $('#m4-record').classList.toggle('is-recording', recording);
+  $('#m4-record').setAttribute('aria-label',
+    recording ? 'Stop recording' : 'Record your voice password');
+
+  $('#m4-hint').textContent =
+    recording ? 'Listening… tap to stop'
+              : hasClip ? 'Your password is saved'
+                        : 'Say your secret password';
+
+  // Keep the main button out of the way once there is a recording: the child
+  // should reach for Play and the voices, not record over it by accident.
+  $('#m4-record').classList.toggle('is-small', hasClip && !recording);
+
+  paintFilterButtons();
+  paintYesSlots();
+}
+
+function setRing(fraction) {
+  // dashoffset counts DOWN from the full length as the ring fills.
+  $('#m4-ring').style.strokeDashoffset = String(RING_LENGTH * (1 - fraction));
+}
+
+/* The six voices. Tapping one plays the recording through it and chooses it,
+   which is what spec §7 means by "Tap to choose". */
+function paintFilterButtons() {
+  const row = $('#m4-filters');
+  if (!row) return;
+  row.innerHTML = '';
+
+  Voice.FILTERS.forEach(filter => {
+    const button = document.createElement('button');
+    const chosen = state.agent.voice.filter === filter.id;
+    button.className = 'btn tool filter-btn' + (chosen ? ' is-on' : '');
+    button.innerHTML = '<span class="filter-icon">' + filter.icon + '</span>' +
+                       '<span class="tool-word">' + filter.label + '</span>';
+    button.setAttribute('aria-label', filter.label + ' voice');
+    button.addEventListener('click', () => chooseFilter(filter.id));
+    row.appendChild(button);
+  });
+}
+
+/* The three bonus "yes" slots (spec §7). Each is record, or play-and-redo. */
+function paintYesSlots() {
+  const row = $('#m4-yes');
+  if (!row) return;
+  row.innerHTML = '';
+
+  for (let i = 0; i < 3; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'yes-slot';
+
+    const filled = Boolean(state.agent.voice.yesClips[i] && yesClips[i]);
+    const busy   = recordingSlot === i;
+
+    const main = document.createElement('button');
+    main.className = 'btn tool yes-btn' + (busy ? ' is-recording' : '');
+    main.innerHTML = '<span class="filter-icon">' +
+                     (busy ? '⏹️' : filled ? '▶️' : '🎤') + '</span>' +
+                     '<span class="tool-word">Yes ' + (i + 1) + '</span>';
+    main.setAttribute('aria-label',
+      busy ? 'Stop recording yes ' + (i + 1)
+           : filled ? 'Play yes ' + (i + 1) : 'Record yes ' + (i + 1));
+    main.addEventListener('click', () => {
+      if (busy) Voice.stop();
+      else if (filled) playYes(i);
+      else recordYes(i);
+    });
+    slot.appendChild(main);
+
+    // A filled slot also gets a small redo button under it.
+    if (filled && !busy) {
+      const redo = document.createElement('button');
+      redo.className = 'btn yes-redo';
+      redo.textContent = '🔄';
+      redo.setAttribute('aria-label', 'Record yes ' + (i + 1) + ' again');
+      redo.addEventListener('click', () => recordYes(i));
+      slot.appendChild(redo);
+    }
+
+    row.appendChild(slot);
+  }
+}
+
+
+/* ---------------------------------------------------------------------------
+   RECORDING THE PASSWORD
+   Spec §9: the audio engine may only be started inside a tap, which is exactly
+   where this runs.
+   ------------------------------------------------------------------------ */
+async function tapRecord() {
+  Voice.unlock();
+
+  if (recordingSlot !== null) { Voice.stop(); return; }   // tapped again = stop
+
+  if (!Voice.canRecord()) {
+    showTrouble('This iPad cannot record. Tap Pass to carry on.');
+    return;
+  }
+
+  const hadClip = Boolean(state.agent.voice.audioId);
+  Voice.stopPlayback();
+  hideTrouble();
+
+  recordingSlot = 'main';
+  setRing(0);
+  renderMission4();
+  logEvent(hadClip ? 'rerecord' : 'record_start', {});
+
+  try {
+    const result = await Voice.record({ onTick: setRing });
+    await saveVoiceClip(result.blob, result.ms);
+  } catch (err) {
+    micFailed(err);
+  }
+
+  recordingSlot = null;
+  setRing(0);
+  renderMission4();
+}
+
+/* Keep the new recording and throw the old one away: spec §7 says only the
+   last recording is kept. */
+async function saveVoiceClip(blob, ms) {
+  const voice = state.agent.voice;
+  const oldId = voice.audioId;
+
+  const id = uuid();
+  await Storage.saveAudio(id, blob);
+  voice.audioId = id;
+  voiceClip = blob;
+
+  // A recording just worked, so any earlier "the microphone said no" notice is
+  // out of date and would only confuse the child.
+  hideTrouble();
+
+  if (oldId) {
+    Voice.forget(oldId);
+    await Storage.deleteAudio(oldId);
+  }
+
+  logEvent('record_stop', { ms: Math.round(ms), bytes: blob.size });
+  scheduleSave();
+
+  // Spec §7: play the raw recording FIRST, before any filter is offered. It
+  // follows a tap, so Safari allows it to start on its own.
+  renderMission4();
+  await playVoice('normal', { raw: true });
+}
+
+/* Play the password. `raw` means this is the honest, unfiltered first listen,
+   after which the voices are offered. */
+async function playVoice(filterId, options) {
+  const opts = options || {};
+  const voice = state.agent.voice;
+  if (!voice.audioId || !voiceClip) return;
+
+  Voice.unlock();
+  try {
+    await Voice.play(voice.audioId, voiceClip, filterId, () => {
+      $('#m4-play').classList.remove('is-playing');
+    });
+    $('#m4-play').classList.add('is-playing');
+  } catch (err) {
+    showTrouble('That recording could not be played back.');
+    return;
+  }
+
+  if (opts.raw) {
+    // Only now do the six voices appear.
+    $('#m4-filters-block').hidden = false;
+  }
+  logEvent('filter_play', { filter: filterId, raw: Boolean(opts.raw) });
+}
+
+/* Tapping a voice plays it and keeps it (spec §7). */
+async function chooseFilter(filterId) {
+  const voice = state.agent.voice;
+  const changed = voice.filter !== filterId;
+
+  await playVoice(filterId, {});
+  if (changed) {
+    voice.filter = filterId;
+    logEvent('filter_choose', { filter: filterId });
+    scheduleSave();
+  }
+  paintFilterButtons();
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE BONUS "YES x3" SLOTS (spec §7)
+   The same recorder, into agent.voice.yesClips instead.
+   ------------------------------------------------------------------------ */
+async function recordYes(index) {
+  Voice.unlock();
+  if (recordingSlot !== null) { Voice.stop(); return; }
+  if (!Voice.canRecord()) {
+    showTrouble('This iPad cannot record. Tap Pass to carry on.');
+    return;
+  }
+
+  Voice.stopPlayback();
+  recordingSlot = index;
+  renderMission4();
+  logEvent('record_start', { slot: 'yes' + (index + 1) });
+
+  try {
+    const result = await Voice.record({ onTick: () => {} });
+    const oldId = state.agent.voice.yesClips[index];
+
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    state.agent.voice.yesClips[index] = id;
+    yesClips[index] = result.blob;
+
+    if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
+
+    logEvent('record_stop', { slot: 'yes' + (index + 1), ms: Math.round(result.ms) });
+    scheduleSave();
+  } catch (err) {
+    micFailed(err);
+  }
+
+  recordingSlot = null;
+  renderMission4();
+}
+
+async function playYes(index) {
+  const id = state.agent.voice.yesClips[index];
+  if (!id || !yesClips[index]) return;
+  Voice.unlock();
+  try {
+    await Voice.play(id, yesClips[index], state.agent.voice.filter || 'normal');
+    logEvent('filter_play', { slot: 'yes' + (index + 1) });
+  } catch (err) { /* a clip that will not decode is not worth a popup */ }
+}
+
+
+/* ---------------------------------------------------------------------------
+   WHEN THE MICROPHONE SAYS NO
+   A child tapping "Don't allow", or an iPad with the microphone switched off
+   in Settings, both land here. Nothing breaks: Pass is still there.
+   ------------------------------------------------------------------------ */
+function micFailed(err) {
+  const name = err && err.name;
+  if (name === 'NotAllowedError' || name === 'SecurityError') {
+    showTrouble('The microphone is not allowed yet. An adult can turn it on in ' +
+                'Settings, or tap Pass to carry on.');
+  } else if (name === 'NotFoundError') {
+    showTrouble('No microphone found on this iPad. Tap Pass to carry on.');
+  } else {
+    showTrouble('The recording did not work. Try again, or tap Pass.');
+  }
+  logEvent('record_fail', { reason: name || 'unknown' });
+}
+
+function showTrouble(message) {
+  const el = $('#m4-trouble');
+  el.textContent = message;
+  el.hidden = false;
+}
+
+function hideTrouble() {
+  $('#m4-trouble').hidden = true;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring Mission 4 up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wireMission4() {
+  // Set the ring's dash pattern once: one full-length dash, so shortening the
+  // offset reveals it a bit at a time.
+  const ring = $('#m4-ring');
+  ring.style.strokeDasharray = String(RING_LENGTH);
+  setRing(0);
+
+  $('#m4-record').addEventListener('click', tapRecord);
+  $('#m4-play').addEventListener('click',
+    () => playVoice(state.agent.voice.filter || 'normal', {}));
+  $('#m4-rerecord').addEventListener('click', tapRecord);
+}
+
+/* Called by goToMission whenever Mission 4 opens. The recordings live in
+   IndexedDB, so they have to be fetched back before anything can be played. */
+async function enterMission4() {
+  if (!state.agent) return;
+  const voice = state.agent.voice;
+
+  hideTrouble();
+  voiceClip = null;
+  yesClips = [null, null, null];
+
+  if (voice.audioId) {
+    const row = await Storage.loadAudio(voice.audioId);
+    voiceClip = row ? row.blob : null;
+    // A recording that has already been heard keeps its voices on show.
+    $('#m4-filters-block').hidden = !voiceClip;
+  } else {
+    $('#m4-filters-block').hidden = true;
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const id = voice.yesClips[i];
+    if (!id) continue;
+    const row = await Storage.loadAudio(id);
+    yesClips[i] = row ? row.blob : null;
+  }
+
+  renderMission4();
 }

@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 2 (Boost)
+## Current state: Milestone 3 (Voice password)
 
 Working now:
 
@@ -54,7 +54,29 @@ Working now:
 - The preview thumbnail mirrors whichever version is being edited, and shows
   the Boost everywhere else.
 
-Missions 3–6 are still **placeholders**, built in Milestones 3–8.
+### Mission 4 works
+
+- A big red 🎤 button with a ring that fills as it records. It stops itself at
+  **10 seconds** (spec §7), or the child taps again to stop sooner.
+- **The raw recording plays first**, automatically, the moment recording stops.
+  Only then do the six voices appear — so a child always hears their real voice
+  before any filter is offered.
+- Six voices, all applied **at playback only**. The recording itself is never
+  altered, so trying Robot and hating it costs nothing:
+  - **Normal**, **Squeaky** (faster and higher), **Deep** (slower and lower)
+  - **Robot** — ring modulation: a 50Hz oscillator drives a gain node's volume
+    knob far too fast to hear as volume
+  - **Spy radio** — keeps only 300Hz–3000Hz, then roughs it up slightly
+  - **Echo** — a quarter-second delay fed back into itself at 40%
+- Tapping a voice plays it **and** chooses it. The choice is saved as a name;
+  there is no second audio file.
+- **Again** re-records. Only the last recording is kept, and the old one is
+  deleted from the iPad rather than left behind.
+- Optional **Yes ×3** bonus: three small slots for saying "yes" three ways.
+- If the microphone is refused or missing, a calm amber message explains it and
+  **Pass** still works — nobody gets stuck.
+
+Missions 3, 5 and 6 are still **placeholders**, built in Milestones 4–8.
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -66,10 +88,11 @@ so for now the app needs to be open online once, and is not yet installable.
 | `style.css` | Look and feel, layout, the motion settings |
 | `app.js` | Navigation, missions, state, event log, adult panel |
 | `storage.js` | A small, friendly wrapper around IndexedDB |
+| `audio.js` | The microphone, the 10-second recorder, the six playback filters |
 | `agent-lab-build-spec.md` | The brief this is built from |
 
-Scripts load in order: `storage.js`, then `app.js`. `audio.js` and `effects.js`
-join that list in later milestones.
+Scripts load in order: `storage.js`, `audio.js`, then `app.js`. `effects.js`
+joins that list at Milestone 8.
 
 ## Run it on this Mac
 
@@ -163,6 +186,28 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 3
+
+The microphone is the thing to test on a **real iPad**, over the https address
+— Safari will not grant microphone access over plain http from another device.
+
+- [ ] Tap 🎤. Does Safari ask permission the first time, and does the ring fill?
+- [ ] Say nothing and wait. Does it stop itself at 10 seconds?
+- [ ] Does your own voice play back straight away, unfiltered, before any of the
+      six voices appear?
+- [ ] Try all six. Is Robot recognisably robotic, and Spy radio recognisably a
+      walkie-talkie? (This is an ear test — no amount of code review settles it.)
+- [ ] **Check the red recording dot disappears** in the iPad status bar after
+      recording stops. If it stays lit, the microphone was not released.
+- [ ] Tap **Again** and re-record. Is the new one kept and the old one gone?
+- [ ] Record, go to another mission, come back. Is it still there?
+- [ ] Close the app completely, reopen, **Continue**. Still there?
+- [ ] Start a playback, then tap a different mission. Does the sound stop?
+- [ ] Say no to the microphone on purpose. Is the message calm, and does Pass
+      still work?
+- [ ] Are the children happy hearing their own voice? Watch for embarrassment —
+      the Pass button matters here more than anywhere else.
 
 ## Test checklist for Milestone 2
 

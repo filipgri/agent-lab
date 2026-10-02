@@ -905,3 +905,147 @@ body[data-motion="calm"] .sticker.just-landed { animation: none; }
   background: var(--navy-1);
   padding-bottom: 8px;
 }
+
+
+/* ============================================================
+   MILESTONE 3 - MISSION 4, VOICE PASSWORD (spec §7)
+   ============================================================ */
+
+.m4-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Shown only when the microphone is unavailable or refused. Deliberately calm:
+   nothing has gone wrong for the child, and Pass is still there. */
+.m4-trouble {
+  margin: 0 0 4px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: #3a2a12;
+  color: #ffd9a3;
+  font-size: 17px;
+  line-height: 1.4;
+  box-shadow: inset 0 0 0 2px rgba(255,210,63,.25);
+}
+
+.m4-recorder { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+/* --- The big red button, with the ring that fills as it records --- */
+.record-btn {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border: none;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff6b63, #c62f26);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(198,47,38,.45),
+              inset 0 0 0 3px rgba(255,255,255,.12);
+  /* Only transform is animated, per spec §5a. */
+  transition: transform 200ms ease, width 200ms ease, height 200ms ease;
+}
+.record-btn:active { transform: scale(.96); }
+
+/* Once a password exists the button shrinks out of the way, so the child
+   reaches for Play rather than recording over it by accident. */
+.record-btn.is-small { width: 128px; height: 128px; }
+.record-btn.is-small .record-icon { font-size: 44px; }
+
+.record-icon { font-size: 76px; line-height: 1; pointer-events: none; }
+
+/* A gentle pulse while recording. Well under the 3-flashes-per-second limit
+   that spec §5a sets (WCAG 2.3.1) - this is one slow breath per second. */
+.record-btn.is-recording { animation: record-pulse 1s ease-in-out infinite; }
+@keyframes record-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+.record-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ring-track, .ring-fill {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.ring-track { stroke: rgba(0,0,0,.28); }
+.ring-fill  { stroke: var(--accent); }
+
+.m4-hint { font-size: 19px; color: var(--muted); text-align: center; }
+
+.m4-after {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+}
+.m4-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+
+/* Play and Again are the two buttons a child uses most here, so they are
+   bigger than the ordinary tool buttons. */
+.m4-big { min-width: 124px; min-height: 92px; font-size: 32px; }
+.m4-big.is-playing { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.m4-question {
+  margin: 0;
+  font-size: 24px;
+  text-align: center;
+}
+.m4-question-small { font-size: 19px; color: var(--muted); font-weight: 600; }
+
+/* --- The six voices --- */
+.filter-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
+}
+.filter-btn {
+  min-width: 104px;
+  min-height: 92px;        /* spec §5: comfortably past the 64px minimum */
+}
+.filter-btn.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.filter-icon { font-size: 34px; line-height: 1; }
+
+/* --- The optional "Yes x3" bonus --- */
+.m4-yes-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 2px solid rgba(255,255,255,.08);
+  width: 100%;
+}
+.yes-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.yes-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.yes-btn { min-width: 96px; min-height: 84px; }
+.yes-btn.is-recording { animation: record-pulse 1s ease-in-out infinite; }
+.yes-redo {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 18px;
+  background: var(--navy-2);
+}
+
+/* Reduce Motion on the iPad turns the pulsing off (spec §5a). */
+@media (prefers-reduced-motion: reduce) {
+  .record-btn.is-recording,
+  .yes-btn.is-recording { animation: none; }
+}

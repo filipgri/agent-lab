@@ -48,6 +48,7 @@ external fonts or libraries, or text-heavy instructions.
 | `style.css` | Look and feel, layout, motion settings |
 | `app.js` | Navigation, missions, state, event log, adult panel, Mission 1 editor |
 | `storage.js` | IndexedDB wrapper (agents, audio blobs, settings) |
+| `audio.js` | Microphone, 10s recorder, the six playback filters |
 | `README.md` | Deploy steps, iPad setup, test checklists |
 
 `app.js` is numbered into sections with comment banners (1. CONFIG, 2. STATE …
@@ -55,8 +56,8 @@ external fonts or libraries, or text-heavy instructions.
 file list (§4) only allows `audio.js` and `effects.js` to join, in later
 milestones.
 
-Script load order: `storage.js`, then `app.js`. Add `audio.js` and `effects.js`
-before `app.js` when they arrive.
+Script load order: `storage.js`, `audio.js`, then `app.js`. Add `effects.js`
+before `app.js` when it arrives (Milestone 8).
 
 ## Progress
 
@@ -76,12 +77,16 @@ before `app.js` when they arrive.
   and six CSS-gradient backgrounds. Also fixed a Milestone 1 bug: tapping a
   sticker to select it used to drag it under the finger — there is now an 8px
   threshold and the grab offset is kept.
-- **Next: Milestone 3 — Voice password** (spec §7, Mission 4; `audio.js` joins
-  the file list here).
+- **Milestone 3 — done.** Mission 4: the voice password. New file `audio.js`
+  holds everything to do with sound — the microphone, the 10-second recorder,
+  and the six playback filters as Web Audio graphs. The raw recording plays
+  first, and only then do the six voices appear. Tapping a voice plays it and
+  chooses it. Re-record replaces the clip and deletes the old blob. Includes
+  the optional Yes ×3 bonus slots. `Storage.deleteAudio()` added.
+- **Next: Milestone 4 — Secret feeling code** (spec §7, Mission 3).
 
-Remaining order (spec §10): 3 Voice → 4 Feeling code → 5 Places & rules →
-6 Reveal ID card → 7 Build and Draw doors → 8 Polish & juice (§5a) →
-9 Offline PWA.
+Remaining order (spec §10): 4 Feeling code → 5 Places & rules → 6 Reveal ID
+card → 7 Build and Draw doors → 8 Polish & juice (§5a) → 9 Offline PWA.
 
 ## Settled decisions
 
@@ -105,6 +110,10 @@ Remaining order (spec §10): 3 Voice → 4 Feeling code → 5 Places & rules →
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **Sound only starts inside a tap** (spec §9). Every path that makes noise
+  calls `Voice.unlock()` from a real click handler first. `leaveCurrent()`
+  stops recording and playback, so nothing follows the child to the next
+  screen — and stopping the recorder is what releases the microphone.
 - **There is one editor, not one per mission.** `#editor` in `index.html` is
   moved between `#m1-editor-mount` and `#m2-editor-mount` by `moveEditorTo()`.
   Moving a DOM node keeps its listeners, so everything stays wired. Which half

@@ -230,10 +230,57 @@
           </div>
         </article>
 
+        <!-- MISSION 4 - VOICE PASSWORD (spec §7).
+             Three steps, shown one at a time: record it, hear it as it really
+             is, then try the voices. -->
         <article class="mission-panel" data-mission="m4">
-          <p class="placeholder-note">Milestone 3 builds this.</p>
-          <div class="chip-row">
-            <span class="chip">🎤 Record</span><span class="chip">🤖 Filters</span>
+
+          <!-- Shown if this iPad has no microphone, or the child said no to it.
+               Pass is always still available, so nobody is stuck. -->
+          <p id="m4-trouble" class="m4-trouble" hidden></p>
+
+          <div class="m4-wrap">
+
+            <!-- STEP 1: the big red button, with the ring that fills up. -->
+            <div class="m4-recorder">
+              <button id="m4-record" class="record-btn" aria-label="Record your voice password">
+                <!-- The ring is an SVG circle. app.js shortens the dash to fill
+                     it. rotate(-90) starts it at the top instead of the right. -->
+                <svg class="record-ring" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="ring-track" cx="60" cy="60" r="54"></circle>
+                  <circle id="m4-ring" class="ring-fill" cx="60" cy="60" r="54"
+                          transform="rotate(-90 60 60)"></circle>
+                </svg>
+                <span id="m4-record-icon" class="record-icon">🎤</span>
+              </button>
+              <div id="m4-hint" class="m4-hint">Say your secret password</div>
+            </div>
+
+            <!-- STEP 2 and 3, revealed once there is a recording. -->
+            <div id="m4-after" class="m4-after" hidden>
+
+              <div class="m4-row">
+                <button id="m4-play" class="btn tool m4-big" aria-label="Play it">
+                  ▶️<span class="tool-word">Play it</span>
+                </button>
+                <button id="m4-rerecord" class="btn tool m4-big" aria-label="Record again">
+                  🔄<span class="tool-word">Again</span>
+                </button>
+              </div>
+
+              <!-- The six voices. Tapping one plays it AND chooses it (spec §7). -->
+              <div id="m4-filters-block" hidden>
+                <h2 class="m4-question">Which voice does your agent use?</h2>
+                <div id="m4-filters" class="filter-row"></div>
+              </div>
+
+              <!-- The optional bonus from spec §7: three ways of saying yes. -->
+              <div id="m4-yes-block" class="m4-yes-block" hidden>
+                <h2 class="m4-question m4-question-small">Bonus: say “yes” three ways</h2>
+                <div id="m4-yes" class="yes-row"></div>
+              </div>
+
+            </div>
           </div>
         </article>
 
@@ -419,6 +466,7 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <script src="./storage.js"></script>
+<script src="./audio.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
