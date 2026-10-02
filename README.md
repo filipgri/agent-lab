@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 3 (Voice password)
+## Current state: Milestone 4 (Secret feeling code)
 
 Working now:
 
@@ -76,7 +76,24 @@ Working now:
 - If the microphone is refused or missing, a calm amber message explains it and
   **Pass** still works — nobody gets stuck.
 
-Missions 3, 5 and 6 are still **placeholders**, built in Milestones 4–8.
+### Mission 3 works
+
+- **The blank tile comes first.** Three empty slots, no faces anywhere on
+  screen. The child draws their own sign on a small canvas with a thick,
+  smoothed brush, six light colours, undo and clear.
+- **"Need ideas?"** reveals the six faces — 😀 😢 😠 😨 😌 🤪 — and only then.
+  The button disappears once used. The event log records the order, so you can
+  check afterwards how many children drew before they asked.
+- Up to **three codes**. Each can also have a name recorded (🎤, 5 seconds, no
+  typing anywhere).
+- For each: **"How does your agent move when it feels this?"** — bounce, shake,
+  sway, spin or still, previewed live on the agent thumbnail. **The child always
+  chooses.** Nothing in the app decides that sad means droop.
+- Finally **"Which one is your agent wearing today?"**, with **None** as an
+  equal choice, styled the same as the rest.
+- Codes can be reopened, edited, or removed.
+
+Missions 5 and 6 are still **placeholders**, built in Milestones 5–8.
 The PWA parts (`manifest.json`, `sw.js`, icons, offline) arrive in Milestone 9,
 so for now the app needs to be open online once, and is not yet installable.
 
@@ -186,6 +203,19 @@ If iPad testing with the children says otherwise, it is a one-line change to
 **Changing `GRID` clears any pixel art already saved**, because a saved agent's
 pixel array no longer matches the new grid size, so decide before a session
 rather than during one.
+
+## Test checklist for Milestone 4
+
+- [ ] Does a child face a genuinely blank square, with no faces visible?
+- [ ] Watch how many draw something before pressing **Need ideas?** — that is
+      the measurement this mission exists for.
+- [ ] Is the brush thick enough, and does a fast scribble come out smooth?
+- [ ] Try all five movements. Is **shake** gentle rather than alarming?
+- [ ] Does the movement preview stop when you leave the mission?
+- [ ] Make three codes, remove the middle one. Does the right one stay worn?
+- [ ] Press **Keep it** without drawing. Does it ask you to draw first?
+- [ ] Rotate the iPad while the maker is open — portrait and landscape.
+- [ ] Close the app completely, reopen, **Continue**. Are the signs still there?
 
 ## Test checklist for Milestone 3
 

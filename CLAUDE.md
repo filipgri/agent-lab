@@ -83,10 +83,19 @@ before `app.js` when it arrives (Milestone 8).
   first, and only then do the six voices appear. Tapping a voice plays it and
   chooses it. Re-record replaces the clip and deletes the old blob. Includes
   the optional Yes ×3 bonus slots. `Storage.deleteAudio()` added.
-- **Next: Milestone 4 — Secret feeling code** (spec §7, Mission 3).
+- **Milestone 4 — done.** Mission 3: the secret feeling code. The blank tile
+  comes first; "Need ideas?" reveals the six faces only when asked, and the
+  event log proves the order (`feeling_draw` before `need_ideas_open`). Up to
+  three codes, each a PNG data URL from a small drawing canvas, with an
+  optional recorded name, an optional face, and a movement the child picks.
+  Then "which one is your agent wearing today?", with None as an equal choice.
+  Brought in the five `.move-*` classes from §5a, previewed on the thumbnail
+  only — the rest of §5a still waits for Milestone 8.
+- **Next: Milestone 5 — Where does my agent go? + Agent rules**
+  (spec §7, Missions 5 & 6).
 
-Remaining order (spec §10): 4 Feeling code → 5 Places & rules → 6 Reveal ID
-card → 7 Build and Draw doors → 8 Polish & juice (§5a) → 9 Offline PWA.
+Remaining order (spec §10): 5 Places & rules → 6 Reveal ID card → 7 Build and
+Draw doors → 8 Polish & juice (§5a) → 9 Offline PWA.
 
 ## Settled decisions
 
@@ -110,6 +119,11 @@ card → 7 Build and Draw doors → 8 Polish & juice (§5a) → 9 Offline PWA.
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **A row that must stay reachable does not belong inside a scrolling column.**
+  Mission 3's Keep it / Remove row sits in `.m3-side` *beside* the scrolling
+  `.m3-tools`, because `margin-top:auto` inside a scroller pins a row to the
+  scroll edge, where the Stamp it bar clips it. Both orientations were only
+  right after this change — check portrait AND landscape for any new panel.
 - **Sound only starts inside a tap** (spec §9). Every path that makes noise
   calls `Voice.unlock()` from a real click handler first. `leaveCurrent()`
   stops recording and playback, so nothing follows the child to the next

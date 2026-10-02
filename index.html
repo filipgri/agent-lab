@@ -223,10 +223,64 @@
           </div>
         </article>
 
+        <!-- MISSION 3 - SECRET FEELING CODE (spec §7).
+             ORDER MATTERS HERE. The blank tile comes first: the child invents a
+             sign of their own. The six faces behind "Need ideas?" are only ever
+             offered afterwards, so nobody is picking from a menu. -->
         <article class="mission-panel" data-mission="m3">
-          <p class="placeholder-note">Milestone 4 builds this.</p>
-          <div class="chip-row">
-            <span class="chip">⬜ Blank tile</span><span class="chip">🤸 Movement</span>
+
+          <!-- STEP 1: the three code slots. -->
+          <div id="m3-slots-view" class="m3-slots-view">
+            <p class="m3-lead">Make a secret sign for a feeling.</p>
+            <div id="m3-slots" class="m3-slots"></div>
+
+            <!-- Shown once at least one code exists. -->
+            <div id="m3-worn-block" class="m3-worn-block" hidden>
+              <h2 class="m4-question">Which one is your agent wearing today?</h2>
+              <div id="m3-worn" class="m3-worn"></div>
+            </div>
+          </div>
+
+          <!-- STEP 2: the maker, opened by tapping a slot. -->
+          <div id="m3-maker" class="m3-maker" hidden>
+
+            <div class="m3-stage-col">
+              <!-- A plain drawing canvas. Kept transparent so the sign shows on
+                   any colour later, on the ID card or worn on the agent. -->
+              <div class="m3-canvas-wrap">
+                <canvas id="m3-canvas" class="m3-canvas" width="320" height="320"></canvas>
+              </div>
+              <div id="m3-face-badge" class="m3-face-badge" hidden></div>
+            </div>
+
+            <!-- The rail scrolls; the finish row must not, or "Keep it" ends up
+                 below the fold. So it is a sibling of the rail, not inside it. -->
+            <div class="m3-side">
+            <div class="m3-tools">
+              <div id="m3-palette" class="palette"></div>
+
+              <div class="tool-row">
+                <button id="m3-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+                <button id="m3-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+                <button id="m3-mic" class="btn tool" aria-label="Record a name for this sign">🎤<span class="tool-word">Name it</span></button>
+              </div>
+
+              <!-- The faces stay hidden until this is pressed (spec §7). -->
+              <button id="m3-ideas" class="btn m3-ideas">💡 Need ideas?</button>
+              <div id="m3-faces" class="m3-faces" hidden></div>
+
+              <!-- Movement. Previewed live on the agent thumbnail, never on the
+                   thing being edited (spec §5a). -->
+              <h2 class="m4-question m4-question-small">How does your agent move when it feels this?</h2>
+              <div id="m3-moves" class="m3-moves"></div>
+
+            </div><!-- /.m3-tools -->
+
+              <div class="tool-row m3-finish">
+                <button id="m3-done" class="btn btn-primary m3-done">✓ Keep it</button>
+                <button id="m3-delete" class="btn tool btn-danger" aria-label="Remove this code" hidden>🗑️<span class="tool-word">Remove</span></button>
+              </div>
+            </div><!-- /.m3-side -->
           </div>
         </article>
 

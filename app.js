@@ -22,6 +22,7 @@
     14. MISSION 1         pixel door + sticker layer (Milestone 1)
     15. MISSION 2         boost: powers, aura, background (Milestone 2)
     16. MISSION 4         voice password: record + filters (Milestone 3)
+    17. MISSION 3         secret feeling code (Milestone 4)
    ========================================================================== */
 
 
@@ -35,7 +36,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 3;
+const MILESTONE = 4;
 
 // The six missions, in the order children meet them.
 const MISSIONS = [
@@ -411,6 +412,8 @@ function leaveCurrent() {
   // Milestone 3: a recording or a playback must never carry on into the next
   // screen. Stopping the recorder also hands the microphone back (spec §9).
   if (typeof Voice !== 'undefined') { Voice.stop(); Voice.stopPlayback(); }
+  // Milestone 4: a movement being previewed must not follow the child either.
+  if (typeof previewMove === 'function') previewMove(null);
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -442,6 +445,7 @@ function goToMission(index, reasonAction) {
   else if (mission.id === 'm2') enterMission2();
   else hideEditor();        // every other mission: put the shared editor away
 
+  if (mission.id === 'm3') enterMission3();
   if (mission.id === 'm4') enterMission4();
 }
 
@@ -797,6 +801,7 @@ function wireUp() {
   // --- missions ---
   wireMission1();
   wireMission2();
+  wireMission3();
   wireMission4();
   $('#btn-stamp').addEventListener('click', stampMission);
   $('#btn-pass').addEventListener('click', passMission);
@@ -2076,4 +2081,512 @@ async function enterMission4() {
   }
 
   renderMission4();
+}
+
+
+/* ==========================================================================
+   17. MISSION 3 - SECRET FEELING CODE (added in Milestone 4)
+   ==========================================================================
+
+   WHAT MISSION 3 IS (spec §7)
+   A feeling code is a secret sign the child invents for a feeling: a scribble
+   that means "I am happy", or "leave me alone". Up to three of them.
+
+   THE ORDER IS THE POINT
+   The blank tile comes FIRST. The six faces behind "Need ideas?" appear only
+   after the child has had a go at their own sign, and never before. A child
+   shown 😀😢😠 first would just pick one; a child given a blank square invents
+   something. The research is about what they invent, so the blank square is
+   not a design nicety - it is the measurement.
+
+   Likewise the movement: the child always chooses which movement goes with
+   their feeling. The app never decides that sad means droop.
+
+   HOW A CODE IS STORED (spec §8)
+     { png: "data:image/png...", audioId: null, face: null, move: "bounce" }
+   The drawing is a PNG data URL rather than a list of strokes, because that is
+   what the ID card in Milestone 6 will need, and it keeps the export simple.
+   ========================================================================== */
+
+// Spec §7: exactly these six, and only after "Need ideas?".
+const FEELING_FACES = ['😀', '😢', '😠', '😨', '😌', '🤪'];
+
+// Spec §5a: the five movements. The CSS classes live in style.css.
+const MOVES = [
+  { id: 'bounce', icon: '🙂', label: 'Bounce' },
+  { id: 'shake',  icon: '😬', label: 'Shake'  },
+  { id: 'sway',   icon: '🌊', label: 'Sway'   },
+  { id: 'spin',   icon: '🌀', label: 'Spin'   },
+  { id: 'still',  icon: '🧘', label: 'Still'  }
+];
+
+// A short palette: light colours that read on the dark tile.
+const CODE_COLOURS = ['#ffffff', '#ffd23f', '#ff6b63', '#4cc9f0', '#5ef08a', '#c77dff'];
+
+// What the maker is doing right now. None of this is saved.
+const coder = {
+  index: null,        // which of the three slots is open
+  colour: CODE_COLOURS[0],
+  drawing: false,
+  points: [],         // the stroke being drawn
+  undoStack: [],      // canvas snapshots, taken before each stroke
+  draft: null         // the code being built, before "Keep it"
+};
+
+
+/* ---------------------------------------------------------------------------
+   THE SLOTS
+   ------------------------------------------------------------------------ */
+function renderMission3() {
+  if (!state.agent) return;
+  const codes = state.agent.feelingCodes;
+
+  const row = $('#m3-slots');
+  row.innerHTML = '';
+
+  for (let i = 0; i < 3; i++) {
+    const code = codes[i];
+    const slot = document.createElement('button');
+    slot.className = 'm3-slot' + (code ? ' is-filled' : '');
+    slot.setAttribute('aria-label', code ? 'Open code ' + (i + 1)
+                                         : 'Make a new secret sign');
+
+    if (code) {
+      slot.innerHTML =
+        '<img class="m3-slot-img" alt="" src="' + code.png + '">' +
+        '<span class="m3-slot-tags">' +
+          (code.face ? '<span>' + code.face + '</span>' : '') +
+          (code.audioId ? '<span>🎤</span>' : '') +
+          '<span>' + moveIcon(code.move) + '</span>' +
+        '</span>';
+    } else {
+      slot.innerHTML = '<span class="m3-slot-plus">✚</span><span>New sign</span>';
+    }
+
+    slot.addEventListener('click', () => openCoder(i));
+    row.appendChild(slot);
+  }
+
+  // "Which one is your agent wearing today?" only makes sense once one exists.
+  $('#m3-worn-block').hidden = codes.length === 0;
+  renderWornRow();
+}
+
+function moveIcon(id) {
+  const move = MOVES.find(m => m.id === id);
+  return move ? move.icon : '🧘';
+}
+
+/* Spec §7: the child picks one to wear, or none. */
+function renderWornRow() {
+  const row = $('#m3-worn');
+  if (!row) return;
+  row.innerHTML = '';
+
+  const codes = state.agent.feelingCodes;
+  const worn = state.agent.feelingWorn;
+
+  codes.forEach((code, i) => {
+    const button = document.createElement('button');
+    button.className = 'm3-worn-option' + (worn === i ? ' is-on' : '');
+    button.innerHTML = '<img class="m3-worn-img" alt="" src="' + code.png + '">';
+    button.setAttribute('aria-label', 'Wear code ' + (i + 1));
+    button.addEventListener('click', () => setWorn(i));
+    row.appendChild(button);
+  });
+
+  // "None" is a real, equal choice, not a way of opting out.
+  const none = document.createElement('button');
+  none.className = 'm3-worn-option m3-worn-none' + (worn === null ? ' is-on' : '');
+  none.textContent = 'None';
+  none.setAttribute('aria-label', 'Wear none of them');
+  none.addEventListener('click', () => setWorn(null));
+  row.appendChild(none);
+}
+
+function setWorn(index) {
+  state.agent.feelingWorn = index;
+  logEvent('feeling_worn', { index: index });
+  renderWornRow();
+  renderPreview();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE MAKER
+   ------------------------------------------------------------------------ */
+function openCoder(index) {
+  const existing = state.agent.feelingCodes[index];
+
+  coder.index = index;
+  coder.undoStack = [];
+  coder.colour = CODE_COLOURS[0];
+  // Editing works on a copy, so backing out of a change leaves the saved one
+  // alone until "Keep it" is pressed.
+  coder.draft = existing
+    ? Object.assign({}, existing)
+    : { png: null, audioId: null, face: null, move: 'still' };
+
+  $('#m3-slots-view').hidden = true;
+  $('#m3-maker').hidden = false;
+  $('#m3-delete').hidden = !existing;
+
+  // The faces start hidden every time: the blank tile comes first (spec §7).
+  $('#m3-faces').hidden = true;
+  $('#m3-ideas').hidden = false;
+
+  clearCodeCanvas();
+  if (existing && existing.png) drawPngToCanvas(existing.png);
+
+  paintCodePalette();
+  paintFaces();
+  paintMoves();
+  paintFaceBadge();
+  previewMove(coder.draft.move);
+}
+
+function closeCoder() {
+  coder.index = null;
+  coder.draft = null;
+  $('#m3-maker').hidden = true;
+  $('#m3-slots-view').hidden = false;
+  previewMove(null);            // stop the preview moving once we are out
+  renderMission3();
+}
+
+function codeCtx() {
+  return $('#m3-canvas').getContext('2d');
+}
+
+function clearCodeCanvas() {
+  const canvas = $('#m3-canvas');
+  codeCtx().clearRect(0, 0, canvas.width, canvas.height);
+}
+
+/* Put a saved PNG back on the canvas so it can be edited again. Images load
+   asynchronously, so the drawing happens in the onload handler. */
+function drawPngToCanvas(png) {
+  const img = new Image();
+  img.onload = function () { codeCtx().drawImage(img, 0, 0); };
+  img.src = png;
+}
+
+
+/* ---------------------------------------------------------------------------
+   DRAWING
+   A thick round brush. The line is smoothed by curving through the MIDPOINT
+   between each pair of points: joining raw points gives visible corners,
+   because a finger reports its position only every few milliseconds.
+   ------------------------------------------------------------------------ */
+function codePoint(event) {
+  const canvas = $('#m3-canvas');
+  const rect = canvas.getBoundingClientRect();
+  // The canvas is 320x320 inside but drawn bigger on screen, so screen
+  // positions have to be scaled back into canvas coordinates.
+  return {
+    x: (event.clientX - rect.left) / rect.width  * canvas.width,
+    y: (event.clientY - rect.top)  / rect.height * canvas.height
+  };
+}
+
+function codeDown(event) {
+  event.preventDefault();
+  const canvas = $('#m3-canvas');
+
+  pushCodeUndo();
+  coder.drawing = true;
+  coder.points = [codePoint(event)];
+  try { canvas.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
+
+  // A single tap should still leave a dot.
+  const ctx = codeCtx();
+  ctx.fillStyle = coder.colour;
+  ctx.beginPath();
+  ctx.arc(coder.points[0].x, coder.points[0].y, 7, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function codeMove(event) {
+  if (!coder.drawing) return;
+  coder.points.push(codePoint(event));
+
+  const pts = coder.points;
+  if (pts.length < 2) return;
+
+  const ctx = codeCtx();
+  ctx.strokeStyle = coder.colour;
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  /* The very first move needs a straight piece joining the starting dot to
+     where the curves begin. Without it the curve starts at the midpoint of the
+     first two points, and a quick stroke leaves its opening dot stranded in
+     space - which looked like a bug and was one. */
+  if (pts.length === 2) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    ctx.lineTo((pts[0].x + pts[1].x) / 2, (pts[0].y + pts[1].y) / 2);
+    ctx.stroke();
+    return;
+  }
+
+  const a = pts[pts.length - 3];
+  const b = pts[pts.length - 2];
+  const c = pts[pts.length - 1];
+  const from = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const to   = { x: (b.x + c.x) / 2, y: (b.y + c.y) / 2 };
+
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  // b is the "control point": the curve bends towards it without touching it.
+  ctx.quadraticCurveTo(b.x, b.y, to.x, to.y);
+  ctx.stroke();
+}
+
+function codeUp() {
+  if (!coder.drawing) return;
+  coder.drawing = false;
+  if (coder.points.length > 0) logEvent('feeling_draw', { points: coder.points.length });
+  coder.points = [];
+}
+
+/* Undo keeps whole-canvas snapshots. A feeling code is a handful of strokes on
+   a small canvas, so this is cheap and far simpler than replaying strokes. */
+function pushCodeUndo() {
+  const canvas = $('#m3-canvas');
+  coder.undoStack.push(codeCtx().getImageData(0, 0, canvas.width, canvas.height));
+  if (coder.undoStack.length > 20) coder.undoStack.shift();
+}
+
+function undoCode() {
+  const previous = coder.undoStack.pop();
+  if (!previous) return;
+  codeCtx().putImageData(previous, 0, 0);
+  logEvent('undo', { where: 'feeling_code' });
+}
+
+function clearCode() {
+  pushCodeUndo();
+  clearCodeCanvas();
+  logEvent('clear', { where: 'feeling_code' });
+}
+
+function paintCodePalette() {
+  const box = $('#m3-palette');
+  box.innerHTML = '';
+  CODE_COLOURS.forEach(colour => {
+    const swatch = document.createElement('button');
+    swatch.className = 'swatch' + (colour === coder.colour ? ' is-on' : '');
+    swatch.style.background = colour;
+    swatch.setAttribute('aria-label', 'Colour ' + colour);
+    swatch.addEventListener('click', () => { coder.colour = colour; paintCodePalette(); });
+    box.appendChild(swatch);
+  });
+}
+
+
+/* ---------------------------------------------------------------------------
+   "NEED IDEAS?" - the six faces, offered only once asked for (spec §7)
+   ------------------------------------------------------------------------ */
+function openIdeas() {
+  $('#m3-faces').hidden = false;
+  $('#m3-ideas').hidden = true;
+  logEvent('need_ideas_open', {});
+}
+
+function paintFaces() {
+  const box = $('#m3-faces');
+  box.innerHTML = '';
+  FEELING_FACES.forEach(face => {
+    const button = document.createElement('button');
+    const chosen = coder.draft && coder.draft.face === face;
+    button.className = 'btn tool face-btn' + (chosen ? ' is-on' : '');
+    button.innerHTML = '<span class="filter-icon">' + face + '</span>';
+    button.setAttribute('aria-label', 'Feeling ' + face);
+    button.addEventListener('click', () => {
+      // Tapping the chosen one again takes it off: a sign does not have to
+      // have a face attached to it.
+      coder.draft.face = chosen ? null : face;
+      logEvent('feeling_face_choose', { face: coder.draft.face });
+      paintFaces();
+      paintFaceBadge();
+    });
+    box.appendChild(button);
+  });
+}
+
+function paintFaceBadge() {
+  const badge = $('#m3-face-badge');
+  const face = coder.draft && coder.draft.face;
+  badge.hidden = !face;
+  badge.textContent = face || '';
+}
+
+
+/* ---------------------------------------------------------------------------
+   MOVEMENT (spec §7 and §5a)
+   The child picks; the app never assigns a movement to a feeling.
+   Previewed on the agent THUMBNAIL, because §5a says the agent never moves
+   while it is the thing being edited.
+   ------------------------------------------------------------------------ */
+function paintMoves() {
+  const row = $('#m3-moves');
+  row.innerHTML = '';
+  MOVES.forEach(move => {
+    const button = document.createElement('button');
+    const chosen = coder.draft && coder.draft.move === move.id;
+    button.className = 'btn tool move-btn' + (chosen ? ' is-on' : '');
+    button.innerHTML = '<span class="filter-icon">' + move.icon + '</span>' +
+                       '<span class="tool-word">' + move.label + '</span>';
+    button.setAttribute('aria-label', move.label);
+    button.addEventListener('click', () => {
+      coder.draft.move = move.id;
+      logEvent('feeling_move_choose', { move: move.id });
+      paintMoves();
+      previewMove(move.id);
+    });
+    row.appendChild(button);
+  });
+}
+
+/* Put the chosen movement on the preview thumbnail. Passing null takes it off
+   again - which matters, because a movement left running after the child has
+   moved on would break §5a's "calm in between". */
+function previewMove(moveId) {
+  const view = $('#preview-art');
+  if (!view) return;
+  MOVES.forEach(m => view.classList.remove('move-' + m.id));
+  if (moveId) view.classList.add('move-' + moveId);
+}
+
+
+/* ---------------------------------------------------------------------------
+   RECORDING A NAME FOR THE SIGN (optional, spec §7: no typing)
+   ------------------------------------------------------------------------ */
+async function recordCodeName() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+
+  if (!Voice.canRecord()) {
+    toast('This iPad cannot record');
+    return;
+  }
+
+  const button = $('#m3-mic');
+  button.classList.add('is-recording');
+  logEvent('record_start', { slot: 'feeling_name' });
+
+  try {
+    const result = await Voice.record({ maxMs: 5000, onTick: () => {} });
+    const oldId = coder.draft.audioId;
+
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    coder.draft.audioId = id;
+    if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
+
+    logEvent('record_stop', { slot: 'feeling_name', ms: Math.round(result.ms) });
+    toast('Name saved 🎤');
+  } catch (err) {
+    toast('The microphone did not work');
+    logEvent('record_fail', { slot: 'feeling_name' });
+  }
+
+  button.classList.remove('is-recording');
+}
+
+
+/* ---------------------------------------------------------------------------
+   KEEPING AND REMOVING A CODE
+   ------------------------------------------------------------------------ */
+function canvasHasInk() {
+  const canvas = $('#m3-canvas');
+  const data = codeCtx().getImageData(0, 0, canvas.width, canvas.height).data;
+  // Every 4th byte is the alpha channel: anything above 0 means ink.
+  // Stepping 4 pixels at a time is plenty to notice a 14px-wide brush stroke.
+  for (let i = 3; i < data.length; i += 16) {
+    if (data[i] > 0) return true;
+  }
+  return false;
+}
+
+async function keepCode() {
+  if (!canvasHasInk()) {
+    toast('Draw your sign first');
+    return;
+  }
+
+  const index = coder.index;
+  const codes = state.agent.feelingCodes;
+  const isNew = !codes[index];
+
+  coder.draft.png = $('#m3-canvas').toDataURL('image/png');
+
+  // Codes fill the slots in order, so a code made in slot 3 while 1 and 2 are
+  // empty still lands at the front of the list.
+  if (isNew) codes.push(coder.draft);
+  else codes[index] = coder.draft;
+
+  logEvent(isNew ? 'feeling_code_add' : 'feeling_code_edit', {
+    face: coder.draft.face,
+    move: coder.draft.move,
+    named: Boolean(coder.draft.audioId)
+  });
+
+  // The first code made is worn by default - the child can change it below.
+  if (isNew && state.agent.feelingWorn === null) state.agent.feelingWorn = codes.length - 1;
+
+  closeCoder();
+  scheduleSave();
+}
+
+async function removeCode() {
+  const index = coder.index;
+  const codes = state.agent.feelingCodes;
+  const code = codes[index];
+  if (!code) { closeCoder(); return; }
+
+  if (code.audioId) { Voice.forget(code.audioId); await Storage.deleteAudio(code.audioId); }
+  codes.splice(index, 1);
+
+  // The worn code may have been the one removed, or may have shuffled down.
+  if (state.agent.feelingWorn === index) state.agent.feelingWorn = null;
+  else if (state.agent.feelingWorn > index) state.agent.feelingWorn--;
+
+  logEvent('feeling_code_remove', {});
+  closeCoder();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring Mission 3 up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wireMission3() {
+  const canvas = $('#m3-canvas');
+  canvas.addEventListener('pointerdown', codeDown);
+  canvas.addEventListener('pointermove', codeMove);
+  canvas.addEventListener('pointerup', codeUp);
+  canvas.addEventListener('pointercancel', codeUp);
+
+  $('#m3-undo').addEventListener('click', undoCode);
+  $('#m3-clear').addEventListener('click', clearCode);
+  $('#m3-mic').addEventListener('click', recordCodeName);
+  $('#m3-ideas').addEventListener('click', openIdeas);
+  $('#m3-done').addEventListener('click', keepCode);
+  $('#m3-delete').addEventListener('click', removeCode);
+}
+
+// Called by goToMission whenever Mission 3 opens.
+function enterMission3() {
+  if (!state.agent) return;
+  // Always arrive on the slots, never mid-edit from last time.
+  $('#m3-maker').hidden = true;
+  $('#m3-slots-view').hidden = false;
+  coder.index = null;
+  coder.draft = null;
+  previewMove(null);
+  renderMission3();
 }

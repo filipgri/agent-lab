@@ -1049,3 +1049,241 @@ body[data-motion="calm"] .sticker.just-landed { animation: none; }
   .record-btn.is-recording,
   .yes-btn.is-recording { animation: none; }
 }
+
+
+/* ============================================================
+   MILESTONE 4 - MISSION 3, SECRET FEELING CODE (spec §7)
+   ============================================================ */
+
+.m3-slots-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m3-lead { margin: 0; font-size: 22px; text-align: center; }
+
+.m3-slots { display: flex; gap: var(--gap); flex-wrap: wrap; justify-content: center; }
+
+/* A slot is a blank tile - deliberately empty, because spec §7 wants the child
+   facing a blank square, not a menu of feelings. */
+.m3-slot {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  border: none;
+  border-radius: 20px;
+  background: var(--navy-2);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.m3-slot:not(.is-filled) { border: 3px dashed rgba(255,255,255,.18); }
+.m3-slot-plus { font-size: 40px; color: var(--muted); }
+.m3-slot-img { width: 100%; height: 100%; object-fit: contain; padding: 10px; }
+
+/* The little face / 🎤 / movement tags along the bottom of a filled slot. */
+.m3-slot-tags {
+  position: absolute;
+  left: 0; right: 0; bottom: 6px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* --- "Which one is your agent wearing today?" --- */
+.m3-worn-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 2px solid rgba(255,255,255,.08);
+  width: 100%;
+}
+.m3-worn { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.m3-worn-option {
+  width: 88px;
+  height: 88px;             /* spec §5: past the 64px minimum */
+  border: none;
+  border-radius: 16px;
+  background: var(--navy-2);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.m3-worn-option.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.m3-worn-img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+/* "None" is an equal choice, styled the same as the others on purpose. */
+.m3-worn-none { display: grid; place-items: center; }
+
+/* --- The maker --- */
+.m3-maker { flex: 1; min-height: 0; display: flex; gap: var(--gap); }
+.m3-stage-col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+.m3-canvas-wrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  max-width: 100%;
+  border-radius: 20px;
+  background: #0e2240;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.m3-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;       /* spec §9: stop the page scrolling under a finger */
+  border-radius: 20px;
+}
+/* The chosen face sits in the corner, so the sign stays the main thing. */
+.m3-face-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 34px;
+  pointer-events: none;
+}
+
+/* The side column: a scrolling rail with a finish row pinned under it. */
+.m3-side {
+  flex: 0 0 240px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.m3-tools {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.m3-tools .palette { grid-template-columns: repeat(6, 1fr); }
+
+.m3-ideas {
+  min-height: 64px;
+  background: var(--navy-3);
+  font-size: 17px;
+}
+.m3-faces { display: flex; gap: 8px; flex-wrap: wrap; }
+.face-btn { min-width: 68px; min-height: 68px; }
+.face-btn.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.m3-moves { display: flex; gap: 8px; flex-wrap: wrap; }
+.move-btn { min-width: 70px; min-height: 76px; }
+.move-btn.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* NOT margin-top:auto. Pinning this row to the bottom of a column that
+   scrolls leaves it sitting on the scroll container's edge, where the Stamp it
+   bar clips it. Letting it flow after the movement row keeps it reachable. */
+.m3-finish { flex: 0 0 auto; }
+.m3-done { flex: 1; min-height: 72px; font-size: 20px; }
+
+
+/* ============================================================
+   THE FIVE MOVEMENTS (spec §5a)
+   Used here as a live preview on the agent thumbnail. The rest of §5a's
+   animation arrives at Milestone 8.
+
+   Spec §5a: animate only transform and opacity, and never move the agent
+   while it is the thing being edited - so these go on the PREVIEW, not on
+   the editing stage.
+   ============================================================ */
+.move-bounce { animation: move-bounce 1.1s ease-in-out infinite; }
+@keyframes move-bounce {
+  0%, 100% { transform: translateY(0); }
+  40%      { transform: translateY(-14px); }
+  60%      { transform: translateY(-10px); }
+}
+
+/* Spec §5a: gentle, no more than 3px, never violent. */
+.move-shake { animation: move-shake 0.5s ease-in-out infinite; }
+@keyframes move-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
+
+.move-sway { animation: move-sway 2s ease-in-out infinite; }
+@keyframes move-sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
+}
+
+.move-spin { animation: move-spin 4s linear infinite; }
+@keyframes move-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Named so the child's choice of "still" is a real, stored choice rather than
+   the absence of one. */
+.move-still { animation: none; }
+
+/* Reduce Motion on the iPad stops all five (spec §5a). The child's choice is
+   still saved - it simply is not animated here. */
+@media (prefers-reduced-motion: reduce) {
+  .move-bounce, .move-shake, .move-sway, .move-spin { animation: none; }
+}
+
+/* Portrait: the maker stacks, exactly as the Mission 1 editor does. Without
+   this the square canvas takes the full column height, grows wider than the
+   space beside the tools, and sits on top of them. */
+@media (orientation: portrait) {
+  .m3-maker { flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  /* The canvas must not grow to fill the column: it is square, so any height
+     it takes it also takes in width, and a tall portrait column pushed the
+     tools off the bottom of the screen. Capping it leaves room for them. */
+  .m3-stage-col { flex: 0 0 auto; }
+  .m3-canvas-wrap { height: auto; width: min(100%, 36vh); }
+  .m3-side { flex: 1 1 auto; width: auto; min-height: 0; }
+  .m3-tools {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: auto;
+    overflow-y: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 8px;
+  }
+  .m3-tools .palette { grid-template-columns: repeat(6, 1fr); width: 190px; }
+  .m3-ideas { flex: 1 1 180px; }
+  .m3-moves, .m3-faces { flex: 1 1 100%; }
+  /* The Stamp it bar lives bottom-RIGHT, so in portrait Remove moves to the
+     left where nothing overlaps it. row-reverse puts the last child first. */
+  /* flex: 0 0 auto, NOT 1 1 100%: the finish row is a child of the .m3-side
+     column now, so letting it grow made "Keep it" swallow the whole column. */
+  .m3-finish { margin-top: 0; flex: 0 0 auto; flex-direction: row-reverse; }
+  /* The question above the movement row would otherwise sit awkwardly
+     mid-flow between two button groups. */
+  .m3-tools .m4-question-small { flex: 1 1 100%; margin: 4px 0 0; }
+}
