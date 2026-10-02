@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <!-- ===== iPad / home-screen app settings (spec §4) ===== -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Agent Lab">
+  <meta name="theme-color" content="#0b1b33">
+
+  <!-- ===== Content-Security-Policy (spec §3) =====
+       This tells Safari: only load files that came with this app. If any code
+       ever tried to contact the internet, the browser would simply block it.
+       IMPORTANT side effect: because script-src is 'self', this app may NOT use
+       inline <script> blocks or onclick="..." attributes. All JavaScript lives
+       in the .js files, and all buttons are wired up with addEventListener. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'">
+
+  <title>Agent Lab</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- Every screen below is a <section class="screen">. Exactly one of them has
+     the class "is-visible" at any time; app.js moves that class around.
+     This is why there is no page loading or navigation - it is all one page. -->
+
+<!-- ============================================================ -->
+<!-- SCREEN: START                                                -->
+<!-- ============================================================ -->
+<section id="screen-start" class="screen is-visible">
+  <div class="start-wrap">
+
+    <!-- The logo doubles as the hidden way into the adult panel:
+         press and hold it for 3 seconds (spec §7). -->
+    <button id="logo" class="logo" aria-label="Agent Lab">
+      <span class="logo-mark">🕵️</span>
+      <span class="logo-text">AGENT LAB</span>
+      <span id="logo-hold" class="logo-hold"></span>
+    </button>
+
+    <!-- The rolled codename. Children never type their real name (spec §3). -->
+    <div class="codename-card">
+      <div id="codename-display" class="codename-display">
+        <span id="codename-emoji" class="codename-emoji">🦅</span>
+        <span id="codename-text" class="codename-text">Silent Falcon</span>
+      </div>
+
+      <div class="codename-tools">
+        <button id="btn-roll" class="btn btn-accent btn-big">
+          <span class="btn-icon">🎲</span><span class="btn-label">Roll</span>
+        </button>
+        <button id="btn-type" class="btn">
+          <span class="btn-icon">⌨️</span><span class="btn-label">Type</span>
+        </button>
+        <!-- Recording a codename needs audio.js, which arrives in a later
+             milestone. The button is here so the layout is final. -->
+        <button id="btn-codename-mic" class="btn btn-later">
+          <span class="btn-icon">🎤</span><span class="btn-label">Say it</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="start-actions">
+      <button id="btn-new" class="btn btn-accent btn-huge">
+        <span class="btn-icon">🕵️</span><span class="btn-label">New agent</span>
+      </button>
+      <button id="btn-continue" class="btn btn-huge" hidden>
+        <span class="btn-icon">↩️</span><span class="btn-label">Continue</span>
+      </button>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- SCREEN: MISSION SHELL                                        -->
+<!-- All six missions share one set of chrome (progress strip,     -->
+<!-- agent preview, Stamp it, Pass). Only the middle panel swaps.  -->
+<!-- ============================================================ -->
+<section id="screen-mission" class="screen">
+
+  <!-- ---- Top bar: progress strip + always-visible buttons (spec §6) ---- -->
+  <header class="topbar">
+    <button class="btn btn-icon-only btn-mute" data-mute aria-label="Sound on or off">🔊</button>
+    <nav class="progress-strip" data-strip aria-label="Missions"></nav>
+    <button class="btn btn-icon-only btn-missing" data-missing aria-label="Something's missing">🧩</button>
+  </header>
+
+  <!-- ---- Middle: the mission itself ---- -->
+  <main class="mission-main">
+
+    <!-- Live thumbnail of the child's agent, visible on every mission -->
+    <aside class="agent-preview">
+      <div id="preview-art" class="preview-art">
+        <div id="preview-view" class="agent-view">
+          <canvas class="agent-pixels" width="16" height="16"></canvas>
+          <div class="sticker-layer"></div>
+        </div>
+        <span id="preview-emoji" class="preview-emoji">🦅</span>
+      </div>
+      <div id="preview-name" class="preview-name">Silent Falcon</div>
+    </aside>
+
+    <div class="mission-body">
+      <div class="mission-head">
+        <h1 id="mission-title" class="mission-title">Make your agent</h1>
+        <button class="btn btn-icon-only btn-speak" data-speak aria-label="Hear the instruction">🔊</button>
+      </div>
+
+      <!-- One <article> per mission. app.js shows one at a time.
+           All six are PLACEHOLDERS in Milestone 0. -->
+      <div class="mission-panels">
+
+        <article class="mission-panel" data-mission="m1">
+
+          <!-- STEP 1: the three doors. The child picks one and can come back
+               and switch; each door keeps its own work (spec §7). -->
+          <div id="m1-doors" class="door-row">
+            <button class="door-card" data-door="pixel">
+              <span class="door-icon">🟦</span><span>Pixel</span>
+            </button>
+            <button class="door-card is-later" data-door="build">
+              <span class="door-icon">🔺</span><span>Build</span>
+              <span class="door-later">Milestone 7</span>
+            </button>
+            <button class="door-card is-later" data-door="draw">
+              <span class="door-icon">✏️</span><span>Draw</span>
+              <span class="door-later">Milestone 7</span>
+            </button>
+          </div>
+
+          <!-- STEP 2: the editor, revealed once a door is chosen.
+               The editor itself is a SHARED block: Mission 2 uses the very
+               same one, so app.js moves it into whichever mount is in use. -->
+          <div id="m1-editor-mount" class="editor-mount">
+          <div id="editor" class="editor" hidden>
+
+            <!-- The agent itself: a pixel canvas with a sticker layer on top. -->
+            <div class="editor-stage-wrap">
+              <div id="editor-stage" class="agent-view is-interactive">
+                <canvas class="agent-pixels" width="16" height="16"></canvas>
+                <div class="sticker-layer"></div>
+              </div>
+            </div>
+
+            <!-- The tool rail: Paint tools or Sticker tray. -->
+            <div class="editor-rail">
+              <!-- Paint and Stickers are always here. Aura and Place are the
+                   two extra Boost tools (spec §7, Mission 2); app.js unhides
+                   them only while the Boost version is being edited. -->
+              <div class="rail-tabs">
+                <button class="btn seg" data-rail="paint">🎨 Paint</button>
+                <button class="btn seg" data-rail="stickers">🧩 Stickers</button>
+                <button class="btn seg" data-rail="aura" data-boost-only hidden>✨ Aura</button>
+                <button class="btn seg" data-rail="background" data-boost-only hidden>🌌 Place</button>
+              </div>
+
+              <!-- --- Paint --- -->
+              <div id="rail-paint" class="rail-body">
+                <div id="palette" class="palette"></div>
+                <div class="tool-row">
+                  <button class="btn tool" data-tool="paint" aria-label="Paint">🖌️<span class="tool-word">Paint</span></button>
+                  <button class="btn tool" data-tool="erase" aria-label="Eraser">🧽<span class="tool-word">Rub out</span></button>
+                  <button class="btn tool" data-tool="fill"  aria-label="Fill">🪣<span class="tool-word">Fill</span></button>
+                </div>
+              </div>
+
+              <!-- --- Stickers --- -->
+              <div id="rail-stickers" class="rail-body" hidden>
+                <div id="sticker-tabs" class="sticker-tabs"></div>
+                <div id="sticker-tray" class="sticker-tray"></div>
+              </div>
+
+              <!-- --- Aura: a glow colour around the agent (Boost only) --- -->
+              <div id="rail-aura" class="rail-body" hidden>
+                <div id="aura-swatches" class="palette"></div>
+              </div>
+
+              <!-- --- Background: where the boosted agent stands (Boost only) --- -->
+              <div id="rail-background" class="rail-body" hidden>
+                <div id="background-options" class="bg-options"></div>
+              </div>
+
+              <!-- Shown only while a sticker is selected. -->
+              <div id="sticker-controls" class="sticker-controls" hidden>
+                <button class="btn tool" data-sticker="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
+                <button class="btn tool" data-sticker="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
+                <button class="btn tool" data-sticker="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
+                <button class="btn tool btn-danger" data-sticker="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
+              </div>
+
+              <!-- Always available inside the editor (spec §6). -->
+              <div class="tool-row">
+                <button id="btn-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+                <button id="btn-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+                <button id="btn-change-door" class="btn tool" aria-label="Change door">🚪<span class="tool-word">Door</span></button>
+              </div>
+            </div>
+          </div>
+          </div><!-- /#m1-editor-mount -->
+        </article>
+
+        <!-- MISSION 2 - BOOST (spec §7). The Boost version starts as a copy of
+             the Cover, and the Cover stays visible beside it as a reminder of
+             what the agent looked like before. -->
+        <article class="mission-panel" data-mission="m2">
+          <div class="boost-row">
+            <!-- The untouched Mission 1 agent, for comparison only. -->
+            <aside class="cover-aside">
+              <div class="cover-label">Cover</div>
+              <div id="m2-cover" class="agent-view cover-thumb">
+                <canvas class="agent-pixels" width="16" height="16"></canvas>
+                <div class="sticker-layer"></div>
+              </div>
+            </aside>
+            <div id="m2-editor-mount" class="editor-mount"></div>
+          </div>
+        </article>
+
+        <article class="mission-panel" data-mission="m3">
+          <p class="placeholder-note">Milestone 4 builds this.</p>
+          <div class="chip-row">
+            <span class="chip">⬜ Blank tile</span><span class="chip">🤸 Movement</span>
+          </div>
+        </article>
+
+        <article class="mission-panel" data-mission="m4">
+          <p class="placeholder-note">Milestone 3 builds this.</p>
+          <div class="chip-row">
+            <span class="chip">🎤 Record</span><span class="chip">🤖 Filters</span>
+          </div>
+        </article>
+
+        <article class="mission-panel" data-mission="m5">
+          <p class="placeholder-note">Milestone 5 builds this.</p>
+          <div class="chip-row">
+            <span class="chip">🔒 Just me</span><span class="chip">🏷️ My badge</span><span class="chip">🏫 My class</span>
+            <span class="chip">🖼️ School wall</span><span class="chip">🏠 Home</span>
+          </div>
+        </article>
+
+        <article class="mission-panel" data-mission="m6">
+          <p class="placeholder-note">Milestone 5 builds this.</p>
+          <div class="chip-row">
+            <span class="chip">✋ Don't…</span><span class="chip">👍 You can…</span><span class="chip">💛 When I'm upset…</span>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ---- Bottom bar: Pass (small) and Stamp it (big), spec §6 ---- -->
+  <footer class="bottombar">
+    <button id="btn-pass" class="btn btn-pass">
+      <span class="btn-icon">⤼</span><span class="btn-label">Pass</span>
+    </button>
+    <button id="btn-stamp" class="btn btn-accent btn-stamp">
+      <span class="btn-icon">✓</span><span class="btn-label">Stamp it</span>
+    </button>
+  </footer>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- SCREEN: REVEAL (placeholder - Milestone 6 builds it)         -->
+<!-- ============================================================ -->
+<section id="screen-reveal" class="screen">
+  <header class="topbar">
+    <button class="btn btn-icon-only btn-mute" data-mute aria-label="Sound on or off">🔊</button>
+    <nav class="progress-strip" data-strip aria-label="Missions"></nav>
+    <button class="btn btn-icon-only btn-missing" data-missing aria-label="Something's missing">🧩</button>
+  </header>
+
+  <main class="reveal-main">
+    <div class="dossier">
+      <div class="dossier-stamp">CLASSIFIED</div>
+      <div class="dossier-row">
+        <div class="dossier-art"><span id="reveal-emoji" class="preview-emoji">🦅</span></div>
+        <div class="dossier-info">
+          <div class="dossier-label">CODENAME</div>
+          <div id="reveal-name" class="dossier-name">Silent Falcon</div>
+          <p class="placeholder-note">Milestone 6 builds the full ID card.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bottombar">
+    <button id="btn-finish" class="btn btn-accent btn-stamp">
+      <span class="btn-icon">🏁</span><span class="btn-label">Finish</span>
+    </button>
+  </footer>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- SCREEN: PIN pad (the door to the adult panel, spec §7)       -->
+<!-- ============================================================ -->
+<section id="screen-pin" class="screen">
+  <div class="pin-wrap">
+    <h2 class="pin-title">Adult panel</h2>
+    <div id="pin-dots" class="pin-dots"><i></i><i></i><i></i><i></i></div>
+    <div id="pin-pad" class="pin-pad">
+      <!-- Buttons are created by app.js so the digits live in one place only. -->
+    </div>
+    <button id="btn-pin-cancel" class="btn">Cancel</button>
+  </div>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- SCREEN: ADULT PANEL (spec §7.9)                              -->
+<!-- ============================================================ -->
+<section id="screen-adult" class="screen">
+  <header class="topbar topbar-adult">
+    <h2 class="adult-title">Adult panel</h2>
+    <button id="btn-adult-close" class="btn">Back to Start</button>
+  </header>
+
+  <main class="adult-main">
+
+    <div class="adult-card">
+      <h3>Agents on this iPad</h3>
+      <div id="agent-list" class="agent-list"></div>
+    </div>
+
+    <div class="adult-card">
+      <h3>Export</h3>
+      <p class="adult-note">
+        One JSON file with every agent and every event log.
+      </p>
+      <p class="adult-warn">⚠️ Research data. Store securely, delete after the study.</p>
+      <button id="btn-export" class="btn btn-accent">⬆️ Export all</button>
+      <div id="export-result" class="export-result"></div>
+    </div>
+
+    <div class="adult-card">
+      <h3>Settings</h3>
+      <div class="setting-row">
+        <span>Sound</span>
+        <button id="btn-adult-mute" class="btn" data-mute>🔊 On</button>
+      </div>
+      <div class="setting-row">
+        <span>Motion</span>
+        <div id="motion-group" class="seg-group">
+          <button class="btn seg" data-motion="full">Full</button>
+          <button class="btn seg" data-motion="calm">Calm</button>
+          <button class="btn seg" data-motion="off">Off</button>
+        </div>
+      </div>
+      <p class="adult-note">
+        Motion is saved now and used from Milestone 8 onwards.
+      </p>
+    </div>
+
+    <div class="adult-card adult-danger">
+      <h3>Delete</h3>
+      <button id="btn-delete-all" class="btn btn-danger">🗑️ Delete ALL agents</button>
+      <div id="delete-confirm" class="delete-confirm" hidden>
+        <p>This cannot be undone. Are you sure?</p>
+        <button id="btn-delete-all-2" class="btn btn-danger">Yes, delete everything</button>
+        <button id="btn-delete-cancel" class="btn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="adult-card">
+      <h3>Notes for the facilitator</h3>
+      <ul class="adult-note">
+        <li>Always open the app from the <b>home-screen icon</b>. Safari and the
+            home-screen app keep separate storage, so agents saved in one are
+            invisible to the other.</li>
+        <li>No camera, no accounts, no internet. Nothing leaves this iPad
+            unless you press Export.</li>
+      </ul>
+      <p id="storage-state" class="adult-note"></p>
+    </div>
+
+  </main>
+</section>
+
+
+<!-- ============================================================ -->
+<!-- Overlays: "Something's missing", typing a codename, toasts    -->
+<!-- ============================================================ -->
+<div id="missing-overlay" class="overlay" hidden>
+  <div class="sheet">
+    <h3>🧩 Something's missing</h3>
+    <p class="placeholder-note">
+      The drawing canvas and record button arrive in Milestone 8.
+      For now this records <i>that</i> you opened it, and on which screen.
+    </p>
+    <button id="btn-missing-close" class="btn btn-accent">OK</button>
+  </div>
+</div>
+
+<div id="type-overlay" class="overlay" hidden>
+  <div class="sheet">
+    <h3>⌨️ Codename</h3>
+    <input id="type-input" class="type-input" type="text" maxlength="24"
+           autocomplete="off" autocorrect="off" spellcheck="false"
+           placeholder="Codename">
+    <div class="sheet-actions">
+      <button id="btn-type-cancel" class="btn">Cancel</button>
+      <button id="btn-type-ok" class="btn btn-accent">OK</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+
+<!-- Script order matters (spec §4): storage first, app last. audio.js and
+     effects.js join this list in later milestones. -->
+<script src="./storage.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

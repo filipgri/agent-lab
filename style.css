@@ -1,0 +1,907 @@
+/* ============================================================================
+   style.css - Agent Lab look & feel (spec §5)
+   ============================================================================
+   Spy theme: dark navy, one bright yellow accent, white text, chunky rounded
+   buttons. System fonts only - no web fonts, nothing loaded from the internet.
+   ========================================================================== */
+
+/* --- Design tokens. Change a colour here and it changes everywhere. --- */
+:root {
+  --navy-0:  #060f1f;        /* deepest background */
+  --navy-1:  #0b1b33;        /* main background */
+  --navy-2:  #12294a;        /* cards */
+  --navy-3:  #1d3a63;        /* raised surfaces, button faces */
+  --accent:  #ffd23f;        /* the one bright accent: yellow */
+  --accent-d:#c9a219;
+  --text:    #ffffff;
+  --muted:   #9fb3d1;
+  --danger:  #ff5f56;
+  --grey:    #6b7d99;        /* the grey "passed" stamp */
+
+  --radius:  22px;
+  --tap:     64px;           /* spec §5: minimum touch target 64x64 */
+  --gap:     16px;
+
+  /* The system font stack: whatever the device already has. */
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+}
+
+/* --- Reset-ish base --- */
+* { box-sizing: border-box; }
+
+/* The HTML `hidden` attribute means "not here right now". Browsers give it
+   display:none by default, but any later `display:` rule (like .btn below)
+   would quietly beat it. This makes `hidden` always win. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;              /* no page scrolling, no rubber-banding */
+  background: var(--navy-1);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* 100dvh, not 100vh (spec §5): dvh accounts for Safari's shrinking toolbars. */
+  height: 100dvh;
+  /* Keeps the UI clear of the rounded corners and home indicator. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* manipulation = allow taps and scrolling, but switch off double-tap zoom. */
+  touch-action: manipulation;
+  /* Children should never accidentally select text or get the iOS callout menu. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  background:
+    radial-gradient(120% 90% at 50% -20%, #16335c 0%, transparent 60%),
+    var(--navy-1);
+}
+
+/* ============================================================
+   SCREENS - exactly one is visible at a time
+   ============================================================ */
+.screen { display: none; height: 100%; }
+.screen.is-visible {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  animation: slide-in 280ms ease-out;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--navy-3);
+  color: var(--text);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  box-shadow: 0 4px 0 rgba(0,0,0,.35);
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+/* A small wiggle on tap (spec §5) */
+.btn:active { transform: translateY(3px) scale(.97); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.btn:disabled { opacity: .35; }
+
+.btn-accent { background: var(--accent); color: #231c00; box-shadow: 0 4px 0 var(--accent-d); }
+.btn-danger { background: var(--danger); color: #2b0603; }
+.btn-big    { font-size: 22px; min-height: 72px; }
+.btn-huge   { font-size: 28px; min-height: 88px; padding: 0 34px; }
+.btn-icon   { font-size: 26px; }
+.btn-label  { white-space: nowrap; }
+
+/* Icon-only buttons stay square so they keep the 64px target */
+.btn-icon-only { padding: 0; font-size: 28px; width: var(--tap); height: var(--tap); }
+
+/* Buttons that exist for layout but do nothing until a later milestone */
+.btn-later { opacity: .5; }
+
+/* ============================================================
+   START SCREEN
+   ============================================================ */
+.start-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: var(--gap);
+}
+
+.logo {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 24px;
+  cursor: pointer;
+}
+.logo-mark { font-size: 64px; }
+.logo-text { font-size: 26px; letter-spacing: .32em; color: var(--accent); font-weight: 700; }
+
+/* A quiet hint that holding the logo is doing something. */
+.logo-hold {
+  position: absolute;
+  left: 50%; bottom: 0;
+  height: 4px; width: 0;
+  transform: translateX(-50%);
+  background: var(--accent);
+  border-radius: 2px;
+}
+.logo-hold.is-filling { width: 70%; transition: width 3s linear; }
+
+.codename-card {
+  background: var(--navy-2);
+  border-radius: 28px;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.06);
+}
+.codename-display { display: flex; align-items: center; gap: 16px; }
+.codename-emoji { font-size: 56px; }
+.codename-text  { font-size: 38px; font-weight: 700; }
+.codename-tools { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+.start-actions { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+/* ============================================================
+   TOP BAR + PROGRESS STRIP (spec §6)
+   ============================================================ */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px var(--gap);
+  background: rgba(0,0,0,.25);
+}
+.topbar-adult { justify-content: space-between; }
+.adult-title { margin: 0; font-size: 24px; }
+
+.progress-strip {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+/* One "pip" per mission */
+.pip {
+  position: relative;
+  width: var(--tap);
+  height: var(--tap);
+  border: none;
+  border-radius: 18px;
+  background: var(--navy-3);
+  color: var(--text);
+  font-size: 26px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.pip-icon { line-height: 1; }
+
+/* current = glowing */
+.pip.is-current {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,210,63,.35), 0 0 22px rgba(255,210,63,.65);
+}
+/* done = stamped */
+.pip.is-done { background: #1f4d2e; }
+.pip-stamp {
+  position: absolute;
+  right: -2px; bottom: -2px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #231c00;
+  font-size: 16px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+/* passed = grey stamp */
+.pip.is-passed { background: var(--navy-2); opacity: .75; }
+.pip-stamp-grey { background: var(--grey); color: #0d1726; }
+
+/* locked = padlock + question mark (the mystery) */
+.pip.is-locked { background: #0e1d33; color: var(--muted); }
+.pip-q {
+  position: absolute;
+  right: 4px; top: 2px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+/* ============================================================
+   MISSION LAYOUT
+   ============================================================ */
+.mission-main {
+  flex: 1;
+  min-height: 0;                   /* lets the middle area shrink, not overflow */
+  display: flex;
+  gap: var(--gap);
+  padding: var(--gap);
+}
+
+/* Always-visible agent thumbnail */
+.agent-preview {
+  width: 160px;
+  flex: 0 0 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.preview-art {
+  width: 140px; height: 140px;
+  border-radius: 28px;
+  background: linear-gradient(160deg, var(--navy-3), var(--navy-2));
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.preview-emoji { font-size: 72px; }
+.preview-name { font-size: 16px; color: var(--muted); text-align: center; }
+
+.mission-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.mission-head { display: flex; align-items: center; gap: 14px; }
+.mission-title { margin: 0; font-size: 34px; }
+
+.mission-panels { flex: 1; min-height: 0; }
+.mission-panel { display: none; }
+.mission-panel.is-visible {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;          /* without this the pixel stage collapses to its content */
+  min-height: 0;
+}
+
+.placeholder-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 17px;
+  font-style: italic;
+}
+
+/* Placeholder door cards and chips, so the layout is testable */
+.door-row { display: flex; gap: var(--gap); flex-wrap: wrap; }
+.door-card {
+  width: 170px; height: 190px;
+  border-radius: var(--radius);
+  background: var(--navy-2);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  font-size: 20px; font-weight: 600;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.07);
+}
+.door-icon { font-size: 54px; }
+
+.chip-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.chip {
+  padding: 14px 18px;
+  border-radius: 999px;
+  background: var(--navy-2);
+  font-size: 18px;
+}
+
+/* ============================================================
+   BOTTOM BAR: Pass (small) + Stamp it (big), spec §6
+   ============================================================ */
+.bottombar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  padding: 10px var(--gap) 14px;
+  background: rgba(0,0,0,.25);
+}
+.btn-pass  { font-size: 19px; background: var(--navy-2); color: var(--muted); }
+.btn-stamp { font-size: 26px; min-height: 76px; padding: 0 34px; }
+
+/* A quick kick so the tap feels answered. The real stamp slam is Milestone 8. */
+.stamp-kick { animation: kick 260ms ease-out; }
+@keyframes kick {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.12) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* ============================================================
+   REVEAL (placeholder)
+   ============================================================ */
+.reveal-main { flex: 1; display: grid; place-items: center; padding: var(--gap); }
+.dossier {
+  position: relative;
+  background: #f4ead6;
+  color: #1a1203;
+  border-radius: 18px;
+  padding: 30px 34px;
+  min-width: min(620px, 90vw);
+  box-shadow: 0 18px 40px rgba(0,0,0,.5);
+}
+.dossier-stamp {
+  position: absolute;
+  top: 14px; right: 18px;
+  transform: rotate(-8deg);
+  border: 4px solid var(--danger);
+  color: var(--danger);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  font-size: 20px;
+  opacity: .85;
+}
+.dossier-row { display: flex; gap: 24px; align-items: center; }
+.dossier-art {
+  width: 150px; height: 150px;
+  border-radius: 14px;
+  background: #e2d5ba;
+  display: grid; place-items: center;
+}
+.dossier-label { font-size: 13px; letter-spacing: .2em; color: #6a5c3c; }
+.dossier-name { font-size: 34px; font-weight: 800; }
+.dossier .placeholder-note { color: #6a5c3c; }
+
+/* ============================================================
+   PIN PAD
+   ============================================================ */
+.pin-wrap {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 22px;
+}
+.pin-title { margin: 0; font-size: 26px; color: var(--muted); font-weight: 600; }
+.pin-dots { display: flex; gap: 14px; }
+.pin-dots i {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--navy-3);
+}
+.pin-dots i.is-filled { background: var(--accent); }
+.pin-dots.is-wrong { animation: shake 400ms ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-7px); }
+  75%     { transform: translateX(7px); }
+}
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--tap));
+  gap: 12px;
+}
+.pin-key { font-size: 26px; padding: 0; }
+
+/* ============================================================
+   ADULT PANEL
+   ============================================================ */
+.adult-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;                /* the only scrollable area in the app */
+  -webkit-overflow-scrolling: touch;
+  padding: var(--gap);
+  display: flex; flex-direction: column; gap: var(--gap);
+}
+.adult-card {
+  background: var(--navy-2);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.adult-card h3 { margin: 0; font-size: 20px; }
+.adult-note { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.adult-note li { margin-bottom: 6px; }
+.adult-warn {
+  margin: 0;
+  background: rgba(255,95,86,.14);
+  border-left: 4px solid var(--danger);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+.adult-danger { box-shadow: inset 0 0 0 2px rgba(255,95,86,.3); }
+.adult-main .btn { align-self: flex-start; font-size: 18px; }
+
+.agent-list { display: flex; flex-direction: column; gap: 10px; }
+.agent-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--navy-3);
+  border-radius: 16px;
+  padding: 10px 14px;
+}
+.agent-thumb { font-size: 40px; }
+.agent-meta { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.agent-meta small { color: var(--muted); font-size: 13px; }
+/* Buttons inside a row should not be pushed to the left edge */
+.agent-row .btn { align-self: center; }
+
+.setting-row { display: flex; align-items: center; gap: 16px; }
+.seg-group { display: flex; gap: 8px; }
+.seg { font-size: 17px; padding: 0 18px; }
+.seg.is-on { background: var(--accent); color: #231c00; }
+.export-result { display: flex; flex-direction: column; gap: 10px; font-size: 15px; color: var(--muted); }
+.delete-confirm { display: flex; flex-direction: column; gap: 10px; }
+.delete-confirm p { margin: 0; }
+
+/* ============================================================
+   OVERLAYS AND TOAST
+   ============================================================ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(3,8,18,.72);
+  display: grid; place-items: center;
+  padding: var(--gap);
+  z-index: 50;
+}
+.overlay[hidden] { display: none; }
+.sheet {
+  background: var(--navy-2);
+  border-radius: 28px;
+  padding: 26px;
+  max-width: 560px;
+  display: flex; flex-direction: column; gap: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.6);
+}
+.sheet h3 { margin: 0; font-size: 24px; }
+.sheet-actions { display: flex; gap: 12px; justify-content: flex-end; }
+.type-input {
+  min-height: var(--tap);
+  border-radius: 16px;
+  border: 2px solid var(--navy-3);
+  background: var(--navy-1);
+  color: var(--text);
+  font: inherit;
+  font-size: 24px;
+  padding: 0 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.toast {
+  position: fixed;
+  left: 50%; bottom: 7%;
+  transform: translateX(-50%);
+  background: #061227;
+  color: var(--text);
+  border: 2px solid var(--navy-3);
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-size: 18px;
+  z-index: 60;
+}
+.toast[hidden] { display: none; }
+
+/* ============================================================
+   PORTRAIT: the iPads sit on tables in landscape, but portrait must work
+   ============================================================ */
+@media (orientation: portrait) {
+  .mission-main { flex-direction: column; align-items: stretch; }
+  .agent-preview { flex: 0 0 auto; width: auto; flex-direction: row; justify-content: center; }
+  .preview-art { width: 96px; height: 96px; border-radius: 20px; }
+  .preview-emoji { font-size: 50px; }
+  .mission-title { font-size: 28px; }
+}
+
+/* Very short landscape windows: shrink the big elements rather than overflow */
+@media (max-height: 560px) {
+  .preview-art { width: 100px; height: 100px; }
+  .preview-emoji { font-size: 52px; }
+  .mission-title { font-size: 26px; }
+  .door-card { width: 140px; height: 150px; }
+  .logo-mark { font-size: 44px; }
+  .codename-text { font-size: 30px; }
+}
+
+/* ============================================================
+   MOTION (spec §5a)
+   Two switches turn animation down: the iPad's own Reduce Motion setting,
+   and the adult panel's Motion level stored on <body data-motion="...">.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+body[data-motion="calm"] .screen.is-visible { animation: fade-in 200ms ease-out; }
+body[data-motion="calm"] .stamp-kick,
+body[data-motion="calm"] .pin-dots.is-wrong { animation: none; }
+
+body[data-motion="off"] *, 
+body[data-motion="off"] *::before,
+body[data-motion="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ============================================================================
+   MISSION 1 - PIXEL DOOR + STICKER LAYER (added in Milestone 1)
+   ========================================================================== */
+
+/* --- The three doors --- */
+.door-card {
+  position: relative;
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+/* Spec §5a: the door cards tilt slightly when pressed. */
+.door-card:active { transform: rotate(-2deg) scale(.97); }
+.door-card.is-later { opacity: .45; }
+.door-later {
+  position: absolute;
+  bottom: 12px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+}
+.door-card.is-chosen { box-shadow: inset 0 0 0 3px var(--accent); }
+
+/* --- The editor: stage on the left, tool rail on the right --- */
+.editor { flex: 1; min-height: 0; display: flex; gap: var(--gap); }
+
+.editor-stage-wrap {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* The agent itself. Always square. It takes the full height available and
+   shrinks if that would make it wider than the space beside the rail. */
+.agent-view {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  height: 100%;
+  max-width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #0e2240;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+
+/* touch-action: none stops the page scrolling or zooming under a painting
+   finger (spec §5). Only the interactive stage needs it. */
+.agent-view.is-interactive { touch-action: none; }
+
+/* The pixel canvas is 16x16 actual pixels, blown up by CSS.
+   image-rendering: pixelated keeps the squares crisp instead of blurring. */
+.agent-pixels {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* A faint grid so children can see the squares they are painting. */
+.agent-view.is-interactive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to right,  rgba(255,255,255,.07) 0 1px, transparent 1px calc(100% / 16)),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.07) 0 1px, transparent 1px calc(100% / 16));
+  background-size: calc(100% / 16) 100%, 100% calc(100% / 16);
+}
+
+/* --- Stickers sit on top of the pixels --- */
+.sticker-layer { position: absolute; inset: 0; }
+
+.sticker {
+  position: absolute;
+  /* x and y are stored 0-1, so the sticker keeps its place at any screen size. */
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(var(--scale, 1));
+  /* Sized in pixels from the stage width by watchAgentView() in app.js.
+     A percentage font-size would be a share of the PARENT'S FONT SIZE, not of
+     the stage, which makes stickers a few pixels tall. */
+  font-size: var(--sticker-px, 28px);
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.agent-view:not(.is-interactive) .sticker { cursor: default; pointer-events: none; }
+.sticker.is-selected {
+  outline: 3px dashed var(--accent);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+/* Spec §5a: a sticker lands with a bounce. */
+.sticker.just-landed { animation: sticker-land 350ms cubic-bezier(.34,1.56,.64,1); }
+@keyframes sticker-land {
+  0%   { transform: translate(-50%,-50%) rotate(var(--rot,0deg)) scale(0); }
+  60%  { transform: translate(-50%,-50%) rotate(var(--rot,0deg)) scale(calc(var(--scale,1) * 1.15)); }
+  100% { transform: translate(-50%,-50%) rotate(var(--rot,0deg)) scale(var(--scale,1)); }
+}
+
+/* The sticker that follows the finger while being dragged out of the tray. */
+.sticker-ghost {
+  position: fixed;
+  z-index: 70;
+  font-size: 56px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.5));
+}
+
+/* --- The tool rail --- */
+.editor-rail {
+  flex: 0 0 208px;
+  width: 208px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.rail-tabs { display: flex; gap: 8px; }
+.rail-tabs .seg { flex: 1; font-size: 15px; padding: 0 8px; min-height: 52px; }
+.rail-body { display: flex; flex-direction: column; gap: 10px; }
+
+/* 16 colours, two columns of eight */
+.palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.swatch {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.35);
+}
+.swatch.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.tool-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.tool {
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  width: 64px; height: 64px;
+  min-width: 64px; min-height: 64px;
+  font-size: 24px;
+}
+.tool .tool-word { font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .85; }
+.tool.is-on { background: var(--accent); color: #231c00; }
+
+.sticker-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sticker-tabs .seg { font-size: 13px; padding: 0 4px; min-height: 46px; min-width: 0; }
+.sticker-tray { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tray-sticker {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 14px;
+  background: var(--navy-3);
+  font-size: 30px;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 3px 0 rgba(0,0,0,.35);
+}
+.tray-sticker:active { transform: translateY(2px) scale(.95); }
+
+.sticker-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(255,210,63,.1);
+  box-shadow: inset 0 0 0 2px rgba(255,210,63,.3);
+}
+
+/* The preview thumbnail now shows the real agent, so the emoji only appears
+   while there is nothing drawn yet. */
+.preview-art { position: relative; overflow: hidden; }
+.preview-art .agent-view { height: 100%; width: 100%; border-radius: 0; background: none; box-shadow: none; }
+.preview-art.has-art .preview-emoji { display: none; }
+.preview-art:not(.has-art) .agent-view { opacity: 0; }
+
+/* --- Portrait and short screens --- */
+@media (orientation: portrait) {
+  .editor { flex-direction: column; }
+  .editor-rail {
+    flex: 0 0 auto;
+    width: auto;
+    overflow-y: visible;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .rail-body { flex: 1; min-width: 200px; }
+  .palette { grid-template-columns: repeat(8, 1fr); }
+  .sticker-tray { grid-template-columns: repeat(6, 1fr); }
+  .sticker-tabs { grid-template-columns: repeat(6, 1fr); }
+}
+
+body[data-motion="off"] .sticker.just-landed,
+body[data-motion="calm"] .sticker.just-landed { animation: none; }
+
+
+/* ============================================================
+   MILESTONE 2 - BOOST (spec §7, Mission 2)
+   ============================================================ */
+
+/* --- The shared editor's mount points ---
+   The editor is a single block that app.js moves between Mission 1 and
+   Mission 2. Each mount has to pass the full height down to it, or the
+   pixel stage collapses to nothing. */
+.editor-mount { flex: 1; min-height: 0; display: flex; }
+.editor-mount > .editor { flex: 1; min-height: 0; }
+
+/* --- Mission 2's layout: the Cover beside the Boost editor --- */
+.boost-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--gap);
+}
+.cover-aside {
+  flex: 0 0 120px;
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.cover-label {
+  font-size: 15px;
+  color: var(--muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+/* The Cover thumbnail is a normal .agent-view, just small and not editable. */
+.cover-thumb {
+  width: 120px;
+  height: 120px;
+  flex: 0 0 auto;
+  border-radius: 18px;
+}
+
+/* --- Four rail tabs instead of two, on the Boost ---
+   grid wraps them two-by-two, so they stay finger-sized on a 208px rail. */
+.rail-tabs.is-four {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* --- AURA: a glow around the agent ---
+   drop-shadow follows the SHAPE of what it is applied to, unlike box-shadow
+   which would only outline the square canvas. Applied to the pixels and the
+   stickers separately so both glow. --aura is set by renderAgentView(). */
+.agent-view.has-aura .agent-pixels,
+.agent-view.has-aura .sticker-layer {
+  filter:
+    drop-shadow(0 0 6px var(--aura))
+    drop-shadow(0 0 14px var(--aura));
+}
+
+/* The "no glow" swatch: a crossed-out circle rather than a colour. */
+.swatch-none {
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: var(--navy-3);
+}
+
+/* --- BACKGROUNDS ---
+   Pure CSS gradients, so nothing is downloaded and nothing breaks offline.
+   The same [data-bg] rules style both the agent itself and the little
+   chooser buttons, so the button is a true preview of the background. */
+.agent-view[data-bg="plain"]  { background: #0e2240; }
+.agent-view[data-bg="space"],
+.bg-option[data-bg="space"] {
+  background:
+    radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+    radial-gradient(2px 2px at 70% 20%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 40% 70%, #fff, transparent),
+    radial-gradient(2px 2px at 85% 65%, #fff, transparent),
+    linear-gradient(160deg, #1a0b3d, #050418);
+}
+.agent-view[data-bg="city"],
+.bg-option[data-bg="city"] {
+  background:
+    linear-gradient(to top, #0b1b33 0 28%, transparent 28%),
+    repeating-linear-gradient(to right,
+      rgba(255,210,63,.22) 0 6px, transparent 6px 14px),
+    linear-gradient(170deg, #35206b, #0b1b33);
+}
+.agent-view[data-bg="jungle"],
+.bg-option[data-bg="jungle"] {
+  background:
+    radial-gradient(circle at 15% 85%, #1f7a3d 0 18%, transparent 18%),
+    radial-gradient(circle at 80% 90%, #2a9d50 0 22%, transparent 22%),
+    linear-gradient(170deg, #0d4f2b, #06301a);
+}
+.agent-view[data-bg="sea"],
+.bg-option[data-bg="sea"] {
+  background:
+    repeating-linear-gradient(to bottom,
+      rgba(255,255,255,.07) 0 2px, transparent 2px 16px),
+    linear-gradient(180deg, #0a6ea8, #03243f);
+}
+.agent-view[data-bg="sunset"],
+.bg-option[data-bg="sunset"] {
+  background: linear-gradient(180deg, #ff8e3c 0%, #ff5f6d 45%, #3a1c5a 100%);
+}
+/* "Plain" as a chooser button needs its own face, since the agent-view rule
+   above only covers the stage. */
+.bg-option[data-bg="plain"] { background: #0e2240; }
+
+/* --- The background chooser: two columns of picture buttons --- */
+.bg-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.bg-option {
+  min-height: 64px;            /* spec §5: minimum touch target */
+  border: none;
+  border-radius: 14px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.1);
+  /* Keeps the label readable over a busy gradient. */
+  text-shadow: 0 1px 3px rgba(0,0,0,.8);
+}
+.bg-option.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.bg-icon  { font-size: 22px; line-height: 1; }
+.bg-label { font-size: 13px; font-weight: 600; }
+
+/* The rail scrolls when a sticker tray is long, so pin the tabs to the top of
+   it - otherwise the way back to Paint scrolls out of a child's reach. */
+.rail-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--navy-1);
+  padding-bottom: 8px;
+}

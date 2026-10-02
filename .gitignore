@@ -1,0 +1,13 @@
+# Spec §14: never commit children's data.
+exports/
+agent-lab-export-*.json
+
+# Recordings, screenshots of children's work, anything exported from an iPad
+*.m4a
+*.webm
+*.wav
+screenshots/
+
+# macOS noise
+.DS_Store
+._*
