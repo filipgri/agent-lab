@@ -68,6 +68,7 @@ external fonts or libraries, or text-heavy instructions.
 | `audio.js` | Microphone, 10s recorder, playback filters, sound effects |
 | `effects.js` | Particles on one canvas, and the screen shake (§5a) |
 | `assets.js` | Pictures, narration and sounds, each with a stand-in (v2 §5.0) |
+| `stickers.js` | The sticker library and its forgiving keyword search (v2 §5.3.2) |
 | `sw.js` | Service worker: caches the app so it runs offline |
 | `manifest.json` | PWA settings (name, standalone, icons) |
 | `assets/manifest.json` | **Generated** from `asset-guide.md`; never hand-edit |
@@ -86,7 +87,7 @@ file list (§4) only allows `audio.js` and `effects.js` to join, in later
 milestones.
 
 Script load order: `storage.js`, `audio.js`, `effects.js`, `assets.js`,
-then `app.js`.
+`stickers.js`, then `app.js`.
 All four carry a `?v=` cache-buster in `index.html`; **bump it on every
 release** or an iPad will keep running the old JavaScript against new HTML.
 
@@ -181,7 +182,28 @@ release** or an iPad will keep running the old JavaScript against new HTML.
     placeholders until V4 and V7; the rest keep their v1 screens.
   - **Session, unlocks and practice mode (v2 §3),** with `session` and
     `practice` on every event.
-- **Next: v2 V1 — Codename and gallery** (v2 §5.1 and §5.2).
+- **v2 V1 — done (4 October 2026).** Codename and gallery.
+  - **Two reels with locks (v2 §5.1).** Word and animal spin separately, one
+    stopping after the other; a 🔒 under each keeps that reel, so a child who
+    likes "Bear" re-rolls only the word. The emoji is the hero at 160px and
+    speaks the name when tapped. Words are 46px, bold, 0.06em letter-spacing,
+    sentence case — §5.1's dyslexia rules, which is why this screen has
+    nothing else on it.
+  - **Type your own (v2 §5.1).** A 20-character field, placeholder "Make up a
+    spy name", never a real name. Matching emblems appear as big tiles *while*
+    the child types; a word with no sticker becomes a `request` and shows
+    "📡 Request sent to HQ". With no pick, the emblem is 🕵️.
+  - **New file `stickers.js`** — 98 emoji with keywords, plus the 13 picture
+    stickers merged from the asset manifest. Search is forgiving: exact,
+    prefix, plural, and one wrong letter in words of four or more.
+  - **The gallery (v2 §5.2).** Every agent on this iPad as its emblem and
+    codename only. Tapping one reopens it where it left off and logs
+    `agent_open`. Practice agents are labelled.
+  - **★ Me** is the first sticker tab and holds the child's emblem, so they
+    can put their symbol on the agent like a logo.
+- **Next: v2 V2 — Parts kit and sticker library** (v2 §5.3), which replaces
+  the seven shapes with a drawn parts kit and swaps the 31-emoji tray for
+  `stickers.js`'s full library.
 
 
 ## "Bring in the new assets" (v2 §5.0)
@@ -247,6 +269,14 @@ hand-edit the manifest, and never edit both.
 - **Narration goes through `Assets.say('nar-…')`**, which uses the recording
   if it exists and `speechSynthesis` if not. `[whispers]` is a tag for the
   voice service and is stripped before speaking.
+- **Sticker search ranks, it does not just filter.** An exact word beats a
+  prefix beats a typo, and a sticker whose LABEL is the word beats one that
+  merely lists it as a keyword — otherwise typing "ninja" offered a karate
+  belt first. Children do not scroll past wrong answers.
+- **Any screen that can grow must scroll.** The Start screen is centred while
+  it fits and scrolls once the gallery is there; with a full iPad the gallery
+  was pushed off a screen that could not scroll, so a child could reach
+  neither their agent nor any way to find it. Check this for every new list.
 
 
 - Data model lives in spec §8 and is created by `makeAgent()` in `app.js`.

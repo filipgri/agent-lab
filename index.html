@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=10">
+  <link rel="stylesheet" href="./style.css?v=11">
 </head>
 <body>
 
@@ -51,18 +51,35 @@
       <span id="logo-hold" class="logo-hold"></span>
     </button>
 
-    <!-- The rolled codename. Children never type their real name (spec §3). -->
+    <!-- THE CODENAME (v2 §5.1). Children never type their real name (§3).
+
+         Two reels side by side, each with a lock underneath, so a child who
+         likes "Bear" can keep it and re-roll only the word. The emoji is the
+         hero: big, tappable, and it says the name out loud. -->
     <div class="codename-card">
-      <div id="codename-display" class="codename-display">
+      <button id="emblem-hero" class="emblem-hero" aria-label="Hear your spy name">
         <span id="codename-emoji" class="codename-emoji">🦅</span>
-        <span id="codename-text" class="codename-text">Silent Falcon</span>
+      </button>
+
+      <div class="reels">
+        <div class="reel-col">
+          <div id="reel-word" class="reel" aria-live="polite">Silent</div>
+          <button id="lock-word" class="reel-lock" role="switch" aria-checked="false"
+                  aria-label="Keep this word">🔓</button>
+        </div>
+        <div class="reel-col">
+          <div id="reel-animal" class="reel" aria-live="polite">Falcon</div>
+          <button id="lock-animal" class="reel-lock" role="switch" aria-checked="false"
+                  aria-label="Keep this animal">🔓</button>
+        </div>
       </div>
 
+      <!-- v2 §5.1: two big buttons only. -->
       <div class="codename-tools">
         <button id="btn-roll" class="btn btn-accent btn-big">
           <span class="btn-icon">🎲</span><span class="btn-label">Roll</span>
         </button>
-        <button id="btn-type" class="btn">
+        <button id="btn-type" class="btn btn-big">
           <span class="btn-icon">⌨️</span><span class="btn-label">Type</span>
         </button>
       </div>
@@ -75,6 +92,14 @@
       <button id="btn-continue" class="btn btn-huge" hidden>
         <span class="btn-icon">↩️</span><span class="btn-label">Continue</span>
       </button>
+    </div>
+
+    <!-- THE GALLERY (v2 §5.2). Every agent on this iPad, as its emblem and
+         codename only - so a child finds their own by its symbol, and sees
+         nothing about anyone else's work. -->
+    <div id="gallery-block" class="gallery-block" hidden>
+      <h2 class="gallery-title">Find your agent</h2>
+      <div id="gallery" class="gallery"></div>
     </div>
 
   </div>
@@ -727,12 +752,27 @@
   </div>
 </div>
 
+<!-- TYPE YOUR OWN SPY NAME (v2 §5.1). Never a real name: the placeholder
+     says "Make up a spy name", and nothing here asks who the child is. -->
 <div id="type-overlay" class="overlay" hidden>
-  <div class="sheet">
-    <h3>⌨️ Codename</h3>
-    <input id="type-input" class="type-input" type="text" maxlength="24"
+  <div class="sheet sheet-type">
+    <div class="sheet-head">
+      <h3>⌨️ Make up a spy name</h3>
+      <button id="btn-type-speak" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+    </div>
+
+    <input id="type-input" class="type-input" type="text" maxlength="20"
            autocomplete="off" autocorrect="off" spellcheck="false"
-           placeholder="Codename">
+           placeholder="Make up a spy name">
+
+    <!-- Emblems matching the typed words appear here as big tiles. -->
+    <div id="emblem-pick" class="emblem-pick" hidden>
+      <h4 class="emblem-pick-title">Pick a symbol</h4>
+      <div id="emblem-options" class="emblem-options"></div>
+    </div>
+
+    <p id="type-request" class="type-request" hidden>📡 Request sent to HQ</p>
+
     <div class="sheet-actions">
       <button id="btn-type-cancel" class="btn">Cancel</button>
       <button id="btn-type-ok" class="btn btn-accent">OK</button>
@@ -758,10 +798,11 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=10"></script>
-<script src="./audio.js?v=10"></script>
-<script src="./effects.js?v=10"></script>
-<script src="./assets.js?v=10"></script>
-<script src="./app.js?v=10"></script>
+<script src="./storage.js?v=11"></script>
+<script src="./audio.js?v=11"></script>
+<script src="./effects.js?v=11"></script>
+<script src="./assets.js?v=11"></script>
+<script src="./stickers.js?v=11"></script>
+<script src="./app.js?v=11"></script>
 </body>
 </html>

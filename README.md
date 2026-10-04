@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: Milestone 9 — all nine milestones built
+## Current state: v2 V1 — codename and gallery
 
 Working now:
 
@@ -155,6 +155,22 @@ Working now:
 - **Motion level** in the adult panel: **Full**, **Calm** (no shake, no
   particles, no idle motion) or **Off**. It defaults to Calm automatically if
   the iPad has Reduce Motion switched on.
+
+### v2 so far
+
+**V0 — foundations.** The stranded sticker ghost is fixed, the glow now covers
+Build and Draw agents, and the asset system is in: 171 pictures, voice lines
+and sounds, each with a stand-in, so **the app works fully with an empty
+`assets/` folder**. Adult panel → Asset check is your to-do list. Agents are
+migrated to the v2 data model on load, keeping everything in `legacy`.
+Sessions decide which missions are open, and practice mode keeps try-outs out
+of the research data.
+
+**V1 — codename and gallery.** Two reels you can lock separately, a big
+tappable emoji that says the name, and typing your own spy name — which offers
+matching symbols as you type and sends anything it hasn't got to HQ as a
+request. Every agent on the iPad appears in a gallery on the Start screen, so
+children can carry an agent across weeks.
 
 ### Offline works
 

@@ -125,12 +125,19 @@ body {
    ============================================================ */
 .start-wrap {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Centred while it fits, but scrollable once the gallery is there.
+     v2 §5.2 adds a tile per agent, and on a full iPad those pushed the
+     gallery off the bottom of a screen that could not scroll - so a child
+     could see neither their own agent nor any way to reach it. */
+  justify-content: safe center;
   gap: 28px;
   padding: var(--gap);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .logo {
@@ -2070,4 +2077,179 @@ body.is-practice .practice-badge { display: block; }
 .m3-lead, .m4-question, .mission-title, .pic-card-label, .soon-text {
   letter-spacing: .03em;
   line-height: 1.4;
+}
+
+
+/* ============================================================
+   v2 V1 — CODENAME REELS, TYPE SHEET AND GALLERY
+   ============================================================ */
+
+/* v2 §5.1 is specific about this screen, because it is the one place every
+   child reads words rather than tapping pictures:
+     the emoji about 160px, the hero of the screen;
+     words at least 44px, bold, letter-spacing about 0.06em;
+     sentence case, no italics, strong contrast;
+     nothing else competing for attention. */
+
+.emblem-hero {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 1;
+}
+.codename-emoji { font-size: 160px; line-height: 1; display: block; }
+.emblem-hero.is-bouncing { animation: emblem-bounce 500ms cubic-bezier(.34,1.56,.64,1); }
+@keyframes emblem-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35%      { transform: translateY(-22px) scale(1.1); }
+  70%      { transform: translateY(-6px) scale(1.02); }
+}
+
+.reels { display: flex; gap: 18px; justify-content: center; align-items: flex-start; }
+.reel-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+.reel {
+  min-width: 190px;
+  padding: 10px 18px;
+  border-radius: 16px;
+  background: var(--navy-3);
+  /* §5.1: at least 44px, bold, generously spaced. Sentence case, never caps:
+     all-capitals removes the word shapes dyslexic readers use. */
+  font-size: 46px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.25;
+  text-align: center;
+  color: #fff;                       /* strong contrast on the navy */
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.1);
+}
+/* While a reel spins the words blur past, so they are not meant to be read. */
+.reel.is-spinning { color: var(--muted); filter: blur(1px); }
+
+.reel-lock {
+  min-width: 64px;
+  min-height: 64px;                  /* §5: the 64px minimum, even here */
+  border: none;
+  border-radius: 16px;
+  background: var(--navy-2);
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.reel-lock.is-on { box-shadow: inset 0 0 0 3px var(--accent); background: var(--navy-3); }
+
+.codename-tools { display: flex; gap: 14px; justify-content: center; }
+
+/* --- The Type sheet --- */
+.sheet-type { max-width: 540px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.type-input {
+  width: 100%;
+  min-height: 72px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  color: #10233f;
+  font-family: var(--font);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.type-input::placeholder { color: #7d8ea6; font-weight: 400; }
+
+.emblem-pick { display: flex; flex-direction: column; gap: 8px; }
+.emblem-pick-title { margin: 0; font-size: 18px; letter-spacing: .03em; }
+.emblem-options { display: flex; gap: 10px; flex-wrap: wrap; }
+.emblem-tile {
+  min-width: 96px;
+  min-height: 96px;
+  border: none;
+  border-radius: 16px;
+  background: var(--navy-3);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.emblem-tile.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.emblem-tile-art { font-size: 42px; line-height: 1; }
+.emblem-tile-label { font-size: 13px; letter-spacing: .03em; }
+
+/* The app never promises a sticker will be made - only that HQ heard (§7). */
+.type-request {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255,210,63,.12);
+  color: var(--accent);
+  font-size: 16px;
+  letter-spacing: .03em;
+}
+
+/* --- The gallery (v2 §5.2) ---
+   Emblem and codename only. Nothing about anyone else's work is shown. */
+.gallery-block { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.gallery-title { margin: 0; font-size: 20px; color: var(--muted); letter-spacing: .04em; font-weight: 600; }
+.gallery { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 760px; }
+.gallery-tile {
+  position: relative;
+  width: 128px;
+  min-height: 128px;
+  border: none;
+  border-radius: 20px;
+  background: var(--navy-2);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 8px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.gallery-tile:active { transform: scale(.97); }
+.gallery-emblem { font-size: 52px; line-height: 1; }
+.gallery-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  line-height: 1.3;
+  text-align: center;
+}
+.gallery-practice {
+  position: absolute;
+  top: 6px; right: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+.gallery-tile.is-practice-agent { opacity: .75; }
+
+/* Portrait: the reels stack rather than squeezing. */
+@media (max-width: 620px) {
+  .reels { flex-direction: column; align-items: center; }
+  .codename-emoji { font-size: 118px; }
+  .reel { font-size: 40px; min-width: 220px; }
+}
+
+/* The ★ Me tab before a child has an emblem (v2 §5.1). */
+.tray-empty {
+  margin: 0;
+  padding: 14px 6px;
+  color: var(--muted);
+  font-size: 15px;
+  letter-spacing: .03em;
+  line-height: 1.4;
+  text-align: center;
 }

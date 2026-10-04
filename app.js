@@ -43,7 +43,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 9;
+const MILESTONE = 'v2-V1';
 
 // The six missions, in the order children meet them.
 /* The missions, in strip order (v2 spec §3). The ids are words now, not m1-m6:
@@ -116,7 +116,9 @@ const state = {
   missionOn: {},
   // v2 §3: work done while trying the app out is marked and kept out of
   // exports, so test data never contaminates the research data.
-  practice: false
+  practice: false,
+  // v2 §5.3.2: 💩 and friends only appear when an adult turns this on.
+  silly: false
 };
 
 
@@ -413,29 +415,308 @@ function renderPreview() {
    9. START SCREEN - the codename roller
    ========================================================================== */
 
-// What the Start screen is currently offering, before an agent exists.
-let pendingCodename = { codename: '', emoji: '' };
+/* What the Start screen is offering, before an agent exists.
+   v2 §5.1 splits the name into two reels, each of which can be locked. */
+let pendingCodename = { codename: '', emoji: '', word: '', animal: '' };
 
-function rollCodename() {
-  const animal = pick(ANIMALS);
-  pendingCodename = {
-    codename: pick(ADJECTIVES) + ' ' + animal.name,
-    emoji: animal.emoji
-  };
+// Which reels the child has decided to keep. A locked reel does not spin.
+const reelLocks = { word: false, animal: false };
+
+let spinning = false;
+
+/* SPIN THE REELS (v2 §5.1)
+
+   The two reels stop one after the other, which is what makes it feel like a
+   fruit machine rather than two words appearing. A locked reel is skipped
+   entirely - that is the point of the lock: a child who likes "Bear" keeps it
+   and re-rolls only the word. */
+async function rollCodename(options) {
+  const opts = options || {};
+  if (spinning) return;
+
+  const wordEl   = $('#reel-word');
+  const animalEl = $('#reel-animal');
+  if (!wordEl) return;                       // the Start screen is not built yet
+
+  const bothLocked = reelLocks.word && reelLocks.animal;
+  const animate = !opts.instant && fullMotion() && !bothLocked;
+
+  if (animate) {
+    spinning = true;
+    playSfx('sfx-reel-spin');
+    if (!reelLocks.word) wordEl.classList.add('is-spinning');
+    if (!reelLocks.animal) animalEl.classList.add('is-spinning');
+
+    // Flick through names while it spins, so the reel really is moving.
+    const flicker = setInterval(() => {
+      if (!reelLocks.word) wordEl.textContent = pick(ADJECTIVES);
+      if (!reelLocks.animal) animalEl.textContent = pick(ANIMALS).name;
+    }, 70);
+
+    await wait(420);
+    clearInterval(flicker);
+  }
+
+  // Settle the word reel, then the animal reel a beat later.
+  if (!reelLocks.word) {
+    pendingCodename.word = pick(ADJECTIVES);
+  }
+  if (!reelLocks.animal) {
+    const animal = pick(ANIMALS);
+    pendingCodename.animal = animal.name;
+    pendingCodename.emoji  = animal.emoji;
+  }
+
+  if (animate) {
+    wordEl.classList.remove('is-spinning');
+    wordEl.textContent = pendingCodename.word;
+    playSfx('sfx-reel-stop');
+    await wait(220);
+    animalEl.classList.remove('is-spinning');
+    playSfx('sfx-reel-stop');
+    spinning = false;
+  }
+
+  pendingCodename.codename = (pendingCodename.word + ' ' + pendingCodename.animal).trim();
   paintCodename();
 
-  // If the child re-rolls while an agent already exists, update and log it.
+  logEvent('codename_spin', {
+    word: pendingCodename.word,
+    animal: pendingCodename.animal,
+    locks: { word: reelLocks.word, animal: reelLocks.animal }
+  });
+
+  // If the child re-rolls while an agent already exists, update it.
   if (state.agent) {
-    state.agent.codename      = pendingCodename.codename;
-    state.agent.codenameEmoji = pendingCodename.emoji;
-    logEvent('codename_roll', { codename: pendingCodename.codename });
+    applyCodenameToAgent('roll');
     renderPreview();
   }
 }
 
+// A tiny promise-based pause, so the spin reads top to bottom.
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function toggleReelLock(reel) {
+  reelLocks[reel] = !reelLocks[reel];
+  logEvent('codename_lock', { reel: reel, on: reelLocks[reel] });
+  paintCodename();
+}
+
 function paintCodename() {
-  $('#codename-emoji').textContent = pendingCodename.emoji;
-  $('#codename-text').textContent  = pendingCodename.codename;
+  const wordEl   = $('#reel-word');
+  const animalEl = $('#reel-animal');
+  if (!wordEl) return;
+
+  if (!wordEl.classList.contains('is-spinning')) wordEl.textContent = pendingCodename.word;
+  if (!animalEl.classList.contains('is-spinning')) animalEl.textContent = pendingCodename.animal;
+  $('#codename-emoji').textContent = pendingCodename.emoji || '🕵️';
+
+  [['word', '#lock-word'], ['animal', '#lock-animal']].forEach(([reel, sel]) => {
+    const button = $(sel);
+    if (!button) return;
+    const on = reelLocks[reel];
+    button.textContent = on ? '🔒' : '🔓';
+    button.classList.toggle('is-on', on);
+    button.setAttribute('aria-checked', on ? 'true' : 'false');
+  });
+
+  // A typed name has no animal reel, so the second reel is hidden for it.
+  $('#reel-animal').parentElement.hidden = !pendingCodename.animal;
+}
+
+/* Write whatever is on the Start screen onto the agent. `source` records HOW
+   the name came about - rolled or typed - which v2 §6.1 keeps as
+   `codenameSource`. */
+function applyCodenameToAgent(source) {
+  if (!state.agent) return;
+  state.agent.codename = pendingCodename.codename;
+  state.agent.codenameParts = { word: pendingCodename.word, animal: pendingCodename.animal };
+  state.agent.codenameSource = source;
+  // A rolled name brings the animal's emoji with it; a typed one has already
+  // set its own emblem above, so only fill in a missing one here.
+  if (source === 'roll' || !state.agent.emblem || !state.agent.emblem.emoji) {
+    if (!state.agent.emblem || !state.agent.emblem.asset) {
+      state.agent.emblem = { emoji: pendingCodename.emoji || '🕵️', asset: null };
+    }
+  }
+  scheduleSave();
+}
+
+/* THE EMOJI IS THE HERO (v2 §5.1). Tapping it bounces it and says the name.
+   There is no recorded audio for a name, so this is always speechSynthesis. */
+function tapEmblem() {
+  const hero = $('#emblem-hero');
+  if (hero && fullMotion()) {
+    hero.classList.remove('is-bouncing');
+    void hero.offsetWidth;
+    hero.classList.add('is-bouncing');
+  }
+  if (state.muted) return;
+  speakWithVoice(pendingCodename.codename || 'Your spy name');
+  logEvent('codename_speak', { codename: pendingCodename.codename });
+}
+
+
+/* ---------------------------------------------------------------------------
+   TYPE YOUR OWN SPY NAME (v2 §5.1)
+   After typing, the sticker keywords are searched for each word and matching
+   emblems are offered as big tiles. A word that finds nothing becomes a
+   REQUEST - "📡 Request sent to HQ" - which is how a child's idea reaches
+   next week's sticker list (§7). The app never promises anything.
+   ------------------------------------------------------------------------ */
+let typedEmblem = null;
+
+function openTypeSheet() {
+  typedEmblem = null;
+  $('#type-input').value = pendingCodename.codenameTyped || '';
+  $('#emblem-pick').hidden = true;
+  $('#type-request').hidden = true;
+  $('#emblem-options').innerHTML = '';
+  $('#type-overlay').hidden = false;
+  $('#type-input').focus();
+  speakLine('nar-codename-type');
+}
+
+function closeTypeSheet() {
+  $('#type-overlay').hidden = true;
+}
+
+/* Offer emblems for what has been typed so far. Runs as the child types, so
+   the tiles appear while they are still thinking. */
+function refreshEmblemOptions() {
+  const text = $('#type-input').value.trim();
+  const box = $('#emblem-options');
+  box.innerHTML = '';
+
+  if (text.length < 2) {
+    $('#emblem-pick').hidden = true;
+    $('#type-request').hidden = true;
+    return;
+  }
+
+  const found = Stickers.search(text, { silly: state.silly }).slice(0, 8);
+  $('#emblem-pick').hidden = found.length === 0;
+
+  found.forEach(sticker => {
+    const tile = document.createElement('button');
+    tile.className = 'emblem-tile';
+    const chosen = typedEmblem &&
+      (typedEmblem.emoji === sticker.emoji && typedEmblem.asset === (sticker.asset || null));
+    if (chosen) tile.classList.add('is-on');
+    tile.innerHTML = '<span class="emblem-tile-art">' +
+                     (sticker.emoji || sticker.fallback || '🧩') + '</span>' +
+                     '<span class="emblem-tile-label">' + sticker.label + '</span>';
+    tile.setAttribute('aria-label', sticker.label);
+    tile.addEventListener('click', () => {
+      typedEmblem = { emoji: sticker.emoji || null, asset: sticker.asset || null };
+      logEvent('emblem_choose', { value: sticker.asset || sticker.emoji });
+      refreshEmblemOptions();
+    });
+    box.appendChild(tile);
+  });
+
+  // Anything we could not match is recorded for next week.
+  const missed = Stickers.unmatchedWords(text, { silly: state.silly });
+  $('#type-request').hidden = missed.length === 0;
+}
+
+function confirmTypedCodename() {
+  const text = $('#type-input').value.trim().slice(0, 20);
+  if (!text) { closeTypeSheet(); return; }
+
+  pendingCodename.codename = text;
+  pendingCodename.word = text;
+  pendingCodename.animal = '';          // a typed name has no animal reel
+
+  /* v2 §5.1: "The child picks one or keeps 🕵️." A typed name is a fresh
+     start, so it does NOT inherit the animal from a roll the child has just
+     replaced - that animal belonged to a different name. */
+  pendingCodename.emoji = typedEmblem ? (typedEmblem.emoji || '🕵️') : '🕵️';
+
+  logEvent('codename_type', { text: text });
+
+  // Words with no sticker become requests: Filip's to-do list for next week.
+  const missed = Stickers.unmatchedWords(text, { silly: state.silly });
+  if (missed.length && state.agent) {
+    missed.forEach(word => {
+      state.agent.requests.push({ word: word, where: 'codename-type', t: nowIso() });
+      logEvent('sticker_request', { word: word });
+    });
+    speakLine('nar-codename-request');
+  }
+
+  if (state.agent) {
+    state.agent.emblem = typedEmblem
+      ? { emoji: typedEmblem.emoji, asset: typedEmblem.asset }
+      : { emoji: '🕵️', asset: null };
+    applyCodenameToAgent('type');
+    renderPreview();
+  }
+
+  paintCodename();
+  closeTypeSheet();
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE GALLERY (v2 §5.2)
+   Every agent on this iPad, shown as its emblem and codename only. A child
+   finds their own by its symbol. Children may carry an agent across weeks,
+   which is the whole reason this exists.
+   ------------------------------------------------------------------------ */
+async function renderGallery() {
+  const block = $('#gallery-block');
+  const box = $('#gallery');
+  if (!box) return;
+
+  const agents = (await Storage.listAgents()).map(migrateAgent);
+  block.hidden = agents.length === 0;
+  box.innerHTML = '';
+  if (agents.length === 0) return;
+
+  agents.forEach(agent => {
+    const tile = document.createElement('button');
+    tile.className = 'gallery-tile' + (agent.practice ? ' is-practice-agent' : '');
+    const emblem = (agent.emblem && agent.emblem.emoji) || '🕵️';
+    tile.innerHTML =
+      '<span class="gallery-emblem">' + emblem + '</span>' +
+      '<span class="gallery-name">' + (agent.codename || 'Agent') + '</span>' +
+      (agent.practice ? '<span class="gallery-practice">PRACTICE</span>' : '');
+    tile.setAttribute('aria-label', 'Open ' + (agent.codename || 'agent'));
+    tile.addEventListener('click', () => openAgentFromGallery(agent.id));
+    box.appendChild(tile);
+  });
+}
+
+/* Open an agent where it left off (v2 §5.2). The same walk Continue uses:
+   the first mission that is open this session and not yet finished. */
+async function openAgentFromGallery(id) {
+  const agent = migrateAgent(await Storage.loadAgent(id));
+  if (!agent) return;
+
+  state.agent = agent;
+  state.onReveal = false;
+  noteSession(state.agent);
+  await Storage.setMeta('lastAgentId', agent.id);
+
+  pendingCodename = {
+    codename: agent.codename || '',
+    emoji: (agent.emblem && agent.emblem.emoji) || agent.codenameEmoji || '🕵️',
+    word: (agent.codenameParts && agent.codenameParts.word) || '',
+    animal: (agent.codenameParts && agent.codenameParts.animal) || ''
+  };
+  paintPracticeBadge();
+  logEvent('agent_open', { from: 'gallery' });
+
+  let index = MISSIONS.findIndex(m => missionIsOpen(m) && agent.missions[m.id] === 'todo');
+  if (index === -1) {
+    const anyOpen = MISSIONS.findIndex(missionIsOpen);
+    if (revealIsOpen()) { openReveal(); return; }
+    index = anyOpen === -1 ? 0 : anyOpen;
+  }
+  goToMission(index, 'mission_enter');
 }
 
 // A brand new agent, shaped exactly like spec §8.
@@ -649,7 +930,7 @@ function fillDefaults(agent) {
 }
 
 async function startNewAgent() {
-  if (!pendingCodename.codename) rollCodename();
+  if (!pendingCodename.codename) await rollCodename({ instant: true });
   state.agent = makeAgent();
   state.onReveal = false;
   await saveNow();
@@ -804,8 +1085,9 @@ async function finishSession() {
   state.agent = null;
   state.onReveal = false;
   showScreen('start');
-  rollCodename();
+  rollCodename({ instant: true });
   await refreshContinueButton();
+  await renderGallery();           // v2 §5.2
 }
 
 
@@ -1072,33 +1354,21 @@ function paintMotionButtons() {
 
 function wireUp() {
 
-  // --- Start screen ---
-  $('#btn-roll').addEventListener('click', rollCodename);
+  // --- Start screen: the reels, the locks and the emblem (v2 §5.1) ---
+  $('#btn-roll').addEventListener('click', () => rollCodename());
+  $('#lock-word').addEventListener('click', () => toggleReelLock('word'));
+  $('#lock-animal').addEventListener('click', () => toggleReelLock('animal'));
+  $('#emblem-hero').addEventListener('click', tapEmblem);
   $('#btn-new').addEventListener('click', startNewAgent);
   $('#btn-continue').addEventListener('click', continueAgent);
 
-  // Typing a codename instead of rolling one (spec §7).
-  $('#btn-type').addEventListener('click', () => {
-    $('#type-input').value = pendingCodename.codename;
-    $('#type-overlay').hidden = false;
-    $('#type-input').focus();
-  });
-  $('#btn-type-cancel').addEventListener('click', () => {
-    $('#type-overlay').hidden = true;
-  });
-  $('#btn-type-ok').addEventListener('click', () => {
-    const typed = $('#type-input').value.trim();
-    if (typed) {
-      pendingCodename.codename = typed;
-      paintCodename();
-      if (state.agent) {
-        state.agent.codename = typed;
-        logEvent('codename_type', {});
-        renderPreview();
-      }
-    }
-    $('#type-overlay').hidden = true;
-  });
+  // --- Type your own spy name (v2 §5.1) ---
+  $('#btn-type').addEventListener('click', openTypeSheet);
+  $('#btn-type-cancel').addEventListener('click', closeTypeSheet);
+  $('#btn-type-ok').addEventListener('click', confirmTypedCodename);
+  $('#btn-type-speak').addEventListener('click', () => speakLine('nar-codename-type'));
+  // Emblems appear while the child types, not after they finish.
+  $('#type-input').addEventListener('input', refreshEmblemOptions);
 
   // --- hidden adult route: hold the logo for 3 seconds ---
   // Pointer events cover finger, pen and mouse in one go (spec §9).
@@ -1176,6 +1446,7 @@ async function boot() {
   state.session   = await Storage.getMeta('session', DEFAULT_SESSION);
   state.missionOn = await Storage.getMeta('missionOn', {}) || {};
   state.practice  = await Storage.getMeta('practice', false);
+  state.silly     = await Storage.getMeta('silly', false);
   paintPracticeBadge();
 
   // Spec §5a: default to Full, or Calm if the iPad has Reduce Motion switched on.
@@ -1208,8 +1479,13 @@ async function boot() {
   await showOffline();
   setTimeout(showOffline, 1500);
 
-  rollCodename();
+  // v2 §5.3.2: merge the picture stickers from the asset manifest into the
+  // library, so a file Filip adds this week is searchable next week.
+  if (typeof Stickers !== 'undefined') await Stickers.loadImageStickers();
+
+  rollCodename({ instant: true });
   await refreshContinueButton();
+  await renderGallery();              // v2 §5.2
   showScreen('start');
 }
 
@@ -1246,6 +1522,11 @@ const PALETTE = [
 
 // The sticker tray, in the categories the spec lists (§7).
 const STICKER_TABS = [
+  /* ★ Me holds the child's own emblem (v2 §5.1), so they can put their symbol
+     on the agent like a logo, at any size. It is filled in by
+     buildStickerTray() rather than listed here, because it is different for
+     every child. V2 replaces the rest of this list with stickers.js. */
+  { id: 'me',     label: '★ Me',   emoji: [], isMe: true },
   { id: 'head',   label: 'Head',   emoji: ['🎩','🧢','👑','⛑️','🎀','🪖'] },
   { id: 'face',   label: 'Face',   emoji: ['👓','🕶️','🥸','😷'] },
   { id: 'ears',   label: 'Ears',   emoji: ['🎧','🦻'] },
@@ -1309,7 +1590,7 @@ const editor = {
   part: 'cover',        // 'cover' now; Mission 2 will point this at 'boost'
   tool: 'paint',        // 'paint' | 'erase' | 'fill'
   colour: PALETTE[9],   // the red, a friendly starting colour
-  tab: 'head',
+  tab: 'me',            // v2 §5.1: the child's own emblem is shown first
   selected: null,       // index of the selected sticker, or null
   selectedShape: null,  // index of the selected shape (Build door), or null
   undoStack: [],
@@ -1842,14 +2123,33 @@ function buildStickerTray() {
   const tray = $('#sticker-tray');
   tray.innerHTML = '';
   const current = visibleTabs.find(t => t.id === editor.tab);
-  current.emoji.forEach(emoji => {
+
+  // ★ Me is the child's own emblem, first (v2 §5.1).
+  const emoji = current.isMe ? meTabEmoji() : current.emoji;
+
+  if (emoji.length === 0) {
+    tray.innerHTML = '<p class="tray-empty">Your symbol appears here.</p>';
+    return;
+  }
+
+  emoji.forEach(sticker => {
     const button = document.createElement('button');
     button.className = 'tray-sticker';
-    button.textContent = emoji;
-    button.setAttribute('aria-label', 'Sticker ' + emoji);
-    button.addEventListener('pointerdown', event => startTrayDrag(event, emoji));
+    button.textContent = sticker;
+    button.setAttribute('aria-label', 'Sticker ' + sticker);
+    button.addEventListener('pointerdown', event => startTrayDrag(event, sticker));
     tray.appendChild(button);
   });
+}
+
+/* What goes in ★ Me: the emblem, plus the plain spy so there is always
+   something there even before a child has chosen a symbol. */
+function meTabEmoji() {
+  const emblem = state.agent && state.agent.emblem && state.agent.emblem.emoji;
+  const out = [];
+  if (emblem) out.push(emblem);
+  if (out.indexOf('🕵️') === -1) out.push('🕵️');
+  return out;
 }
 
 function addSticker(emoji, x, y) {
