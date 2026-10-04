@@ -19,16 +19,17 @@
     11. GLOBAL BUTTONS    mute, 🔊 speak, 🧩 something's missing
     12. ADULT PANEL       list, export, delete, settings (spec §7.9)
     13. BOOT              what runs when the app opens
-    14. MISSION 1         pixel door + sticker layer (Milestone 1)
-    15. MISSION 2         boost: powers, aura, background (Milestone 2)
-    16. MISSION 4         voice password: record + filters (Milestone 3)
-    17. MISSION 3         secret feeling code (Milestone 4)
-    18. MISSION 5         where does my agent go? (Milestone 5)
-    19. MISSION 6         agent rules + shared drawing sheet (Milestone 5)
+    14. MAKE              pixel door + sticker layer
+    15. POWER-UP          powers, aura, background
+    16. VOICE             voice password: record + filters
+    17. MOOD              mood codes (was the feeling code)
+    18. BADGE             where the agent goes (becomes Badge in V8)
+    19. RULES             agent rules + shared drawing sheet
     20. REVEAL            the agent ID card + save as PNG (Milestone 6)
     21. BUILD + DRAW      the other two Mission 1 doors (Milestone 7)
     22. POLISH & JUICE    §5a animation, sounds, spoken prompts (Milestone 8)
     23. OFFLINE           service worker + update banner (Milestone 9)
+    24. SESSION           session preset, practice mode, asset check (v2 V0)
    ========================================================================== */
 
 
@@ -45,16 +46,29 @@ const ADULT_PIN = '2468';
 const MILESTONE = 9;
 
 // The six missions, in the order children meet them.
+/* The missions, in strip order (v2 spec §3). The ids are words now, not m1-m6:
+   a log full of "m5" cannot be read six months later, and the missions have
+   been reordered and renamed, so the numbers had stopped matching anyway.
+   §6.2 migrates old agents.
+
+   `opensIn` is the session a mission becomes available in. The adult panel's
+   Session setting applies those as a preset, and single missions can then be
+   switched off - for example HQ, when a rotation is running short. */
 const MISSIONS = [
-  { id: 'm1', icon: '🎨', title: 'Make your agent',        prompt: 'Make your agent.' },
-  { id: 'm2', icon: '⚡', title: 'Boost',                  prompt: 'Give your agent a boost.' },
-  { id: 'm3', icon: '💛', title: 'Secret feeling code',    prompt: 'Make a secret sign for a feeling.' },
-  { id: 'm4', icon: '🎤', title: 'Voice password',         prompt: 'Record your secret voice password.' },
-  { id: 'm5', icon: '🗺️', title: 'Where does my agent go?', prompt: 'Where does your agent go?' },
-  { id: 'm6', icon: '📋', title: 'Agent rules',            prompt: 'Make your agent rules.' }
+  { id: 'make',    icon: '🎨', opensIn: 2, title: 'Make your agent',  prompt: 'Make your agent. Pick a door.',            narrate: 'nar-make-intro' },
+  { id: 'powerup', icon: '⚡', opensIn: 2, title: 'Power-up',         prompt: 'Your agent is powering up!',               narrate: 'nar-powerup-intro' },
+  { id: 'hq',      icon: '📍', opensIn: 2, title: 'HQ',               prompt: 'Where is your agent strongest?',           narrate: 'nar-hq-intro' },
+  { id: 'voice',   icon: '🎤', opensIn: 2, title: 'Voice password',   prompt: 'Record your secret voice password.',       narrate: 'nar-voice-intro' },
+  { id: 'field',   icon: '🛡️', opensIn: 3, title: 'Force field',      prompt: "Make your agent's force field.",           narrate: 'nar-field-intro' },
+  { id: 'mood',    icon: '💛', opensIn: 3, title: 'Mood codes',       prompt: 'Make a secret mood code.',                 narrate: 'nar-mood-intro' },
+  { id: 'rules',   icon: '📋', opensIn: 4, title: 'Agent rules',      prompt: 'Make rules for the people around your agent.', narrate: 'nar-rules-intro' },
+  { id: 'badge',   icon: '🏷️', opensIn: 4, title: 'Badge & poster',   prompt: 'Design your badge and your wall poster.',  narrate: 'nar-badge-intro' }
 ];
 
 const REVEAL_ICON = '🗂️';
+
+// Which session is running. The adult panel sets it; every event carries it.
+const DEFAULT_SESSION = 2;
 
 // Codename word lists (spec §7). Adjective + animal, with the animal's emoji.
 const ADJECTIVES = [
@@ -88,11 +102,21 @@ const ANIMALS = [
 const state = {
   agent: null,        // the agent object currently being edited
   screen: 'start',    // which screen is showing
-  missionIndex: 0,    // 0..5 for m1..m6
+  missionIndex: 0,    // which MISSIONS entry is open
   onReveal: false,    // true while the Reveal screen is open
   muted: false,
-  motion: 'full',     // 'full' | 'calm' | 'off' (used from Milestone 8)
-  pinEntry: ''        // digits typed so far on the PIN pad
+  motion: 'full',     // 'full' | 'calm' | 'off'
+  pinEntry: '',       // digits typed so far on the PIN pad
+
+  // v2 §3. The session decides which missions are open, and every event
+  // records it so the research data says which week it came from.
+  session: DEFAULT_SESSION,
+  // An adult can switch single missions off, for example when time is short.
+  // { make: true, hq: false, ... }; missing means "use the session preset".
+  missionOn: {},
+  // v2 §3: work done while trying the app out is marked and kept out of
+  // exports, so test data never contaminates the research data.
+  practice: false
 };
 
 
@@ -139,6 +163,9 @@ function logEvent(action, detail) {
   if (!state.agent) return;
   state.agent.events.push({
     t: nowIso(),
+    // v2 §6.3: which week this happened in, and whether it was a practice run.
+    session: state.session,
+    practice: Boolean(state.practice),
     mission: currentMissionId(),
     action: action,
     detail: detail || {}
@@ -216,19 +243,75 @@ function showScreen(name) {
    is worked out from the mission statuses plus wherever the child is now.
    ========================================================================== */
 
-function maxUnlockedIndex() {
-  let furthest = state.onReveal ? MISSIONS.length : state.missionIndex;
-  MISSIONS.forEach((m, i) => {
-    if (state.agent && state.agent.missions[m.id] !== 'todo' && i > furthest) furthest = i;
-  });
-  // The Reveal unlocks once the last mission has been stamped or passed.
-  if (state.agent && state.agent.missions.m6 !== 'todo') furthest = MISSIONS.length;
-  return furthest;
+/* Is this mission open right now? (v2 §3)
+
+   Two things decide it. The SESSION preset opens every mission whose
+   `opensIn` has been reached - session 3 opens everything from sessions 2 and
+   3. On top of that an adult may switch a single mission off, which is what
+   `missionOn` holds. A mission the child has already worked on stays open
+   whatever the setting, so nobody is locked out of their own work. */
+function missionIsOpen(mission) {
+  if (state.agent && state.agent.missions[mission.id] &&
+      state.agent.missions[mission.id] !== 'todo') return true;
+  if (state.missionOn[mission.id] === false) return false;
+  if (state.missionOn[mission.id] === true) return true;
+  return mission.opensIn <= state.session;
+}
+
+// The card is open once every mission that is open has been finished or passed.
+function revealIsOpen() {
+  if (!state.agent) return false;
+  const open = MISSIONS.filter(missionIsOpen);
+  if (open.length === 0) return true;
+  return open.every(m => state.agent.missions[m.id] !== 'todo');
+}
+
+/* Apply a session's preset (v2 §3). Clears any single-mission overrides, so
+   choosing a session is always a clean starting point. */
+async function setSession(session) {
+  state.session = Number(session) || DEFAULT_SESSION;
+  state.missionOn = {};
+  await Storage.setMeta('session', state.session);
+  await Storage.setMeta('missionOn', state.missionOn);
+  if (state.agent) {
+    if (!Array.isArray(state.agent.sessions)) state.agent.sessions = [];
+    if (state.agent.sessions.indexOf(state.session) === -1) {
+      state.agent.sessions.push(state.session);
+    }
+    logEvent('session_set', { session: state.session });
+    scheduleSave();
+  }
+  paintSessionControls();
+  renderStrip();
+}
+
+async function setMissionOn(id, on) {
+  state.missionOn[id] = on;
+  await Storage.setMeta('missionOn', state.missionOn);
+  paintSessionControls();
+  renderStrip();
+}
+
+async function setPractice(on) {
+  state.practice = Boolean(on);
+  await Storage.setMeta('practice', state.practice);
+  if (state.agent) {
+    state.agent.practice = state.practice;
+    logEvent('practice_toggle', { practice: state.practice });
+    scheduleSave();
+  }
+  paintSessionControls();
+  paintPracticeBadge();
+}
+
+// A PRACTICE label, so nobody mistakes a try-out for a child's real work.
+function paintPracticeBadge() {
+  const on = Boolean(state.practice) || Boolean(state.agent && state.agent.practice);
+  document.body.classList.toggle('is-practice', on);
 }
 
 function renderStrip() {
   if (!state.agent) return;
-  const unlocked = maxUnlockedIndex();
 
   // There is one strip per screen that needs it, so render into all of them.
   $$('[data-strip]').forEach(strip => {
@@ -237,7 +320,9 @@ function renderStrip() {
     MISSIONS.forEach((mission, index) => {
       const status  = state.agent.missions[mission.id];   // done | passed | todo
       const isNow   = state.screen === 'mission' && index === state.missionIndex;
-      const locked  = index > unlocked;
+      // v2 §3: a mission is locked until its session, or if an adult has
+      // switched it off for this rotation.
+      const locked  = !missionIsOpen(mission);
 
       const button = document.createElement('button');
       button.className = 'pip';
@@ -256,26 +341,39 @@ function renderStrip() {
           (status === 'passed' ? '<span class="pip-stamp pip-stamp-grey">✓</span>' : '');
 
       button.setAttribute('aria-label', locked ? 'Locked' : mission.title);
-      button.disabled = locked;
 
-      // Spec §6: tapping a done or passed icon goes back to that mission.
-      if (!locked) {
+      if (locked) {
+        /* v2 §3: a locked mission explains itself rather than doing nothing.
+           It is NOT disabled, because a disabled button cannot be tapped and
+           so the child never hears why. */
+        button.addEventListener('click', () => {
+          logEvent('locked_tap', { mission: mission.id });
+          speakLine('nar-locked');
+        });
+      } else {
+        // Spec §6: tapping a done or passed icon goes back to that mission.
         button.addEventListener('click', () => goToMission(index, 'back_to'));
       }
       strip.appendChild(button);
     });
 
     // The Reveal sits at the end of the strip.
-    const revealLocked = unlocked < MISSIONS.length;
+    const revealLocked = !revealIsOpen();
     const revealBtn = document.createElement('button');
     revealBtn.className = 'pip pip-reveal ' +
       (revealLocked ? 'is-locked' : (state.onReveal ? 'is-current' : 'is-open'));
     revealBtn.innerHTML = revealLocked
       ? '<span class="pip-icon">🔒</span><span class="pip-q">?</span>'
       : '<span class="pip-icon">' + REVEAL_ICON + '</span>';
-    revealBtn.disabled = revealLocked;
     revealBtn.setAttribute('aria-label', revealLocked ? 'Locked' : 'Agent ID card');
-    if (!revealLocked) revealBtn.addEventListener('click', openReveal);
+    if (revealLocked) {
+      revealBtn.addEventListener('click', () => {
+        logEvent('locked_tap', { mission: 'card' });
+        speakLine('nar-locked');
+      });
+    } else {
+      revealBtn.addEventListener('click', openReveal);
+    }
     strip.appendChild(revealBtn);
   });
 }
@@ -302,7 +400,7 @@ function renderPreview() {
   // so the thumbnail and the stage never disagree. Anywhere else it shows the
   // Boost if one exists, because that is the agent's latest self.
   const editorOpen = !$('#editor').hidden;
-  const boost = state.agent.boost || {};
+  const boost = (state.agent.powerup && state.agent.powerup.look) || {};
   const shown = editorOpen ? (state.agent[editor.part] || {})
                            : (hasArt(boost) ? boost : (state.agent.cover || {}));
   const anyArt = hasArt(shown);
@@ -341,31 +439,213 @@ function paintCodename() {
 }
 
 // A brand new agent, shaped exactly like spec §8.
+/* The v2 agent (v2 spec §6.1). Every field has a default, so a brand-new
+   agent and a migrated v1 agent end up the same shape. */
+/* An agent worked on this week records that (v2 §3), so the research data
+   shows which sessions each agent was built across. */
+function noteSession(agent) {
+  if (!agent) return;
+  if (!Array.isArray(agent.sessions)) agent.sessions = [];
+  if (agent.sessions.indexOf(state.session) === -1) {
+    agent.sessions.push(state.session);
+    scheduleSave();
+  }
+}
+
 function makeAgent() {
   return {
+    schemaVersion: 2,
     id: uuid(),
-    codename: pendingCodename.codename,
-    codenameEmoji: pendingCodename.emoji,
-    codenameAudioId: null,
     createdAt: nowIso(),
+    sessions: [state.session],
+    practice: state.practice,
+
+    codename: pendingCodename.codename,
+    codenameParts: { word: pendingCodename.word || '', animal: pendingCodename.animal || '' },
+    codenameSource: 'roll',
+    // The emblem is the child's icon: on the agent, and on the badge (§5.1).
+    emblem: { emoji: pendingCodename.emoji || '🕵️', asset: null },
+    seal: null,
+
     door: null,
     cover: { pixels: [], shapes: [], drawingPng: null, stickers: [] },
-    boost: { pixels: [], shapes: [], drawingPng: null, stickers: [], aura: null, background: null },
-    feelingCodes: [],
-    feelingWorn: null,
-    voice: { audioId: null, filter: 'normal', yesClips: [] },
-    places: {
-      justMe: { cover: false, boost: false, feeling: false, voice: false, codename: false },
-      badge:  { cover: false, boost: false, feeling: false, voice: false, codename: false },
-      class:  { cover: false, boost: false, feeling: false, voice: false, codename: false },
-      wall:   { cover: false, boost: false, feeling: false, voice: false, codename: false },
-      home:   { cover: false, boost: false, feeling: false, voice: false, codename: false }
+
+    powerup: {
+      look: { pixels: [], shapes: [], drawingPng: null, stickers: [], glow: null },
+      power: { png: null, audioId: null, idea: null, effect: null },
+      when: [],
+      whenOwn: []
     },
-    rules: { dont: [], can: [], upset: [] },
+
+    hq: { id: null, png: null },
+
+    voice: { audioId: null, filter: 'normal', threeWays: [null, null, null] },
+
+    field: {
+      size: 'm', texture: 'none', colour: null,
+      reactions: { friend: null, teacher: null, new: null }
+    },
+
+    moodCodes: [],
+    rules: [],
+
+    placements: { badge: [], pocket: [], wall: [] },
+
     missing: [],
-    missions: { m1: 'todo', m2: 'todo', m3: 'todo', m4: 'todo', m5: 'todo', m6: 'todo' },
-    events: []
+    requests: [],
+    missions: blankMissions(),
+    events: [],
+    legacy: {}
   };
+}
+
+// Every mission starts as 'todo'. Written from MISSIONS so adding a mission
+// to that list is the only place a new id has to be typed.
+function blankMissions() {
+  const out = {};
+  MISSIONS.forEach(m => { out[m.id] = 'todo'; });
+  return out;
+}
+
+
+/* ---------------------------------------------------------------------------
+   MIGRATING A v1 AGENT (v2 spec §6.2)
+
+   Runs on EVERY load, and is safe to run twice: it only ever fills in what is
+   missing. It never deletes anything - the original v1 fields are copied into
+   `legacy` so an export made next year is still readable, and so a mistake
+   here cannot cost a child their work.
+   ------------------------------------------------------------------------ */
+
+// v1 Boost backgrounds became HQ places.
+const V1_BACKGROUND_TO_HQ = {
+  space:  'hq-space',
+  jungle: 'hq-jungle',
+  sea:    'hq-underwater',
+  city:   'hq-city-rooftop',
+  sunset: 'hq-sky-castle'
+  // 'plain' meant no place at all, so those agents get no HQ.
+};
+
+function migrateAgent(agent) {
+  if (!agent || typeof agent !== 'object') return agent;
+  if (agent.schemaVersion === 2) return fillDefaults(agent);
+
+  const legacy = agent.legacy || {};
+
+  // --- the Boost becomes the Power-up's look ---
+  if (agent.boost && !agent.powerup) {
+    agent.powerup = {
+      look: {
+        pixels: agent.boost.pixels || [],
+        shapes: agent.boost.shapes || [],
+        drawingPng: agent.boost.drawingPng || null,
+        stickers: agent.boost.stickers || [],
+        glow: agent.boost.aura || null
+      },
+      power: { png: null, audioId: null, idea: null, effect: null },
+      when: [],
+      whenOwn: []
+    };
+    if (!agent.hq) {
+      agent.hq = { id: V1_BACKGROUND_TO_HQ[agent.boost.background] || null, png: null };
+    }
+    legacy.boost = agent.boost;
+    delete agent.boost;
+  }
+
+  // --- feeling codes become mood codes with no moment ---
+  if (Array.isArray(agent.feelingCodes) && !agent.moodCodes) {
+    agent.moodCodes = agent.feelingCodes.map(code => ({
+      situation: null, situationOwn: null,
+      face: null,
+      move: code.move || 'still',
+      fieldChange: null,
+      sign: { png: code.png || null, audioId: code.audioId || null },
+      readers: [],
+      firstStep: null
+    }));
+    // The old `face` has no home in v2's face (eyes/brows/mouth), so it is
+    // kept rather than guessed at.
+    legacy.feelingCodes = agent.feelingCodes;
+    legacy.feelingWorn = agent.feelingWorn;
+    delete agent.feelingCodes;
+    delete agent.feelingWorn;
+  }
+
+  // --- the voice bonus clips get their v2 name ---
+  if (agent.voice && agent.voice.yesClips && !agent.voice.threeWays) {
+    agent.voice.threeWays = agent.voice.yesClips;
+    delete agent.voice.yesClips;
+  }
+
+  // --- the old rules object becomes an empty list of v2 sentence rules ---
+  if (agent.rules && !Array.isArray(agent.rules)) {
+    legacy.rules = agent.rules;
+    agent.rules = [];
+  }
+
+  // --- places have no v2 equivalent until Badge & poster (V8) ---
+  if (agent.places) { legacy.places = agent.places; delete agent.places; }
+
+  // --- the codename emoji becomes the emblem ---
+  if (agent.codenameEmoji && !agent.emblem) {
+    agent.emblem = { emoji: agent.codenameEmoji, asset: null };
+  }
+
+  // --- mission ids become words ---
+  if (agent.missions && agent.missions.m1 !== undefined) {
+    legacy.missions = agent.missions;
+    const old = agent.missions;
+    agent.missions = blankMissions();
+    if (old.m1) agent.missions.make = old.m1;
+    if (old.m2) agent.missions.powerup = old.m2;
+    if (old.m4) agent.missions.voice = old.m4;
+    // m3, m5 and m6 belonged to screens that v2 redesigns, so those missions
+    // start again rather than being marked done on the strength of v1 work.
+  }
+
+  agent.legacy = legacy;
+  agent.schemaVersion = 2;
+  return fillDefaults(agent);
+}
+
+/* Add any field a v2 agent should have but does not. This is what makes
+   migrateAgent safe to run twice, and it also repairs an agent saved by an
+   older V-milestone. */
+function fillDefaults(agent) {
+  const blank = {
+    sessions: [], practice: false,
+    codenameParts: { word: '', animal: '' },
+    codenameSource: 'roll',
+    emblem: { emoji: agent.codenameEmoji || '🕵️', asset: null },
+    seal: null,
+    cover: { pixels: [], shapes: [], drawingPng: null, stickers: [] },
+    powerup: { look: { pixels: [], shapes: [], drawingPng: null, stickers: [], glow: null },
+               power: { png: null, audioId: null, idea: null, effect: null },
+               when: [], whenOwn: [] },
+    hq: { id: null, png: null },
+    voice: { audioId: null, filter: 'normal', threeWays: [null, null, null] },
+    field: { size: 'm', texture: 'none', colour: null,
+             reactions: { friend: null, teacher: null, new: null } },
+    moodCodes: [], rules: [],
+    placements: { badge: [], pocket: [], wall: [] },
+    missing: [], requests: [], events: [], legacy: {}
+  };
+
+  Object.keys(blank).forEach(key => {
+    if (agent[key] === undefined || agent[key] === null) agent[key] = blank[key];
+  });
+
+  if (!agent.missions) agent.missions = blankMissions();
+  // A mission added in a later V-milestone must appear on an older agent.
+  MISSIONS.forEach(m => {
+    if (agent.missions[m.id] === undefined) agent.missions[m.id] = 'todo';
+  });
+  if (!Array.isArray(agent.sessions)) agent.sessions = [];
+  if (!Array.isArray(agent.requests)) agent.requests = [];
+  if (!Array.isArray(agent.rules)) agent.rules = [];
+  return agent;
 }
 
 async function startNewAgent() {
@@ -384,13 +664,15 @@ async function continueAgent() {
   const agent = await Storage.loadAgent(lastId);
   if (!agent) return;
 
-  state.agent = agent;
+  state.agent = migrateAgent(agent);        // v2 §6.2
+  noteSession(state.agent);
   state.onReveal = false;
   pendingCodename = { codename: agent.codename, emoji: agent.codenameEmoji };
 
-  // Drop the child back on the first mission they have not finished.
-  let index = MISSIONS.findIndex(m => agent.missions[m.id] === 'todo');
-  if (index === -1) index = MISSIONS.length - 1;
+  // Drop the child back on the first OPEN mission they have not finished.
+  let index = MISSIONS.findIndex(m => missionIsOpen(m) && agent.missions[m.id] === 'todo');
+  if (index === -1) index = MISSIONS.findIndex(missionIsOpen);
+  if (index === -1) index = 0;
   goToMission(index, 'mission_enter');
 }
 
@@ -399,10 +681,11 @@ async function refreshContinueButton() {
   const lastId = await Storage.getMeta('lastAgentId', null);
   let show = false;
   if (lastId) {
-    const agent = await Storage.loadAgent(lastId);
+    const agent = migrateAgent(await Storage.loadAgent(lastId));
     if (agent) {
-      // "Unfinished" = at least one mission still todo.
-      show = MISSIONS.some(m => agent.missions[m.id] === 'todo');
+      // "Unfinished" = at least one mission that is OPEN this session is
+      // still todo. A mission locked until session 4 does not count.
+      show = MISSIONS.some(m => missionIsOpen(m) && agent.missions[m.id] === 'todo');
     }
   }
   $('#btn-continue').hidden = !show;
@@ -420,6 +703,8 @@ function leaveCurrent() {
   if (typeof Voice !== 'undefined') { Voice.stop(); Voice.stopPlayback(); }
   // Milestone 4: a movement being previewed must not follow the child either.
   if (typeof previewMove === 'function') previewMove(null);
+  // v2 §4.1: sweep up any drag preview stranded on <body>.
+  if (typeof clearDragLeftovers === 'function') clearDragLeftovers();
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -448,15 +733,20 @@ function goToMission(index, reasonAction) {
   // and the research timeline reads in the order things actually happened.
   logEvent(reasonAction === 'back_to' ? 'back_to' : 'mission_enter', { mission: mission.id });
 
-  // Each mission gets a chance to set itself up as it opens.
-  if (mission.id === 'm1') enterMission1();
-  else if (mission.id === 'm2') enterMission2();
-  else hideEditor();        // every other mission: put the shared editor away
+  /* Each mission sets itself up as it opens. Only Make and Power-up use the
+     shared editor; everything else puts it away first.
 
-  if (mission.id === 'm3') enterMission3();
-  if (mission.id === 'm5') enterMission5();
-  if (mission.id === 'm6') enterMission6();
-  if (mission.id === 'm4') enterMission4();
+     v2 §3: `hq` and `field` have no screen yet, so they show the "coming
+     soon" placeholder with Stamp it and Pass. The others keep their v1
+     screens until their v2 versions are built. */
+  if (mission.id === 'make') enterMake();
+  else if (mission.id === 'powerup') enterPowerup();
+  else hideEditor();
+
+  if (mission.id === 'mood')  enterMood();
+  if (mission.id === 'badge') enterBadge();
+  if (mission.id === 'rules') enterRules();
+  if (mission.id === 'voice') enterVoice();
 }
 
 // Stamp it ✓ : this mission is done, move on.
@@ -478,13 +768,14 @@ function passMission() {
   advance();
 }
 
+/* Move to the next OPEN mission (v2 §3). Walking by index alone would drop a
+   child into a mission that this session has not unlocked. */
 function advance() {
   saveNow();
-  if (state.missionIndex < MISSIONS.length - 1) {
-    goToMission(state.missionIndex + 1, 'mission_enter');
-  } else {
-    openReveal();
+  for (let i = state.missionIndex + 1; i < MISSIONS.length; i++) {
+    if (missionIsOpen(MISSIONS[i])) { goToMission(i, 'mission_enter'); return; }
   }
+  openReveal();
 }
 
 // Spec §5a: the stamp lands with a thud and a few sparkles.
@@ -493,7 +784,7 @@ function playStampFeedback() {
   button.classList.remove('stamp-kick');
   void button.offsetWidth;           // forces the browser to restart the animation
   button.classList.add('stamp-kick');
-  playSfx('stamp');
+  playSfx('sfx-stamp');
   Effects.burstAt(button, { count: 22, spread: 6 });
 }
 
@@ -619,6 +910,7 @@ function submitPin() {
 async function openAdultPanel() {
   showScreen('adult');
   await renderAgentList();
+  paintSessionControls();
   paintMuteButtons();
   paintMotionButtons();
   $('#export-result').innerHTML = '';
@@ -627,7 +919,8 @@ async function openAdultPanel() {
 
 async function renderAgentList() {
   const list   = $('#agent-list');
-  const agents = await Storage.listAgents();
+  // v2 §6.2: migrate on every load, so the panel never shows a v1 shape.
+  const agents = (await Storage.listAgents()).map(migrateAgent);
 
   if (agents.length === 0) {
     list.innerHTML = '<p class="adult-note">No agents saved yet.</p>';
@@ -693,7 +986,14 @@ async function exportAll() {
   result.textContent = 'Building file…';
 
   try {
-    const agents = await Storage.listAgents();
+    let agents = (await Storage.listAgents()).map(migrateAgent);
+
+    /* v2 §3: practice agents are left out unless the adult ticks the box, so
+       a facilitator trying the app out never lands in the research data. */
+    const includePractice = $('#chk-include-practice') &&
+                            $('#chk-include-practice').checked;
+    if (!includePractice) agents = agents.filter(a => !a.practice);
+
     const clips  = (await Storage.listAudio()) || [];
 
     // Turn each audio Blob into base64 text so it fits inside JSON.
@@ -704,6 +1004,8 @@ async function exportAll() {
       app: 'Agent Lab',
       exportedAt: nowIso(),
       milestone: MILESTONE,
+      schemaVersion: 2,
+      includesPractice: Boolean(includePractice),
       agentCount: agents.length,
       agents: agents,
       audio: audio
@@ -775,10 +1077,6 @@ function wireUp() {
   $('#btn-new').addEventListener('click', startNewAgent);
   $('#btn-continue').addEventListener('click', continueAgent);
 
-  $('#btn-codename-mic').addEventListener('click', () => {
-    toast('Recording arrives in Milestone 3');
-  });
-
   // Typing a codename instead of rolling one (spec §7).
   $('#btn-type').addEventListener('click', () => {
     $('#type-input').value = pendingCodename.codename;
@@ -813,15 +1111,16 @@ function wireUp() {
   logo.addEventListener('contextmenu', e => e.preventDefault());
 
   // --- missions ---
-  wireMission1();
+  wireMake();
   wireDoors();
-  wireMission2();
-  wireMission3();
-  wireMission4();
-  wireMission5();
-  wireMission6();
+  wirePowerup();
+  wireMood();
+  wireVoice();
+  wireBadge();
+  wireRules();
   wireReveal();
   wirePolish();
+  wireSessionControls();
   $('#btn-stamp').addEventListener('click', stampMission);
   $('#btn-pass').addEventListener('click', passMission);
   $('#btn-finish').addEventListener('click', finishSession);
@@ -871,6 +1170,14 @@ async function boot() {
   state.muted  = await Storage.getMeta('muted', false);
   state.motion = await Storage.getMeta('motion', null);
 
+  // v2 §3: which session is running, which missions the adult has switched
+  // off, and whether this iPad is in practice mode. All three survive a
+  // reload, because an adult sets them once at the start of a rotation.
+  state.session   = await Storage.getMeta('session', DEFAULT_SESSION);
+  state.missionOn = await Storage.getMeta('missionOn', {}) || {};
+  state.practice  = await Storage.getMeta('practice', false);
+  paintPracticeBadge();
+
   // Spec §5a: default to Full, or Calm if the iPad has Reduce Motion switched on.
   if (!state.motion) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -911,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', boot);
 
 
 /* ==========================================================================
-   14. MISSION 1 - PIXEL DOOR + STICKER LAYER (added in Milestone 1)
+   14. MAKE (was MISSION 1) - PIXEL DOOR + STICKER LAYER (added in Milestone 1)
    ==========================================================================
 
    HOW THE AGENT IS DRAWN
@@ -967,14 +1274,34 @@ const AURAS = [
   { id: 'white',    colour: '#ffffff', label: 'Bright' }
 ];
 
+/* Where the agent stands. In v1 this was a Boost setting; v2 §6.1 moves it to
+   `agent.hq`, and V4 will replace this picker with the twelve photographed HQ
+   places. Until then the same six gradients are offered, but each one SAVES AN
+   HQ ID, so a child's choice survives into V4 instead of being thrown away. */
 const BACKGROUNDS = [
-  { id: 'plain',  icon: '⬜', label: 'Plain'  },
-  { id: 'space',  icon: '🪐', label: 'Space'  },
-  { id: 'city',   icon: '🏙️', label: 'City'   },
-  { id: 'jungle', icon: '🌴', label: 'Jungle' },
-  { id: 'sea',    icon: '🌊', label: 'Sea'    },
-  { id: 'sunset', icon: '🌅', label: 'Sunset' }
+  { id: 'plain',            icon: '⬜', label: 'Plain'      },
+  { id: 'hq-space',         icon: '🪐', label: 'Space'      },
+  { id: 'hq-city-rooftop',  icon: '🏙️', label: 'City'       },
+  { id: 'hq-jungle',        icon: '🌴', label: 'Jungle'     },
+  { id: 'hq-underwater',    icon: '🌊', label: 'Sea'        },
+  { id: 'hq-sky-castle',    icon: '🌅', label: 'Sky castle' }
 ];
+
+/* The CSS gradients are keyed by short names, so an HQ id is translated here.
+   An HQ with no gradient yet (the classroom, the library and the rest, which
+   get photographs at V4) simply shows plain - never a broken background. */
+const HQ_BACKGROUND = {
+  'hq-space':        'space',
+  'hq-city-rooftop': 'city',
+  'hq-jungle':       'jungle',
+  'hq-underwater':   'sea',
+  'hq-sky-castle':   'sunset'
+};
+
+function hqToBackground(hqId) {
+  if (!hqId) return 'plain';
+  return HQ_BACKGROUND[hqId] || 'plain';
+}
 
 // Editor state that is NOT part of the saved agent - it is just what the
 // child is doing right now, so it never needs storing.
@@ -1002,10 +1329,19 @@ const editor = {
    editor to keep in step.
 
    `editor.part` says which half of the agent those tools are editing:
-   'cover' in Mission 1, 'boost' in Mission 2.
+   'cover' in Make, 'powerup' in Power-up.
    ------------------------------------------------------------------------ */
+/* Which half of the agent the editor is working on.
+   v2 §6.1 renamed the Boost to the Power-up's "look", and moved it one level
+   deeper, so this is the single place that knows the path. */
 function part() {
-  return state.agent[editor.part];
+  if (editor.part === 'powerup') return state.agent.powerup.look;
+  return state.agent.cover;
+}
+
+// The v2 background lives on the agent's HQ, not on the look (v2 §6.1).
+function agentHqId() {
+  return (state.agent && state.agent.hq && state.agent.hq.id) || null;
 }
 
 // The one editable stage. A function rather than a saved reference, because
@@ -1090,8 +1426,9 @@ function renderAgentView(view, data, interactive, door) {
   // MILESTONE 2: the Boost carries a background and an aura. Both are pure CSS,
   // set here as an attribute and a custom property, so the same function draws
   // a plain Cover and a glowing Boost in a space scene.
-  view.dataset.bg = data.background || 'plain';
-  const aura = AURAS.find(a => a.id === data.aura);
+  // v2 §6.1: the background is the agent's HQ, and the glow lives on the look.
+  view.dataset.bg = hqToBackground(agentHqId());
+  const aura = AURAS.find(a => a.id === (data.glow || data.aura));
   view.style.setProperty('--aura', aura && aura.colour ? aura.colour : 'transparent');
   view.classList.toggle('has-aura', Boolean(aura && aura.colour));
 
@@ -1186,7 +1523,7 @@ function refreshAgentViews() {
 
   // Mission 2 shows the untouched Cover beside the Boost (spec §7).
   const cover = $('#m2-cover');
-  if (cover && editor.part === 'boost') renderAgentView(cover, state.agent.cover || {}, false);
+  if (cover && editor.part === 'powerup') renderAgentView(cover, state.agent.cover || {}, false);
 
   renderPreview();
   paintStickerControls();
@@ -1216,7 +1553,7 @@ function chooseDoor(door) {
 }
 
 /* Open the editor inside the mission that asked for it.
-   `mountSelector` says where to put it; `which` is 'cover' or 'boost'. */
+   `mountSelector` says where to put it; `which` is 'cover' or 'powerup'. */
 function openEditor(mountSelector, which) {
   editor.part = which || 'cover';
   ensurePixels();
@@ -1227,7 +1564,7 @@ function openEditor(mountSelector, which) {
   moveEditorTo(mountSelector || '#m1-editor-mount');
 
   // The Boost's two extra tabs, and the Door button, which only Mission 1 has.
-  const isBoost = editor.part === 'boost';
+  const isBoost = editor.part === 'powerup';
   $$('[data-boost-only]').forEach(el => { el.hidden = !isBoost; });
   $('#btn-change-door').hidden = isBoost;
 
@@ -1491,7 +1828,7 @@ function buildStickerTray() {
   // Powers belong to the Boost only, so drop that tab in Mission 1. If the
   // child left the tray on Powers and then went back to Mission 1, move them
   // to a tab that still exists.
-  const visibleTabs = STICKER_TABS.filter(t => !t.boostOnly || editor.part === 'boost');
+  const visibleTabs = STICKER_TABS.filter(t => !t.boostOnly || editor.part === 'powerup');
   if (!visibleTabs.some(t => t.id === editor.tab)) editor.tab = visibleTabs[0].id;
 
   visibleTabs.forEach(tab => {
@@ -1521,7 +1858,7 @@ function addSticker(emoji, x, y) {
   p.stickers.push({ emoji: emoji, x: x, y: y, scale: 1, rotation: 0 });
   editor.selected = p.stickers.length - 1;
   logEvent('sticker_add', { emoji: emoji });
-  playSfx('pop');
+  playSfx('sfx-pop');
   refreshAgentViews();
 
   // Spec §5a: the sticker lands with a bounce.
@@ -1533,12 +1870,26 @@ function addSticker(emoji, x, y) {
 /* Dragging out of the tray. A "ghost" emoji follows the finger; letting go
    over the agent drops it there. A quick tap that barely moves drops it in
    the middle instead, which is far easier for a child who finds dragging hard. */
+/* ---------------------------------------------------------------------------
+   DRAGGING OUT OF A TRAY (v2 spec §4.1)
+
+   THE BUG THIS REPLACES
+   The old version put its move and up listeners on the TRAY BUTTON. That
+   button is thrown away and rebuilt whenever the tray is rebuilt - which
+   happens on any tab tap - so if a rebuild landed mid-drag, `up` never fired,
+   its clean-up never ran, and the ghost (position: fixed, z-index 70) was left
+   floating over every screen for the rest of the session. That is the stray
+   dog in every test screenshot.
+
+   THE FIX, AND THE PATTERN FOR EVERY DRAG IN v2
+     1. Listen on `window`, which is never rebuilt.
+     2. Put every piece of clean-up in ONE function, and call it from every
+        exit: pointerup, pointercancel, and lostpointercapture.
+     3. leaveCurrent() sweeps up any ghost that still somehow survived.
+   ------------------------------------------------------------------------ */
 function startTrayDrag(event, emoji) {
   event.preventDefault();
   const tray = event.currentTarget;
-  // Pointer capture keeps the move and up events coming to the tray button even
-  // once the finger has slid away from it. It can throw if the pointer has
-  // already gone, and a thrown error here would strand the ghost on screen.
   try { tray.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
 
   const ghost = document.createElement('span');
@@ -1549,20 +1900,32 @@ function startTrayDrag(event, emoji) {
   document.body.appendChild(ghost);
 
   const startX = event.clientX, startY = event.clientY;
+  let finished = false;
+
+  // The one and only clean-up. Safe to call twice.
+  function cleanUp() {
+    if (finished) return;
+    finished = true;
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', cancel);
+    tray.removeEventListener('lostpointercapture', cancel);
+    ghost.remove();
+  }
 
   function move(e) {
     ghost.style.left = e.clientX + 'px';
     ghost.style.top  = e.clientY + 'px';
   }
 
-  function up(e) {
-    tray.removeEventListener('pointermove', move);
-    tray.removeEventListener('pointerup', up);
-    tray.removeEventListener('pointercancel', up);
-    ghost.remove();
+  function cancel() { cleanUp(); }
 
+  function up(e) {
     const moved = Math.hypot(e.clientX - startX, e.clientY - startY);
+    cleanUp();                      // tidy up BEFORE doing anything that could throw
+
     const stageEl = stage();
+    if (!stageEl) return;
     const rect = stageEl.getBoundingClientRect();
     const insideStage =
       e.clientX >= rect.left && e.clientX <= rect.right &&
@@ -1576,9 +1939,16 @@ function startTrayDrag(event, emoji) {
     }
   }
 
-  tray.addEventListener('pointermove', move);
-  tray.addEventListener('pointerup', up);
-  tray.addEventListener('pointercancel', up);
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', cancel);
+  tray.addEventListener('lostpointercapture', cancel);
+}
+
+/* The safety net (v2 spec §4.1). Anything a drag parks on <body> is swept up
+   here, so a stranded preview can never outlive the screen it came from. */
+function clearDragLeftovers() {
+  $$('.sticker-ghost').forEach(el => el.remove());
 }
 
 /* Moving a sticker that is already on the agent. */
@@ -1689,7 +2059,7 @@ function stickerAction(what) {
 /* ---------------------------------------------------------------------------
    Wiring Mission 1 up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
-function wireMission1() {
+function wireMake() {
   watchAgentView(stage());
   watchAgentView($('#preview-view'));
 
@@ -1718,7 +2088,7 @@ function wireMission1() {
 
 // Called by goToMission whenever Mission 1 opens: show the doors, or go
 // straight back into the editor if a door was already chosen.
-function enterMission1() {
+function enterMake() {
   if (!state.agent) return;
   ensurePixels();
   if (state.agent.door) openEditor('#m1-editor-mount', 'cover');
@@ -1727,7 +2097,7 @@ function enterMission1() {
 
 
 /* ==========================================================================
-   15. MISSION 2 - BOOST (added in Milestone 2)
+   15. POWER-UP (was MISSION 2 / Boost) (added in Milestone 2)
    ==========================================================================
 
    WHAT MISSION 2 IS (spec §7)
@@ -1747,7 +2117,10 @@ function enterMission1() {
 /* Has the child put anything into this half of the agent yet? */
 function hasArt(partData) {
   if (!partData) return false;
-  return (partData.pixels || []).some(Boolean) || (partData.stickers || []).length > 0;
+  return (partData.pixels || []).some(Boolean) ||
+         (partData.stickers || []).length > 0 ||
+         (partData.shapes || []).length > 0 ||
+         Boolean(partData.drawingPng);
 }
 
 /* Copy the Cover across to make the starting Boost.
@@ -1757,14 +2130,18 @@ function hasArt(partData) {
    slice() copies the pixel array, and the stickers are copied one by one with
    Object.assign, so that moving a sticker on the Boost cannot also move it on
    the Cover. (Without that, both halves would point at the same objects.) */
-function copyCoverToBoost() {
+function copyCoverToPowerup() {
   const cover = state.agent.cover || {};
-  const boost = state.agent.boost;
+  const boost = state.agent.powerup.look;
 
   if (hasArt(boost) || !hasArt(cover)) return false;
 
   boost.pixels   = (cover.pixels || []).slice();
   boost.stickers = (cover.stickers || []).map(s => Object.assign({}, s));
+  // Milestone 7 added two more doors, and the copy never learned about them:
+  // a child who built with shapes or drew their agent got a blank Power-up.
+  boost.shapes     = (cover.shapes || []).map(s => Object.assign({}, s));
+  boost.drawingPng = cover.drawingPng || null;
   logEvent('boost_copy', { from: 'cover' });
   return true;
 }
@@ -1777,7 +2154,7 @@ function paintAuraSwatches() {
   box.innerHTML = '';
   AURAS.forEach(aura => {
     const button = document.createElement('button');
-    button.className = 'swatch' + (state.agent.boost.aura === aura.id ? ' is-on' : '');
+    button.className = 'swatch' + (state.agent.powerup.look.glow === aura.id ? ' is-on' : '');
     // The "no glow" option is a crossed-out swatch rather than a colour.
     if (aura.colour) button.style.background = aura.colour;
     else { button.classList.add('swatch-none'); button.textContent = '🚫'; }
@@ -1788,7 +2165,7 @@ function paintAuraSwatches() {
 }
 
 function setAura(id) {
-  state.agent.boost.aura = id;
+  state.agent.powerup.look.glow = id;
   logEvent('aura_choose', { aura: id });
   paintAuraSwatches();
   refreshAgentViews();
@@ -1805,7 +2182,7 @@ function paintBackgroundOptions() {
   box.innerHTML = '';
   BACKGROUNDS.forEach(bg => {
     const button = document.createElement('button');
-    const chosen = (state.agent.boost.background || 'plain') === bg.id;
+    const chosen = (agentHqId() || 'plain') === bg.id;
     button.className = 'bg-option' + (chosen ? ' is-on' : '');
     button.dataset.bg = bg.id;          // the gradient is picked by this attribute
     button.innerHTML = '<span class="bg-icon">' + bg.icon + '</span>' +
@@ -1817,7 +2194,7 @@ function paintBackgroundOptions() {
 }
 
 function setBackground(id) {
-  state.agent.boost.background = id;
+  state.agent.hq.id = (id === 'plain' ? null : id);
   logEvent('background_choose', { background: id });
   paintBackgroundOptions();
   refreshAgentViews();
@@ -1827,22 +2204,22 @@ function setBackground(id) {
 /* ---------------------------------------------------------------------------
    Wiring Mission 2 up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
-function wireMission2() {
+function wirePowerup() {
   watchAgentView($('#m2-cover'));
 }
 
 // Called by goToMission whenever Mission 2 opens.
-function enterMission2() {
+function enterPowerup() {
   if (!state.agent) return;
 
   // Make sure boost has its arrays before anything reads them.
-  if (!Array.isArray(state.agent.boost.pixels)) state.agent.boost.pixels = [];
-  if (!Array.isArray(state.agent.boost.stickers)) state.agent.boost.stickers = [];
+  if (!Array.isArray(state.agent.powerup.look.pixels)) state.agent.powerup.look.pixels = [];
+  if (!Array.isArray(state.agent.powerup.look.stickers)) state.agent.powerup.look.stickers = [];
 
-  const copied = copyCoverToBoost();
+  const copied = copyCoverToPowerup();
   if (copied) scheduleSave();
 
-  openEditor('#m2-editor-mount', 'boost');
+  openEditor('#m2-editor-mount', 'powerup');
 
   // Spec §5a: the power-up plays once when Mission 2 opens. A moment later,
   // so the editor has been laid out and the stage is where it will stay.
@@ -1851,7 +2228,7 @@ function enterMission2() {
 
 
 /* ==========================================================================
-   16. MISSION 4 - VOICE PASSWORD (added in Milestone 3)
+   16. VOICE PASSWORD (was MISSION 4) (added in Milestone 3)
    ==========================================================================
 
    WHAT MISSION 4 IS (spec §7)
@@ -1888,7 +2265,7 @@ const RING_LENGTH = 2 * Math.PI * 54;      // r=54 in the SVG
    One function paints the whole mission from the agent's data, so there is
    never a half-updated screen to reason about.
    ------------------------------------------------------------------------ */
-function renderMission4() {
+function renderVoice() {
   if (!state.agent) return;
   const voice = state.agent.voice;
   const hasClip = Boolean(voice.audioId && voiceClip);
@@ -2004,7 +2381,7 @@ async function tapRecord() {
 
   recordingSlot = 'main';
   setRing(0);
-  renderMission4();
+  renderVoice();
   logEvent(hadClip ? 'rerecord' : 'record_start', {});
 
   try {
@@ -2016,7 +2393,7 @@ async function tapRecord() {
 
   recordingSlot = null;
   setRing(0);
-  renderMission4();
+  renderVoice();
 }
 
 /* Keep the new recording and throw the old one away: spec §7 says only the
@@ -2044,7 +2421,7 @@ async function saveVoiceClip(blob, ms) {
 
   // Spec §7: play the raw recording FIRST, before any filter is offered. It
   // follows a tap, so Safari allows it to start on its own.
-  renderMission4();
+  renderVoice();
   await playVoice('normal', { raw: true });
 }
 
@@ -2102,7 +2479,7 @@ async function recordYes(index) {
 
   Voice.stopPlayback();
   recordingSlot = index;
-  renderMission4();
+  renderVoice();
   logEvent('record_start', { slot: 'yes' + (index + 1) });
 
   try {
@@ -2123,7 +2500,7 @@ async function recordYes(index) {
   }
 
   recordingSlot = null;
-  renderMission4();
+  renderVoice();
 }
 
 async function playYes(index) {
@@ -2169,7 +2546,7 @@ function hideTrouble() {
 /* ---------------------------------------------------------------------------
    Wiring Mission 4 up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
-function wireMission4() {
+function wireVoice() {
   // Set the ring's dash pattern once: one full-length dash, so shortening the
   // offset reveals it a bit at a time.
   const ring = $('#m4-ring');
@@ -2184,7 +2561,7 @@ function wireMission4() {
 
 /* Called by goToMission whenever Mission 4 opens. The recordings live in
    IndexedDB, so they have to be fetched back before anything can be played. */
-async function enterMission4() {
+async function enterVoice() {
   if (!state.agent) return;
   const voice = state.agent.voice;
 
@@ -2208,12 +2585,12 @@ async function enterMission4() {
     yesClips[i] = row ? row.blob : null;
   }
 
-  renderMission4();
+  renderVoice();
 }
 
 
 /* ==========================================================================
-   17. MISSION 3 - SECRET FEELING CODE (added in Milestone 4)
+   17. MOOD CODES (was MISSION 3, feeling code) (added in Milestone 4)
    ==========================================================================
 
    WHAT MISSION 3 IS (spec §7)
@@ -2269,7 +2646,7 @@ const coder = {
 /* ---------------------------------------------------------------------------
    THE SLOTS
    ------------------------------------------------------------------------ */
-function renderMission3() {
+function renderMood() {
   if (!state.agent) return;
   const codes = state.agent.feelingCodes;
 
@@ -2385,7 +2762,7 @@ function closeCoder() {
   $('#m3-maker').hidden = true;
   $('#m3-slots-view').hidden = false;
   previewMove(null);            // stop the preview moving once we are out
-  renderMission3();
+  renderMood();
 }
 
 /* The brush is shared: Mission 3 points it at the feeling-code canvas, and
@@ -2756,7 +3133,7 @@ function attachBrush(canvas) {
   canvas.addEventListener('pointercancel', codeUp);
 }
 
-function wireMission3() {
+function wireMood() {
   attachBrush($('#m3-canvas'));
 
   $('#m3-undo').addEventListener('click', undoCode);
@@ -2768,7 +3145,7 @@ function wireMission3() {
 }
 
 // Called by goToMission whenever Mission 3 opens.
-function enterMission3() {
+function enterMood() {
   if (!state.agent) return;
   // Always arrive on the slots, never mid-edit from last time.
   $('#m3-maker').hidden = true;
@@ -2776,12 +3153,12 @@ function enterMission3() {
   coder.index = null;
   coder.draft = null;
   previewMove(null);
-  renderMission3();
+  renderMood();
 }
 
 
 /* ==========================================================================
-   18. MISSION 5 - WHERE DOES MY AGENT GO? (added in Milestone 5)
+   18. BADGE (was MISSION 5, places) (added in Milestone 5)
    ==========================================================================
 
    WHAT MISSION 5 IS (spec §7)
@@ -2820,7 +3197,7 @@ let openPlace = null;        // which place card is flipped open
    The front of each card shows small icons of what is going there (spec §7),
    so a child can see at a glance what they have agreed to without opening it.
    ------------------------------------------------------------------------ */
-function renderMission5() {
+function renderBadge() {
   if (!state.agent) return;
   const row = $('#m5-cards');
   row.innerHTML = '';
@@ -2883,7 +3260,7 @@ function closePlaceCard() {
   openPlace = null;
   $('#m5-detail').hidden = true;
   $('#m5-cards-view').hidden = false;
-  renderMission5();
+  renderBadge();
 }
 
 /* The five big on/off switches on the back of a card. */
@@ -2928,22 +3305,22 @@ function togglePart(partId) {
 /* ---------------------------------------------------------------------------
    Wiring Mission 5 up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
-function wireMission5() {
+function wireBadge() {
   $('#m5-done').addEventListener('click', closePlaceCard);
 }
 
-function enterMission5() {
+function enterBadge() {
   if (!state.agent) return;
   // Always arrive on the cards, never mid-flip from last time.
   $('#m5-detail').hidden = true;
   $('#m5-cards-view').hidden = false;
   openPlace = null;
-  renderMission5();
+  renderBadge();
 }
 
 
 /* ==========================================================================
-   19. MISSION 6 - AGENT RULES (added in Milestone 5)
+   19. AGENT RULES (was MISSION 6) (added in Milestone 5)
    ==========================================================================
 
    WHAT MISSION 6 IS (spec §7)
@@ -2969,7 +3346,7 @@ const RULE_ICONS = ['🤫','🎧','🚶','🤗','🙅','💬','✋','🧃','⏳'
 let openRule = null;        // which rule card is open
 
 
-function renderMission6() {
+function renderRules() {
   if (!state.agent) return;
   const row = $('#m6-cards');
   row.innerHTML = '';
@@ -3022,7 +3399,7 @@ function closeRuleCard() {
   openRule = null;
   $('#m6-detail').hidden = true;
   $('#m6-cards-view').hidden = false;
-  renderMission6();
+  renderRules();
 }
 
 /* The fourteen icons. Tapping one adds it; tapping it again takes it off. */
@@ -3187,7 +3564,7 @@ function keepDrawSheet() {
 /* ---------------------------------------------------------------------------
    Wiring Mission 6 up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
-function wireMission6() {
+function wireRules() {
   attachBrush($('#draw-canvas'));
 
   $('#m6-done').addEventListener('click', closeRuleCard);
@@ -3207,13 +3584,13 @@ function wireMission6() {
   $('#draw-save').addEventListener('click', keepDrawSheet);
 }
 
-function enterMission6() {
+function enterRules() {
   if (!state.agent) return;
   $('#m6-detail').hidden = true;
   $('#m6-cards-view').hidden = false;
   $('#draw-overlay').hidden = true;
   openRule = null;
-  renderMission6();
+  renderRules();
 }
 
 
@@ -3278,7 +3655,7 @@ async function renderReveal() {
 
   // The two agents.
   renderAgentView($('#reveal-cover'), agent.cover || {}, false);
-  renderAgentView($('#reveal-boost'), agent.boost || {}, false);
+  renderAgentView($('#reveal-boost'), (agent.powerup && agent.powerup.look) || {}, false);
 
   // The feeling code being worn, if there is one.
   const worn = agent.feelingCodes[agent.feelingWorn];
@@ -3329,7 +3706,7 @@ async function preloadCardAssets() {
   // Milestone 7: the Draw door's picture has to be loaded too, or a child who
   // used Draw would get a blank agent on the saved card.
   cardAssets.coverDrawing = await loadImage((agent.cover || {}).drawingPng);
-  cardAssets.boostDrawing = await loadImage((agent.boost || {}).drawingPng);
+  cardAssets.boostDrawing = await loadImage(((agent.powerup && agent.powerup.look) || {}).drawingPng);
 
   cardAssets.rules = {};
   for (const rule of RULE_CARDS) {
@@ -3412,7 +3789,7 @@ function drawCardToCanvas(canvas) {
   drawAgentToCanvas(ctx, agent.cover || {}, 60, 310, 380, false);
 
   label(ctx, 'BOOST', 560, 290);
-  drawAgentToCanvas(ctx, agent.boost || {}, 560, 310, 380, true);
+  drawAgentToCanvas(ctx, (agent.powerup && agent.powerup.look) || {}, 560, 310, 380, true);
 
   // --- feeling code ---
   label(ctx, 'FEELING CODE', 60, 760);
@@ -3520,7 +3897,7 @@ function roundedBox(ctx, x, y, w, h, fill) {
    Boost's background and aura. */
 function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
   // background
-  const bg = withExtras ? (data.background || 'plain') : 'plain';
+  const bg = withExtras ? hqToBackground(agentHqId()) : 'plain';
   const pair = BG_CANVAS[bg] || BG_CANVAS.plain;
   const grad = ctx.createLinearGradient(x, y, x, y + size);
   grad.addColorStop(0, pair[0]);
@@ -3533,7 +3910,7 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
 
   ctx.save();
   // The aura is a glow, which on canvas is a shadow.
-  const aura = withExtras ? AURAS.find(a => a.id === data.aura) : null;
+  const aura = withExtras ? AURAS.find(a => a.id === (data.glow || data.aura)) : null;
   if (aura && aura.colour) {
     ctx.shadowColor = aura.colour;
     ctx.shadowBlur = 26;
@@ -3830,26 +4207,38 @@ function addShape(type, x, y) {
   });
   editor.selectedShape = p.shapes.length - 1;
   logEvent('shape_add', { shape: type, colour: editor.colour });
-  playSfx('pop');
+  playSfx('sfx-pop');
   refreshAgentViews();
   scheduleSave();
 }
 
 /* Dragging a shape out of the tray, the same way stickers work. */
+/* The same window-listener pattern as startTrayDrag (v2 spec §4.1). */
 function startShapeTrayDrag(event, type) {
   event.preventDefault();
   const tray = event.currentTarget;
   try { tray.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
 
   const startX = event.clientX, startY = event.clientY;
+  let finished = false;
+
+  function cleanUp() {
+    if (finished) return;
+    finished = true;
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', cancel);
+    tray.removeEventListener('lostpointercapture', cancel);
+  }
+
+  function cancel() { cleanUp(); }
 
   function up(e) {
-    tray.removeEventListener('pointermove', move);
-    tray.removeEventListener('pointerup', up);
-    tray.removeEventListener('pointercancel', up);
-
     const moved = Math.hypot(e.clientX - startX, e.clientY - startY);
-    const rect = stage().getBoundingClientRect();
+    cleanUp();
+
+    const stageEl = stage();
+    if (!stageEl) return;
+    const rect = stageEl.getBoundingClientRect();
     const inside =
       e.clientX >= rect.left && e.clientX <= rect.right &&
       e.clientY >= rect.top  && e.clientY <= rect.bottom;
@@ -3861,11 +4250,10 @@ function startShapeTrayDrag(event, type) {
       addShape(type, 0.5, 0.5);       // a tap drops it in the middle
     }
   }
-  function move() { /* the shape itself is the preview; nothing to follow */ }
 
-  tray.addEventListener('pointermove', move);
-  tray.addEventListener('pointerup', up);
-  tray.addEventListener('pointercancel', up);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', cancel);
+  tray.addEventListener('lostpointercapture', cancel);
 }
 
 /* Moving a shape already on the agent. Same 8px threshold as stickers, so a
@@ -4095,9 +4483,16 @@ function fullMotion() {
 }
 
 // Sound only when not muted (spec §6).
+/* A sound by its v2 id, for example 'sfx-stamp'. Assets plays the recorded
+   file if it exists and the generated stand-in if it does not, so the app
+   sounds complete from the first day (v2 §5.0, §8). */
 function playSfx(name) {
   if (state.muted) return;
-  Voice.sfx(name);
+  if (typeof Assets !== 'undefined' && name.indexOf('sfx-') === 0) {
+    Assets.sfx(name);
+    return;
+  }
+  Voice.sfx(name);          // a bare generated name, from older code
 }
 
 
@@ -4107,32 +4502,33 @@ function playSfx(name) {
    the iPad reads the prompt out itself. Either way a child who cannot read
    still knows what the mission is.
    ------------------------------------------------------------------------ */
-const promptAudio = {};        // mission id -> HTMLAudioElement, or false
-
+/* v2 §7: 🔊 plays this step's narrator line through Assets.say(), which uses
+   the recorded file if Filip has made it and the iPad's own voice if not. */
 function speakPrompt() {
   const id = currentMissionId();
   const mission = MISSIONS.find(m => m.id === id);
-  const text = mission ? mission.prompt
-             : id === 'reveal' ? 'Here is your agent.'
-             : 'Make your agent.';
-
   logEvent('speak', { mission: id });
-  if (state.muted) { toast('Sound is off'); return; }
 
-  // A recorded file wins if the facilitator has provided one.
-  if (promptAudio[id] === undefined) {
-    const audio = new Audio('./audio/' + id + '.m4a');
-    audio.addEventListener('error', () => { promptAudio[id] = false; });
-    promptAudio[id] = audio;
-  }
-  const recorded = promptAudio[id];
-  if (recorded) {
-    recorded.currentTime = 0;
-    // play() rejects when the file is missing; fall through to the voice.
-    recorded.play().catch(() => { promptAudio[id] = false; speakWithVoice(text); });
-    return;
-  }
-  speakWithVoice(text);
+  if (mission && mission.narrate) { speakLine(mission.narrate, mission.prompt); return; }
+  if (id === 'reveal') { speakLine('nar-card-intro'); return; }
+  if (id === 'start')  { speakLine('nar-start-welcome'); return; }
+  speakWithVoice(mission ? mission.prompt : 'Make your agent.');
+}
+
+/* Say one narrator line by id. `fallbackText` is used only if the id is not
+   in the manifest at all, which should not happen but must not be silent. */
+function speakLine(id, fallbackText) {
+  if (state.muted) { toast('Sound is off'); return; }
+  if (typeof Assets === 'undefined') { speakWithVoice(fallbackText || ''); return; }
+  Assets.say(id, { text: fallbackText || '' });
+}
+
+/* v2 §7: every picture card says its label when it is tapped, as well as
+   selecting it. The line is `nar-` plus the card's id. */
+function speakLabel(cardId) {
+  if (state.muted) return;
+  logEvent('label_speak', { id: cardId });
+  if (typeof Assets !== 'undefined') Assets.say('nar-' + cardId);
 }
 
 function speakWithVoice(text) {
@@ -4198,7 +4594,7 @@ async function recordMissing() {
     await Storage.saveAudio(id, result.blob);
     if (missingAudioId) await Storage.deleteAudio(missingAudioId);
     missingAudioId = id;
-    playSfx('pop');
+    playSfx('sfx-pop');
   } catch (err) {
     toast('The microphone did not work');
   }
@@ -4230,7 +4626,7 @@ async function saveMissing() {
 
   missingAudioId = null;
   closeMissing();
-  playSfx('pop');
+  playSfx('sfx-pop');
   toast('Thank you 🧩');
   scheduleSave();
 }
@@ -4253,7 +4649,7 @@ function tapPreview() {
   TAP_REACTIONS.forEach(c => art.classList.remove(c));
   void art.offsetWidth;                       // restart the animation
   art.classList.add(pick(TAP_REACTIONS));
-  playSfx('tap');
+  playSfx('sfx-pop');
   logEvent('agent_tap', {});
 }
 
@@ -4309,13 +4705,13 @@ function playBoostPowerUp() {
   stageEl.classList.remove('power-up');
   void stageEl.offsetWidth;
   stageEl.classList.add('power-up');
-  playSfx('power');
+  playSfx('sfx-powerup');
 
   // The sparkles land as the spin finishes, not at the start.
   setTimeout(() => {
     if (!$('#editor').hidden) {
       Effects.burstAt(stageEl, { count: 60, spread: 9 });
-      playSfx('sparkle');
+      playSfx('sfx-new');
     }
   }, 1300);
 
@@ -4335,7 +4731,7 @@ function scannerSweep() {
   line.classList.remove('is-sweeping');
   void line.offsetWidth;
   line.classList.add('is-sweeping');
-  playSfx('whoosh');
+  playSfx('sfx-whoosh');
 }
 
 /* The mission title "decrypts": random letters settle into the real ones.
@@ -4390,7 +4786,7 @@ function playRevealFinale() {
 
   dossier.classList.remove('is-open');
   dossier.classList.add('is-arriving');
-  playSfx('whoosh');
+  playSfx('sfx-whoosh');
 
   finaleTimers.push(setTimeout(() => {
     dossier.classList.remove('is-arriving');
@@ -4403,14 +4799,14 @@ function playRevealFinale() {
     stamp.classList.remove('is-slamming');
     void stamp.offsetWidth;
     stamp.classList.add('is-slamming');
-    playSfx('stamp');
+    playSfx('sfx-stamp');
     Effects.shake($('#screen-reveal'), 6);
   }, 800));
 
   // Sparkles, then the password plays itself once with the bounce.
   finaleTimers.push(setTimeout(() => {
     Effects.burstAt($('#dossier'), { count: 50, spread: 8 });
-    playSfx('sparkle');
+    playSfx('sfx-new');
   }, 1200));
 
   finaleTimers.push(setTimeout(() => {
@@ -4559,4 +4955,136 @@ async function offlineState() {
   } catch (err) {
     return 'unavailable ⚠️';
   }
+}
+
+
+/* ==========================================================================
+   24. SESSION, PRACTICE AND ASSET CHECK (added in V0 of the v2 spec)
+   ==========================================================================
+   Three adult-panel jobs that belong together: deciding which missions are
+   open this week, keeping try-out data out of the research data, and showing
+   which pictures and sounds have actually arrived.
+   ========================================================================== */
+
+function paintSessionControls() {
+  $$('[data-session]').forEach(b =>
+    b.classList.toggle('is-on', Number(b.dataset.session) === state.session));
+
+  const practice = $('#btn-practice');
+  if (practice) {
+    practice.textContent = state.practice ? '⚠️ On' : 'Off';
+    practice.classList.toggle('is-on', state.practice);
+  }
+
+  const box = $('#mission-switches');
+  if (!box) return;
+  box.innerHTML = '';
+
+  MISSIONS.forEach(mission => {
+    const open = missionIsOpen(mission);
+    // A mission below this session's preset is off by default; say so rather
+    // than letting it look broken.
+    const futureWeek = mission.opensIn > state.session;
+
+    const row = document.createElement('button');
+    row.className = 'mission-switch' + (open ? ' is-on' : '');
+    row.setAttribute('role', 'switch');
+    row.setAttribute('aria-checked', open ? 'true' : 'false');
+    row.innerHTML =
+      '<span class="ms-icon">' + mission.icon + '</span>' +
+      '<span class="ms-label">' + mission.title + '</span>' +
+      '<span class="ms-state">' + (open ? 'Open' : (futureWeek ? 'Session ' + mission.opensIn : 'Off')) + '</span>';
+    row.addEventListener('click', () => setMissionOn(mission.id, !open));
+    box.appendChild(row);
+  });
+}
+
+
+/* ---------------------------------------------------------------------------
+   ASSET CHECK (v2 §5.0)
+   Every item in the manifest, grouped, with ✅ or ⚠️ and a ▶️ to hear the
+   sound ones. This is the list Filip works from between sessions.
+   ------------------------------------------------------------------------ */
+const ASSET_GROUPS = [
+  { key: 'hq',         title: 'HQ places',      kind: 'image' },
+  { key: 'situations', title: 'Situation cards', kind: 'image' },
+  { key: 'stickers',   title: 'Stickers',       kind: 'image' },
+  { key: 'narrator',   title: 'Narrator lines', kind: 'audio' },
+  { key: 'sfx',        title: 'Sound effects',  kind: 'audio' }
+];
+
+async function runAssetCheck() {
+  const box = $('#asset-check');
+  box.innerHTML = '<p class="adult-note">Checking…</p>';
+  await Assets.ready;
+  // Ask the server fresh: files may have arrived since the app was opened.
+  Assets.refresh();
+
+  box.innerHTML = '';
+  let totalHave = 0, totalAll = 0;
+
+  for (const group of ASSET_GROUPS) {
+    const items = Assets.list(group.key);
+    if (items.length === 0) continue;
+
+    // Ask about every item at once rather than one after another; a hundred
+    // HEAD requests in a row would make this feel broken.
+    const present = await Promise.all(items.map(item =>
+      group.kind === 'image' ? Assets.hasImage(item.id) : Assets.hasAudio(item.id)));
+
+    const have = present.filter(Boolean).length;
+    totalHave += have;
+    totalAll += items.length;
+
+    const section = document.createElement('div');
+    section.className = 'asset-group';
+    section.innerHTML = '<h4 class="asset-group-title">' + group.title +
+      ' <span class="asset-count">' + have + ' / ' + items.length + '</span></h4>';
+
+    const list = document.createElement('div');
+    list.className = 'asset-list';
+
+    items.forEach((item, i) => {
+      const row = document.createElement('div');
+      row.className = 'asset-row' + (present[i] ? ' is-ok' : '');
+      row.innerHTML =
+        '<span class="asset-mark">' + (present[i] ? '✅' : '⚠️') + '</span>' +
+        '<span class="asset-id">' + item.id + '</span>' +
+        '<span class="asset-label">' + (item.label || item.text || '') + '</span>';
+
+      if (group.kind === 'audio') {
+        const play = document.createElement('button');
+        play.className = 'btn asset-play';
+        play.textContent = '▶️';
+        play.setAttribute('aria-label', 'Play ' + item.id);
+        play.addEventListener('click', () => Assets.preview(item.id));
+        row.appendChild(play);
+      }
+      list.appendChild(row);
+    });
+
+    section.appendChild(list);
+    box.appendChild(section);
+  }
+
+  if (totalAll === 0) {
+    box.innerHTML = '<p class="adult-note">No manifest found. ' +
+      'The app is using stand-ins for everything, which is fine.</p>';
+    return;
+  }
+
+  const summary = document.createElement('p');
+  summary.className = 'asset-summary';
+  summary.textContent = totalHave + ' of ' + totalAll + ' files are here. ' +
+    (totalAll - totalHave) + ' still using stand-ins.';
+  box.insertBefore(summary, box.firstChild);
+}
+
+
+function wireSessionControls() {
+  $$('[data-session]').forEach(b =>
+    b.addEventListener('click', () => setSession(b.dataset.session)));
+
+  $('#btn-practice').addEventListener('click', () => setPractice(!state.practice));
+  $('#btn-asset-check').addEventListener('click', runAssetCheck);
 }

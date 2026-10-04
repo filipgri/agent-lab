@@ -1,0 +1,1110 @@
+{
+  "version": 1,
+  "hq": [
+    {
+      "id": "hq-classroom",
+      "file": "img/hq/hq-classroom.jpg",
+      "label": "Classroom",
+      "kind": "real",
+      "fallback": "🏫",
+      "prompt": "A UK primary school classroom: group tables with chairs, a blank whiteboard, coat pegs, a display board with blank coloured paper, plants on the windowsill, big windows with daylight."
+    },
+    {
+      "id": "hq-playground",
+      "file": "img/hq/hq-playground.jpg",
+      "label": "Playground",
+      "kind": "real",
+      "fallback": "🛝",
+      "prompt": "A UK school playground: a climbing frame, painted hopscotch shapes without numbers, benches, a low fence and trees, a sunny day."
+    },
+    {
+      "id": "hq-library",
+      "file": "img/hq/hq-library.jpg",
+      "label": "Library",
+      "kind": "real",
+      "fallback": "📚",
+      "prompt": "A school library corner: low bookshelves with colourful blank book spines, beanbags, a rug and a reading lamp."
+    },
+    {
+      "id": "hq-quiet-room",
+      "file": "img/hq/hq-quiet-room.jpg",
+      "label": "Quiet room",
+      "kind": "real",
+      "fallback": "🛋️",
+      "prompt": "A calm sensory room: soft mats, beanbags, a small tent, fairy lights, soft blue and purple light."
+    },
+    {
+      "id": "hq-lunch-hall",
+      "file": "img/hq/hq-lunch-hall.jpg",
+      "label": "Lunch hall",
+      "kind": "real",
+      "fallback": "🍽️",
+      "prompt": "An empty, tidy school lunch hall: long tables, stacked trays, a serving counter; calm and quiet."
+    },
+    {
+      "id": "hq-home",
+      "file": "img/hq/hq-home.jpg",
+      "label": "Home",
+      "kind": "real",
+      "fallback": "🏠",
+      "prompt": "A cosy room at home: a sofa with blankets, a rug, a shelf with toys and plants, warm lamp light."
+    },
+    {
+      "id": "hq-space",
+      "file": "img/hq/hq-space.jpg",
+      "label": "Space",
+      "kind": "fantasy",
+      "fallback": "🪐",
+      "prompt": "Outer space: a small rocky moon surface as the floor, planets and stars in the sky, a distant spaceship."
+    },
+    {
+      "id": "hq-underwater",
+      "file": "img/hq/hq-underwater.jpg",
+      "label": "Under the sea",
+      "kind": "fantasy",
+      "fallback": "🐠",
+      "prompt": "Under the sea: a sandy floor, coral, seaweed, bubbles, light rays from above."
+    },
+    {
+      "id": "hq-jungle",
+      "file": "img/hq/hq-jungle.jpg",
+      "label": "Jungle",
+      "kind": "fantasy",
+      "fallback": "🌴",
+      "prompt": "A jungle clearing: mossy ground, giant leaves, hanging vines, a waterfall far behind."
+    },
+    {
+      "id": "hq-city-rooftop",
+      "file": "img/hq/hq-city-rooftop.jpg",
+      "label": "City rooftop",
+      "kind": "fantasy",
+      "fallback": "🌃",
+      "prompt": "A city rooftop at night: a flat roof as the floor, a water tower, a skyline with lit windows, the moon."
+    },
+    {
+      "id": "hq-sky-castle",
+      "file": "img/hq/hq-sky-castle.jpg",
+      "label": "Sky castle",
+      "kind": "fantasy",
+      "fallback": "🏰",
+      "prompt": "A castle on a floating island above the clouds: a stone courtyard floor, towers with plain pennants, clouds below."
+    },
+    {
+      "id": "hq-secret-lab",
+      "file": "img/hq/hq-secret-lab.jpg",
+      "label": "Secret lab",
+      "kind": "fantasy",
+      "fallback": "🧪",
+      "prompt": "A secret spy base: a round vault door, consoles with glowing buttons, radar screens and a wall map made of abstract shapes, all without writing."
+    }
+  ],
+  "situations": [
+    {
+      "id": "sit-too-loud",
+      "file": "img/situations/sit-too-loud.jpg",
+      "label": "Too loud",
+      "fallback": "🔊",
+      "prompt": "A school lunch hall full of bean figures, with big jagged sound-wave shapes bursting from every side and clattering trays."
+    },
+    {
+      "id": "sit-not-understood",
+      "file": "img/situations/sit-not-understood.jpg",
+      "label": "Nobody gets what I mean",
+      "fallback": "❓",
+      "prompt": "Two bean figures looking puzzled at an empty space in the centre; floating speech bubbles filled with scribbles and question marks."
+    },
+    {
+      "id": "sit-waiting",
+      "file": "img/situations/sit-waiting.jpg",
+      "label": "Waiting",
+      "fallback": "⏳",
+      "prompt": "A long school corridor with a queue of bean figures, a big wall clock and an hourglass; a gap in the queue in the centre foreground."
+    },
+    {
+      "id": "sit-did-well",
+      "file": "img/situations/sit-did-well.jpg",
+      "label": "I did it!",
+      "fallback": "🏆",
+      "prompt": "A gold trophy, stars and confetti bursting around an empty spotlight circle in the centre; bean figures clapping at the sides."
+    },
+    {
+      "id": "sit-asked-answer",
+      "file": "img/situations/sit-asked-answer.jpg",
+      "label": "Asked to answer",
+      "fallback": "✋",
+      "prompt": "A classroom seen from the side: bean figures at desks all turning to look at an empty chair in the centre, lit by a spotlight; a blank whiteboard behind."
+    },
+    {
+      "id": "sit-unkind",
+      "file": "img/situations/sit-unkind.jpg",
+      "label": "Someone is unkind",
+      "fallback": "💢",
+      "prompt": "A playground corner: two bean figures at the edge with spiky dark speech bubbles pointing at an empty space in the centre; a small grey cloud above that space."
+    },
+    {
+      "id": "sit-plans-change",
+      "file": "img/situations/sit-plans-change.jpg",
+      "label": "Plans change",
+      "fallback": "🔄",
+      "prompt": "A visual timetable of blank picture cards on a wall; one card flipping over and swapping with a big question-mark card; swirling arrows."
+    },
+    {
+      "id": "sit-new-place",
+      "file": "img/situations/sit-new-place.jpg",
+      "label": "Somewhere new",
+      "fallback": "🚪",
+      "prompt": "An open doorway glowing with light into an unfamiliar room with unknown shapes; footprints leading from the empty centre foreground to the door."
+    },
+    {
+      "id": "sit-playtime",
+      "file": "img/situations/sit-playtime.jpg",
+      "label": "Playtime",
+      "fallback": "⚽",
+      "prompt": "A sunny playground: bean figures playing tag and ball at the edges, a ball mid-bounce, open space in the centre."
+    },
+    {
+      "id": "sit-tricky-work",
+      "file": "img/situations/sit-tricky-work.jpg",
+      "label": "Tricky work",
+      "fallback": "🧠",
+      "prompt": "A school desk at the bottom of the picture with a worksheet of tangled scribble lines (no letters), a broken pencil, crumpled paper balls, and a small storm cloud of squiggles above."
+    }
+  ],
+  "stickers": [
+    {
+      "id": "stk-hearing-aid",
+      "file": "img/stickers/stk-hearing-aid.png",
+      "label": "Hearing aid",
+      "tab": "ears",
+      "fallback": "🦻",
+      "keywords": [
+        "hearing aid",
+        "hear",
+        "ear"
+      ],
+      "isNew": false,
+      "prompt": "A behind-the-ear hearing aid in a bright colour."
+    },
+    {
+      "id": "stk-cochlear-implant",
+      "file": "img/stickers/stk-cochlear-implant.png",
+      "label": "Cochlear implant",
+      "tab": "ears",
+      "fallback": "🦻",
+      "keywords": [
+        "cochlear",
+        "implant",
+        "hearing",
+        "ear"
+      ],
+      "isNew": false,
+      "prompt": "A cochlear implant sound processor with its round coil, in a bright colour."
+    },
+    {
+      "id": "stk-ear-defenders",
+      "file": "img/stickers/stk-ear-defenders.png",
+      "label": "Ear defenders",
+      "tab": "ears",
+      "fallback": "🎧",
+      "keywords": [
+        "ear defenders",
+        "quiet",
+        "noise",
+        "headphones"
+      ],
+      "isNew": false,
+      "prompt": "Chunky children's ear defenders in a bright colour."
+    },
+    {
+      "id": "stk-aac-talker",
+      "file": "img/stickers/stk-aac-talker.png",
+      "label": "Talker",
+      "tab": "gadgets",
+      "fallback": "📱",
+      "keywords": [
+        "talker",
+        "aac",
+        "tablet",
+        "talk",
+        "communication"
+      ],
+      "isNew": false,
+      "prompt": "A tablet communication aid with a carry handle, showing a grid of coloured symbol squares made of simple shapes, no words."
+    },
+    {
+      "id": "stk-fidget-spinner",
+      "file": "img/stickers/stk-fidget-spinner.png",
+      "label": "Spinner",
+      "tab": "fidgets",
+      "fallback": "🌀",
+      "keywords": [
+        "spinner",
+        "fidget",
+        "spin"
+      ],
+      "isNew": false,
+      "prompt": "A three-armed fidget spinner."
+    },
+    {
+      "id": "stk-pop-it",
+      "file": "img/stickers/stk-pop-it.png",
+      "label": "Pop-it",
+      "tab": "fidgets",
+      "fallback": "🫧",
+      "keywords": [
+        "pop it",
+        "fidget",
+        "bubbles",
+        "rainbow"
+      ],
+      "isNew": false,
+      "prompt": "A rainbow pop-it fidget toy."
+    },
+    {
+      "id": "stk-tangle",
+      "file": "img/stickers/stk-tangle.png",
+      "label": "Tangle",
+      "tab": "fidgets",
+      "fallback": "🪢",
+      "keywords": [
+        "tangle",
+        "fidget",
+        "twist"
+      ],
+      "isNew": false,
+      "prompt": "A twisty tangle fidget toy in bright segments."
+    },
+    {
+      "id": "stk-cape",
+      "file": "img/stickers/stk-cape.png",
+      "label": "Cape",
+      "tab": "clothes",
+      "fallback": "🧣",
+      "keywords": [
+        "cape",
+        "hero",
+        "cloak"
+      ],
+      "isNew": false,
+      "prompt": "A flowing superhero cape."
+    },
+    {
+      "id": "stk-eye-mask",
+      "file": "img/stickers/stk-eye-mask.png",
+      "label": "Hero mask",
+      "tab": "clothes",
+      "fallback": "🎭",
+      "keywords": [
+        "mask",
+        "hero",
+        "eye mask",
+        "disguise"
+      ],
+      "isNew": false,
+      "prompt": "A superhero eye mask."
+    },
+    {
+      "id": "stk-utility-belt",
+      "file": "img/stickers/stk-utility-belt.png",
+      "label": "Gadget belt",
+      "tab": "clothes",
+      "fallback": "🧰",
+      "keywords": [
+        "belt",
+        "gadget",
+        "utility"
+      ],
+      "isNew": false,
+      "prompt": "A utility belt with small pouches and a buckle."
+    },
+    {
+      "id": "stk-walkie-talkie",
+      "file": "img/stickers/stk-walkie-talkie.png",
+      "label": "Walkie-talkie",
+      "tab": "gadgets",
+      "fallback": "📻",
+      "keywords": [
+        "walkie talkie",
+        "radio",
+        "spy"
+      ],
+      "isNew": false,
+      "prompt": "A chunky walkie-talkie."
+    },
+    {
+      "id": "stk-jetpack",
+      "file": "img/stickers/stk-jetpack.png",
+      "label": "Jetpack",
+      "tab": "gadgets",
+      "fallback": "🚀",
+      "keywords": [
+        "jetpack",
+        "fly",
+        "rocket"
+      ],
+      "isNew": false,
+      "prompt": "A small jetpack with flames."
+    },
+    {
+      "id": "stk-spy-watch",
+      "file": "img/stickers/stk-spy-watch.png",
+      "label": "Spy watch",
+      "tab": "gadgets",
+      "fallback": "⌚",
+      "keywords": [
+        "watch",
+        "spy",
+        "gadget"
+      ],
+      "isNew": false,
+      "prompt": "A spy gadget wristwatch with a glowing blank screen."
+    }
+  ],
+  "narrator": [
+    {
+      "id": "nar-start-welcome",
+      "file": "audio/narrator/nar-start-welcome.mp3",
+      "text": "Welcome to Agent Lab. Tap New agent to begin."
+    },
+    {
+      "id": "nar-gallery",
+      "file": "audio/narrator/nar-gallery.mp3",
+      "text": "Find your agent. Tap your symbol."
+    },
+    {
+      "id": "nar-codename-roll",
+      "file": "audio/narrator/nar-codename-roll.mp3",
+      "text": "Spin for your spy name."
+    },
+    {
+      "id": "nar-codename-lock",
+      "file": "audio/narrator/nar-codename-lock.mp3",
+      "text": "Tap a lock to keep that word."
+    },
+    {
+      "id": "nar-codename-type",
+      "file": "audio/narrator/nar-codename-type.mp3",
+      "text": "Make up your own spy name."
+    },
+    {
+      "id": "nar-codename-request",
+      "file": "audio/narrator/nar-codename-request.mp3",
+      "text": "Request sent to HQ."
+    },
+    {
+      "id": "nar-make-intro",
+      "file": "audio/narrator/nar-make-intro.mp3",
+      "text": "Make your agent. Pick a door."
+    },
+    {
+      "id": "nar-door-parts",
+      "file": "audio/narrator/nar-door-parts.mp3",
+      "text": "Build your agent from parts."
+    },
+    {
+      "id": "nar-door-pixel",
+      "file": "audio/narrator/nar-door-pixel.mp3",
+      "text": "Colour in the squares."
+    },
+    {
+      "id": "nar-door-draw",
+      "file": "audio/narrator/nar-door-draw.mp3",
+      "text": "Draw your agent with your finger."
+    },
+    {
+      "id": "nar-make-stickers",
+      "file": "audio/narrator/nar-make-stickers.mp3",
+      "text": "Drag stickers onto your agent."
+    },
+    {
+      "id": "nar-make-search",
+      "file": "audio/narrator/nar-make-search.mp3",
+      "text": "Type a word to find a sticker."
+    },
+    {
+      "id": "nar-missing",
+      "file": "audio/narrator/nar-missing.mp3",
+      "text": "Something missing? Draw it or say it."
+    },
+    {
+      "id": "nar-locked",
+      "file": "audio/narrator/nar-locked.mp3",
+      "text": "This opens on a later mission day."
+    },
+    {
+      "id": "nar-powerup-intro",
+      "file": "audio/narrator/nar-powerup-intro.mp3",
+      "text": "Your agent is powering up!"
+    },
+    {
+      "id": "nar-power-make",
+      "file": "audio/narrator/nar-power-make.mp3",
+      "text": "Make up a power. Draw it or say it."
+    },
+    {
+      "id": "nar-power-ideas",
+      "file": "audio/narrator/nar-power-ideas.mp3",
+      "text": "Here are some ideas."
+    },
+    {
+      "id": "nar-power-effect",
+      "file": "audio/narrator/nar-power-effect.mp3",
+      "text": "What does your power look like?"
+    },
+    {
+      "id": "nar-power-when",
+      "file": "audio/narrator/nar-power-when.mp3",
+      "text": "When does your agent use this power?"
+    },
+    {
+      "id": "nar-own-card",
+      "file": "audio/narrator/nar-own-card.mp3",
+      "text": "Make your own card."
+    },
+    {
+      "id": "nar-look-edit",
+      "file": "audio/narrator/nar-look-edit.mp3",
+      "text": "Change how your powered-up agent looks."
+    },
+    {
+      "id": "nar-hq-intro",
+      "file": "audio/narrator/nar-hq-intro.mp3",
+      "text": "Where is your agent strongest?"
+    },
+    {
+      "id": "nar-hq-draw",
+      "file": "audio/narrator/nar-hq-draw.mp3",
+      "text": "Draw your own place."
+    },
+    {
+      "id": "nar-voice-intro",
+      "file": "audio/narrator/nar-voice-intro.mp3",
+      "text": "Record your secret voice password."
+    },
+    {
+      "id": "nar-voice-listen",
+      "file": "audio/narrator/nar-voice-listen.mp3",
+      "text": "Listen back."
+    },
+    {
+      "id": "nar-voice-filters",
+      "file": "audio/narrator/nar-voice-filters.mp3",
+      "text": "Try the spy voices. Pick one for your agent."
+    },
+    {
+      "id": "nar-voice-3ways",
+      "file": "audio/narrator/nar-voice-3ways.mp3",
+      "text": "Say it three ways. Big, small, and asking."
+    },
+    {
+      "id": "nar-card-intro",
+      "file": "audio/narrator/nar-card-intro.mp3",
+      "text": "[whispers] Agent file complete."
+    },
+    {
+      "id": "nar-card-badge",
+      "file": "audio/narrator/nar-card-badge.mp3",
+      "text": "Here is your agent on a badge. Can you still tell it's yours?"
+    },
+    {
+      "id": "nar-card-wall",
+      "file": "audio/narrator/nar-card-wall.mp3",
+      "text": "Here is your agent on the wall."
+    },
+    {
+      "id": "nar-card-seal",
+      "file": "audio/narrator/nar-card-seal.mp3",
+      "text": "Seal your file? Pick three secret symbols."
+    },
+    {
+      "id": "nar-seal-open",
+      "file": "audio/narrator/nar-seal-open.mp3",
+      "text": "Tap your three secret symbols."
+    },
+    {
+      "id": "nar-card-finish",
+      "file": "audio/narrator/nar-card-finish.mp3",
+      "text": "Mission complete. Well done, agent."
+    },
+    {
+      "id": "nar-sit-too-loud",
+      "file": "audio/narrator/nar-sit-too-loud.mp3",
+      "text": "Too loud."
+    },
+    {
+      "id": "nar-sit-not-understood",
+      "file": "audio/narrator/nar-sit-not-understood.mp3",
+      "text": "Nobody gets what I mean."
+    },
+    {
+      "id": "nar-sit-waiting",
+      "file": "audio/narrator/nar-sit-waiting.mp3",
+      "text": "Waiting."
+    },
+    {
+      "id": "nar-sit-did-well",
+      "file": "audio/narrator/nar-sit-did-well.mp3",
+      "text": "I did it!"
+    },
+    {
+      "id": "nar-sit-asked-answer",
+      "file": "audio/narrator/nar-sit-asked-answer.mp3",
+      "text": "Asked to answer."
+    },
+    {
+      "id": "nar-sit-unkind",
+      "file": "audio/narrator/nar-sit-unkind.mp3",
+      "text": "Someone is unkind."
+    },
+    {
+      "id": "nar-sit-plans-change",
+      "file": "audio/narrator/nar-sit-plans-change.mp3",
+      "text": "Plans change."
+    },
+    {
+      "id": "nar-sit-new-place",
+      "file": "audio/narrator/nar-sit-new-place.mp3",
+      "text": "Somewhere new."
+    },
+    {
+      "id": "nar-sit-playtime",
+      "file": "audio/narrator/nar-sit-playtime.mp3",
+      "text": "Playtime."
+    },
+    {
+      "id": "nar-sit-tricky-work",
+      "file": "audio/narrator/nar-sit-tricky-work.mp3",
+      "text": "Tricky work."
+    },
+    {
+      "id": "nar-hq-classroom",
+      "file": "audio/narrator/nar-hq-classroom.mp3",
+      "text": "Classroom."
+    },
+    {
+      "id": "nar-hq-playground",
+      "file": "audio/narrator/nar-hq-playground.mp3",
+      "text": "Playground."
+    },
+    {
+      "id": "nar-hq-library",
+      "file": "audio/narrator/nar-hq-library.mp3",
+      "text": "Library."
+    },
+    {
+      "id": "nar-hq-quiet-room",
+      "file": "audio/narrator/nar-hq-quiet-room.mp3",
+      "text": "Quiet room."
+    },
+    {
+      "id": "nar-hq-lunch-hall",
+      "file": "audio/narrator/nar-hq-lunch-hall.mp3",
+      "text": "Lunch hall."
+    },
+    {
+      "id": "nar-hq-home",
+      "file": "audio/narrator/nar-hq-home.mp3",
+      "text": "Home."
+    },
+    {
+      "id": "nar-hq-space",
+      "file": "audio/narrator/nar-hq-space.mp3",
+      "text": "Space."
+    },
+    {
+      "id": "nar-hq-underwater",
+      "file": "audio/narrator/nar-hq-underwater.mp3",
+      "text": "Under the sea."
+    },
+    {
+      "id": "nar-hq-jungle",
+      "file": "audio/narrator/nar-hq-jungle.mp3",
+      "text": "Jungle."
+    },
+    {
+      "id": "nar-hq-city-rooftop",
+      "file": "audio/narrator/nar-hq-city-rooftop.mp3",
+      "text": "City rooftop."
+    },
+    {
+      "id": "nar-hq-sky-castle",
+      "file": "audio/narrator/nar-hq-sky-castle.mp3",
+      "text": "Sky castle."
+    },
+    {
+      "id": "nar-hq-secret-lab",
+      "file": "audio/narrator/nar-hq-secret-lab.mp3",
+      "text": "Secret lab."
+    },
+    {
+      "id": "nar-idea-freeze",
+      "file": "audio/narrator/nar-idea-freeze.mp3",
+      "text": "Freeze time."
+    },
+    {
+      "id": "nar-idea-invisible",
+      "file": "audio/narrator/nar-idea-invisible.mp3",
+      "text": "Turn invisible."
+    },
+    {
+      "id": "nar-idea-speed",
+      "file": "audio/narrator/nar-idea-speed.mp3",
+      "text": "Super speed."
+    },
+    {
+      "id": "nar-idea-mind",
+      "file": "audio/narrator/nar-idea-mind.mp3",
+      "text": "Read minds."
+    },
+    {
+      "id": "nar-idea-shield",
+      "file": "audio/narrator/nar-idea-shield.mp3",
+      "text": "Shield."
+    },
+    {
+      "id": "nar-idea-fly",
+      "file": "audio/narrator/nar-idea-fly.mp3",
+      "text": "Fly."
+    },
+    {
+      "id": "nar-idea-strong",
+      "file": "audio/narrator/nar-idea-strong.mp3",
+      "text": "Super strong."
+    },
+    {
+      "id": "nar-idea-teleport",
+      "file": "audio/narrator/nar-idea-teleport.mp3",
+      "text": "Teleport."
+    },
+    {
+      "id": "nar-idea-grow",
+      "file": "audio/narrator/nar-idea-grow.mp3",
+      "text": "Grow and shrink."
+    },
+    {
+      "id": "nar-idea-animals",
+      "file": "audio/narrator/nar-idea-animals.mp3",
+      "text": "Talk to animals."
+    },
+    {
+      "id": "nar-field-intro",
+      "file": "audio/narrator/nar-field-intro.mp3",
+      "text": "Make your agent's force field. Pick its size and look."
+    },
+    {
+      "id": "nar-field-approach",
+      "file": "audio/narrator/nar-field-approach.mp3",
+      "text": "Someone is coming. What does your force field do?"
+    },
+    {
+      "id": "nar-approach-friend",
+      "file": "audio/narrator/nar-approach-friend.mp3",
+      "text": "A friend."
+    },
+    {
+      "id": "nar-approach-teacher",
+      "file": "audio/narrator/nar-approach-teacher.mp3",
+      "text": "A teacher."
+    },
+    {
+      "id": "nar-approach-new",
+      "file": "audio/narrator/nar-approach-new.mp3",
+      "text": "Someone new."
+    },
+    {
+      "id": "nar-react-bounce",
+      "file": "audio/narrator/nar-react-bounce.mp3",
+      "text": "Bounce off."
+    },
+    {
+      "id": "nar-react-letin",
+      "file": "audio/narrator/nar-react-letin.mp3",
+      "text": "Let them in."
+    },
+    {
+      "id": "nar-react-wave",
+      "file": "audio/narrator/nar-react-wave.mp3",
+      "text": "Wave hello."
+    },
+    {
+      "id": "nar-mood-intro",
+      "file": "audio/narrator/nar-mood-intro.mp3",
+      "text": "Make a secret mood code."
+    },
+    {
+      "id": "nar-mood-situation",
+      "file": "audio/narrator/nar-mood-situation.mp3",
+      "text": "Pick a moment."
+    },
+    {
+      "id": "nar-mood-enact",
+      "file": "audio/narrator/nar-mood-enact.mp3",
+      "text": "Show how your agent reacts."
+    },
+    {
+      "id": "nar-mood-sign",
+      "file": "audio/narrator/nar-mood-sign.mp3",
+      "text": "[whispers] Make a secret sign for it."
+    },
+    {
+      "id": "nar-mood-readers",
+      "file": "audio/narrator/nar-mood-readers.mp3",
+      "text": "Who can read this sign?"
+    },
+    {
+      "id": "nar-people-me",
+      "file": "audio/narrator/nar-people-me.mp3",
+      "text": "Only me."
+    },
+    {
+      "id": "nar-people-friends",
+      "file": "audio/narrator/nar-people-friends.mp3",
+      "text": "Friends."
+    },
+    {
+      "id": "nar-people-teachers",
+      "file": "audio/narrator/nar-people-teachers.mp3",
+      "text": "Teachers."
+    },
+    {
+      "id": "nar-people-family",
+      "file": "audio/narrator/nar-people-family.mp3",
+      "text": "Family."
+    },
+    {
+      "id": "nar-people-everyone",
+      "file": "audio/narrator/nar-people-everyone.mp3",
+      "text": "Everyone."
+    },
+    {
+      "id": "nar-rules-intro",
+      "file": "audio/narrator/nar-rules-intro.mp3",
+      "text": "Make rules for the people around your agent."
+    },
+    {
+      "id": "nar-rules-who",
+      "file": "audio/narrator/nar-rules-who.mp3",
+      "text": "Who is this rule for?"
+    },
+    {
+      "id": "nar-rules-action",
+      "file": "audio/narrator/nar-rules-action.mp3",
+      "text": "What should they do?"
+    },
+    {
+      "id": "nar-rules-when",
+      "file": "audio/narrator/nar-rules-when.mp3",
+      "text": "When?"
+    },
+    {
+      "id": "nar-rules-check",
+      "file": "audio/narrator/nar-rules-check.mp3",
+      "text": "Listen. Is this right?"
+    },
+    {
+      "id": "nar-rules-badge",
+      "file": "audio/narrator/nar-rules-badge.mp3",
+      "text": "Put this rule on your badge?"
+    },
+    {
+      "id": "nar-please",
+      "file": "audio/narrator/nar-please.mp3",
+      "text": "Please."
+    },
+    {
+      "id": "nar-please-dont",
+      "file": "audio/narrator/nar-please-dont.mp3",
+      "text": "Please don't."
+    },
+    {
+      "id": "nar-act-give-time",
+      "file": "audio/narrator/nar-act-give-time.mp3",
+      "text": "Give me time."
+    },
+    {
+      "id": "nar-act-talk-slower",
+      "file": "audio/narrator/nar-act-talk-slower.mp3",
+      "text": "Talk slower."
+    },
+    {
+      "id": "nar-act-write-it",
+      "file": "audio/narrator/nar-act-write-it.mp3",
+      "text": "Write it down."
+    },
+    {
+      "id": "nar-act-show-me",
+      "file": "audio/narrator/nar-act-show-me.mp3",
+      "text": "Show me."
+    },
+    {
+      "id": "nar-act-ask-first",
+      "file": "audio/narrator/nar-act-ask-first.mp3",
+      "text": "Ask me first."
+    },
+    {
+      "id": "nar-act-touch-things",
+      "file": "audio/narrator/nar-act-touch-things.mp3",
+      "text": "Touch my things."
+    },
+    {
+      "id": "nar-act-finish-words",
+      "file": "audio/narrator/nar-act-finish-words.mp3",
+      "text": "Finish my words."
+    },
+    {
+      "id": "nar-act-sit-with-me",
+      "file": "audio/narrator/nar-act-sit-with-me.mp3",
+      "text": "Sit with me."
+    },
+    {
+      "id": "nar-act-let-me-move",
+      "file": "audio/narrator/nar-act-let-me-move.mp3",
+      "text": "Let me move."
+    },
+    {
+      "id": "nar-act-headphones",
+      "file": "audio/narrator/nar-act-headphones.mp3",
+      "text": "Let me wear headphones."
+    },
+    {
+      "id": "nar-act-help-me",
+      "file": "audio/narrator/nar-act-help-me.mp3",
+      "text": "Help me."
+    },
+    {
+      "id": "nar-act-include-me",
+      "file": "audio/narrator/nar-act-include-me.mp3",
+      "text": "Include me."
+    },
+    {
+      "id": "nar-when-class",
+      "file": "audio/narrator/nar-when-class.mp3",
+      "text": "In class."
+    },
+    {
+      "id": "nar-when-lunch",
+      "file": "audio/narrator/nar-when-lunch.mp3",
+      "text": "At lunch."
+    },
+    {
+      "id": "nar-when-playtime",
+      "file": "audio/narrator/nar-when-playtime.mp3",
+      "text": "At playtime."
+    },
+    {
+      "id": "nar-when-loud",
+      "file": "audio/narrator/nar-when-loud.mp3",
+      "text": "When it's loud."
+    },
+    {
+      "id": "nar-when-upset",
+      "file": "audio/narrator/nar-when-upset.mp3",
+      "text": "When I'm upset."
+    },
+    {
+      "id": "nar-when-always",
+      "file": "audio/narrator/nar-when-always.mp3",
+      "text": "Always."
+    },
+    {
+      "id": "nar-badge-intro",
+      "file": "audio/narrator/nar-badge-intro.mp3",
+      "text": "Design your badge and your wall poster."
+    },
+    {
+      "id": "nar-badge-front",
+      "file": "audio/narrator/nar-badge-front.mp3",
+      "text": "People near you can see your badge."
+    },
+    {
+      "id": "nar-badge-pocket",
+      "file": "audio/narrator/nar-badge-pocket.mp3",
+      "text": "Press the star to open your secret pocket."
+    },
+    {
+      "id": "nar-badge-wall",
+      "file": "audio/narrator/nar-badge-wall.mp3",
+      "text": "The whole school can see the wall."
+    },
+    {
+      "id": "nar-badge-vault",
+      "file": "audio/narrator/nar-badge-vault.mp3",
+      "text": "Anything you leave out stays in your vault."
+    },
+    {
+      "id": "nar-dossier-flip",
+      "file": "audio/narrator/nar-dossier-flip.mp3",
+      "text": "Flip your file. The back is top secret."
+    }
+  ],
+  "sfx": [
+    {
+      "id": "sfx-stamp",
+      "file": "audio/sfx/sfx-stamp.mp3",
+      "fallback": "stamp",
+      "prompt": "A rubber stamp thudding onto paper on a wooden desk, one hit.",
+      "seconds": "0.6",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-reel-spin",
+      "file": "audio/sfx/sfx-reel-spin.mp3",
+      "fallback": "whoosh",
+      "prompt": "Slot-machine reels spinning with light mechanical clicks.",
+      "seconds": "1.5",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-reel-stop",
+      "file": "audio/sfx/sfx-reel-stop.mp3",
+      "fallback": "pop",
+      "prompt": "A slot-machine reel stopping with a bright ding.",
+      "seconds": "0.5",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-pop",
+      "file": "audio/sfx/sfx-pop.mp3",
+      "fallback": "pop",
+      "prompt": "A soft bubble pop.",
+      "seconds": "0.5",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-whoosh",
+      "file": "audio/sfx/sfx-whoosh.mp3",
+      "fallback": "whoosh",
+      "prompt": "A quick, soft whoosh.",
+      "seconds": "0.6",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-powerup",
+      "file": "audio/sfx/sfx-powerup.mp3",
+      "fallback": "power",
+      "prompt": "A magical rising shimmer that ends bright.",
+      "seconds": "2",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-lightning",
+      "file": "audio/sfx/sfx-lightning.mp3",
+      "fallback": "power",
+      "prompt": "A small cartoon electric zap.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-freeze",
+      "file": "audio/sfx/sfx-freeze.mp3",
+      "fallback": "sparkle",
+      "prompt": "An icy crackle of frost forming.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-fade",
+      "file": "audio/sfx/sfx-fade.mp3",
+      "fallback": "sparkle",
+      "prompt": "A soft magical shimmer fading away.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-speed",
+      "file": "audio/sfx/sfx-speed.mp3",
+      "fallback": "whoosh",
+      "prompt": "A very fast cartoon zoom.",
+      "seconds": "0.8",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-thoughts",
+      "file": "audio/sfx/sfx-thoughts.mp3",
+      "fallback": "sparkle",
+      "prompt": "Soft bubbly blips, like thoughts popping up.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-shield",
+      "file": "audio/sfx/sfx-shield.mp3",
+      "fallback": "power",
+      "prompt": "An energy shield humming on.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-float",
+      "file": "audio/sfx/sfx-float.mp3",
+      "fallback": "whoosh",
+      "prompt": "A gentle rising whoosh.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-stomp",
+      "file": "audio/sfx/sfx-stomp.mp3",
+      "fallback": "stamp",
+      "prompt": "One heavy cartoon footstep thump.",
+      "seconds": "0.6",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-teleport",
+      "file": "audio/sfx/sfx-teleport.mp3",
+      "fallback": "power",
+      "prompt": "A swirling teleport zap.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-grow",
+      "file": "audio/sfx/sfx-grow.mp3",
+      "fallback": "power",
+      "prompt": "A cartoon slide whistle going up.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-file-open",
+      "file": "audio/sfx/sfx-file-open.mp3",
+      "fallback": "whoosh",
+      "prompt": "A paper folder opening, pages rustling.",
+      "seconds": "1",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-seal",
+      "file": "audio/sfx/sfx-seal.mp3",
+      "fallback": "stamp",
+      "prompt": "A wax seal pressed down, a soft squish and click.",
+      "seconds": "0.8",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-new",
+      "file": "audio/sfx/sfx-new.mp3",
+      "fallback": "sparkle",
+      "prompt": "A cheerful two-note chime.",
+      "seconds": "0.7",
+      "tier": "⭐"
+    },
+    {
+      "id": "sfx-field-bounce",
+      "file": "audio/sfx/sfx-field-bounce.mp3",
+      "fallback": "pop",
+      "prompt": "A springy, rubbery boing.",
+      "seconds": "0.6",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-field-open",
+      "file": "audio/sfx/sfx-field-open.mp3",
+      "fallback": "pop",
+      "prompt": "A soft bubble opening.",
+      "seconds": "0.6",
+      "tier": "◻️"
+    }
+  ]
+}

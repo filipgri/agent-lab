@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=9">
+  <link rel="stylesheet" href="./style.css?v=10">
 </head>
 <body>
 
@@ -64,11 +64,6 @@
         </button>
         <button id="btn-type" class="btn">
           <span class="btn-icon">⌨️</span><span class="btn-label">Type</span>
-        </button>
-        <!-- Recording a codename needs audio.js, which arrives in a later
-             milestone. The button is here so the layout is final. -->
-        <button id="btn-codename-mic" class="btn btn-later">
-          <span class="btn-icon">🎤</span><span class="btn-label">Say it</span>
         </button>
       </div>
     </div>
@@ -127,7 +122,7 @@
            All six are PLACEHOLDERS in Milestone 0. -->
       <div class="mission-panels">
 
-        <article class="mission-panel" data-mission="m1">
+        <article class="mission-panel" data-mission="make">
 
           <!-- STEP 1: the three doors. The child picks one and can come back
                and switch; each door keeps its own work (spec §7). -->
@@ -251,7 +246,7 @@
         <!-- MISSION 2 - BOOST (spec §7). The Boost version starts as a copy of
              the Cover, and the Cover stays visible beside it as a reminder of
              what the agent looked like before. -->
-        <article class="mission-panel" data-mission="m2">
+        <article class="mission-panel" data-mission="powerup">
           <div class="boost-row">
             <!-- The untouched Mission 1 agent, for comparison only. -->
             <aside class="cover-aside">
@@ -272,7 +267,26 @@
              ORDER MATTERS HERE. The blank tile comes first: the child invents a
              sign of their own. The six faces behind "Need ideas?" are only ever
              offered afterwards, so nobody is picking from a menu. -->
-        <article class="mission-panel" data-mission="m3">
+        <!-- v2 §3: HQ and Force field arrive at V4 and V7. Until then they are
+             honest placeholders rather than missing pips - a child can still
+             Stamp it or Pass, so the run-through is never blocked. -->
+        <article class="mission-panel" data-mission="hq">
+          <div class="soon-wrap">
+            <span class="soon-icon">📍</span>
+            <p class="soon-text">Your agent's HQ is being built.</p>
+            <p class="soon-note">Coming soon</p>
+          </div>
+        </article>
+
+        <article class="mission-panel" data-mission="field">
+          <div class="soon-wrap">
+            <span class="soon-icon">🛡️</span>
+            <p class="soon-text">Your agent's force field is being built.</p>
+            <p class="soon-note">Coming soon</p>
+          </div>
+        </article>
+
+        <article class="mission-panel" data-mission="mood">
 
           <!-- STEP 1: the three code slots. -->
           <div id="m3-slots-view" class="m3-slots-view">
@@ -332,7 +346,7 @@
         <!-- MISSION 4 - VOICE PASSWORD (spec §7).
              Three steps, shown one at a time: record it, hear it as it really
              is, then try the voices. -->
-        <article class="mission-panel" data-mission="m4">
+        <article class="mission-panel" data-mission="voice">
 
           <!-- Shown if this iPad has no microphone, or the child said no to it.
                Pass is always still available, so nobody is stuck. -->
@@ -386,7 +400,7 @@
         <!-- MISSION 5 - WHERE DOES MY AGENT GO? (spec §7).
              EVERYTHING IS OFF BY DEFAULT. Sharing is always something the child
              switches on, never something they have to find and switch off. -->
-        <article class="mission-panel" data-mission="m5">
+        <article class="mission-panel" data-mission="badge">
 
           <div id="m5-cards-view" class="m5-cards-view">
             <p class="m3-lead">Where does your agent go?</p>
@@ -415,7 +429,7 @@
         <!-- MISSION 6 - AGENT RULES (spec §7).
              Three rule cards. For each one the child taps icons, draws their
              own, or records it - no typing anywhere. -->
-        <article class="mission-panel" data-mission="m6">
+        <article class="mission-panel" data-mission="rules">
 
           <div id="m6-cards-view" class="m6-cards-view">
             <p class="m3-lead">Make your agent rules.</p>
@@ -559,6 +573,43 @@
 
   <main class="adult-main">
 
+    <!-- v2 §3: set this at the start of a rotation. It decides which
+         missions are open, and every event records which session it came
+         from. -->
+    <div class="adult-card">
+      <h3>Session</h3>
+      <div class="setting-row">
+        <span>This session is</span>
+        <div id="session-group" class="seg-group">
+          <button class="btn seg" data-session="2">2</button>
+          <button class="btn seg" data-session="3">3</button>
+          <button class="btn seg" data-session="4">4</button>
+          <button class="btn seg" data-session="5">5</button>
+          <button class="btn seg" data-session="6">6</button>
+        </div>
+      </div>
+      <p class="adult-note">
+        Choosing a session opens the missions for that week and reopens any you
+        switched off.
+      </p>
+
+      <h4 class="adult-sub">Missions this rotation</h4>
+      <div id="mission-switches" class="mission-switches"></div>
+      <p class="adult-note">
+        Switch a mission off when time is short. A mission a child has already
+        worked on stays open.
+      </p>
+
+      <div class="setting-row">
+        <span>Practice mode</span>
+        <button id="btn-practice" class="btn">Off</button>
+      </div>
+      <p class="adult-note">
+        Agents made in practice mode are labelled PRACTICE and are left out of
+        exports, so trying the app out never lands in the research data.
+      </p>
+    </div>
+
     <div class="adult-card">
       <h3>Agents on this iPad</h3>
       <div id="agent-list" class="agent-list"></div>
@@ -570,8 +621,23 @@
         One JSON file with every agent and every event log.
       </p>
       <p class="adult-warn">⚠️ Research data. Store securely, delete after the study.</p>
+      <label class="check-row">
+        <input type="checkbox" id="chk-include-practice">
+        <span>Include practice agents</span>
+      </label>
       <button id="btn-export" class="btn btn-accent">⬆️ Export all</button>
       <div id="export-result" class="export-result"></div>
+    </div>
+
+    <!-- v2 §5.0: which pictures and sounds have actually arrived. -->
+    <div class="adult-card">
+      <h3>Asset check</h3>
+      <p class="adult-note">
+        ✅ the file is here · ⚠️ a stand-in is being used. The app works either
+        way; this is the list of what is still to make.
+      </p>
+      <button id="btn-asset-check" class="btn">🔍 Check assets</button>
+      <div id="asset-check" class="asset-check"></div>
     </div>
 
     <div class="adult-card">
@@ -589,7 +655,8 @@
         </div>
       </div>
       <p class="adult-note">
-        Motion is saved now and used from Milestone 8 onwards.
+        Calm removes shake, particles and idle movement. Off stops all
+        animation. The iPad's own Reduce Motion setting selects Calm by itself.
       </p>
     </div>
 
@@ -683,14 +750,18 @@
 <!-- Spec §5a: a scanner line sweeps down between missions. -->
 <div id="scanner" class="scanner" aria-hidden="true"></div>
 
+<!-- v2 §3: shown on every screen while practice mode is on. -->
+<div id="practice-badge" class="practice-badge" aria-hidden="true">PRACTICE</div>
+
 <div id="toast" class="toast" hidden></div>
 
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=9"></script>
-<script src="./audio.js?v=9"></script>
-<script src="./effects.js?v=9"></script>
-<script src="./app.js?v=9"></script>
+<script src="./storage.js?v=10"></script>
+<script src="./audio.js?v=10"></script>
+<script src="./effects.js?v=10"></script>
+<script src="./assets.js?v=10"></script>
+<script src="./app.js?v=10"></script>
 </body>
 </html>

@@ -5,9 +5,17 @@ Built for a school design club research session (TACT, WP1, Dawn House Design Cl
 
 ## Read this first
 
-**`agent-lab-build-spec.md` in this folder is the brief. It is the source of
-truth.** Read it before changing anything. Section numbers (§3, §7, §8…) are
-referenced throughout the code comments and in this file.
+Three files are the brief, and they stack:
+
+| File | What it is | Wins when they disagree |
+|---|---|---|
+| `agent-lab-build-spec.md` | the original v1 brief | lowest |
+| `agent-lab-v2-spec.md` | the v2 changes, after the first iPad test | **beats the build spec** |
+| `asset-guide.md` | every image, voice line and sound, with filenames | **beats both, for assets** |
+
+Read all three before changing anything. Section numbers (§3, §7, §8…) are
+referenced throughout the code comments; a bare § means the v1 build spec, and
+"v2 §" means the v2 spec.
 
 ## How to work on this project
 
@@ -18,8 +26,17 @@ referenced throughout the code comments and in this file.
   jump ahead to the next milestone unless asked.
 - **Plain HTML, CSS and JavaScript only.** No frameworks, no build step, no npm,
   no external libraries, CDNs, Google Fonts or analytics. Everything is local.
-- **Never make network requests** except loading the app's own files.
-- **Ask before changing the data model (§8)** or adding anything not in the spec.
+- **Never make network requests** except loading the app's own files **and its
+  own `assets/`** (v2 §1). The app never calls an AI, image or voice service.
+- **Local asset files are allowed now** (v2 §1), which amends §4, §13 and the
+  old "sounds are generated, never loaded" rule. A file is used if it exists;
+  otherwise the app uses the stand-in. **The app must work fully with an empty
+  `assets/` folder** — test it both ways before calling a milestone done.
+- **The data model changes in v2 §6 are approved.** Anything beyond them still
+  needs asking.
+- **The app never interprets a child** (v2 §12). No scores, no inferred
+  feelings or labels, no suggestions based on what a child chose. It records
+  what the child did, in order, and that record is the research data.
 - Test logic against iPad Safari quirks (§9) before declaring something done.
 - Actually run it and drive it before saying it works. See "Testing" below.
 
@@ -50,17 +67,26 @@ external fonts or libraries, or text-heavy instructions.
 | `storage.js` | IndexedDB wrapper (agents, audio blobs, settings) |
 | `audio.js` | Microphone, 10s recorder, playback filters, sound effects |
 | `effects.js` | Particles on one canvas, and the screen shake (§5a) |
+| `assets.js` | Pictures, narration and sounds, each with a stand-in (v2 §5.0) |
 | `sw.js` | Service worker: caches the app so it runs offline |
 | `manifest.json` | PWA settings (name, standalone, icons) |
+| `assets/manifest.json` | **Generated** from `asset-guide.md`; never hand-edit |
 | `icons/make-icons.py` | Draws the three app icons; re-run if you change them |
+| `tools/sync-assets.py` | Rebuilds `assets/manifest.json` from the asset guide |
+| `tools/bring-in-assets.py` | Files `assets/incoming/` into place, resized |
 | `README.md` | Deploy steps, iPad setup, test checklists |
+
+v2 §1 also allows `parts.js` (V2) and `stickers.js` (V2) when those milestones
+arrive. **Authoring tools live in `tools/`**: they run on Filip's computer, may
+call online services, and the app never loads anything from them.
 
 `app.js` is numbered into sections with comment banners (1. CONFIG, 2. STATE …
 14. MISSION 1). Keep adding numbered sections rather than new files — the spec's
 file list (§4) only allows `audio.js` and `effects.js` to join, in later
 milestones.
 
-Script load order: `storage.js`, `audio.js`, `effects.js`, then `app.js`.
+Script load order: `storage.js`, `audio.js`, `effects.js`, `assets.js`,
+then `app.js`.
 All four carry a `?v=` cache-buster in `index.html`; **bump it on every
 release** or an iPad will keep running the old JavaScript against new HTML.
 
@@ -134,8 +160,55 @@ release** or an iPad will keep running the old JavaScript against new HTML.
   over, and a small "New version ready" banner lets an adult choose the
   moment. The adult panel reports whether offline is actually working.
 
-**All nine milestones are built.** What is left is testing with children.
+**All nine v1 milestones are built.** v2 then rebuilt the foundations:
 
+- **v2 V0 — done (4 October 2026).** Foundations for the v2 missions.
+  - **Bug fixes (v2 §4).** The stranded sticker ghost — the floating dog in
+    every test screenshot — is fixed: drags listen on `window`, have one
+    clean-up function called from every exit, and `leaveCurrent()` sweeps up
+    leftovers. The aura now covers Build shapes and Draw drawings, not just
+    pixels and stickers. The codename "Say it" button is gone.
+  - **The asset system (v2 §5.0).** `assets/manifest.json` is generated from
+    `asset-guide.md` by `tools/sync-assets.py` — 171 items. `assets.js` serves
+    pictures, narration and sounds, each with a stand-in, and **everything
+    works with an empty `assets/` folder**. The service worker caches assets
+    one at a time, ignoring failures. Adult panel → Asset check lists every
+    item ✅ or ⚠️.
+  - **Data model v2 (v2 §6)** with `migrateAgent()`, which runs on every load,
+    is safe to run twice, and never deletes: v1 fields are kept in `legacy`.
+  - **Word mission ids (v2 §3):** `make`, `powerup`, `hq`, `voice`, `field`,
+    `mood`, `rules`, `badge`. `hq` and `field` are honest "coming soon"
+    placeholders until V4 and V7; the rest keep their v1 screens.
+  - **Session, unlocks and practice mode (v2 §3),** with `session` and
+    `practice` on every event.
+- **Next: v2 V1 — Codename and gallery** (v2 §5.1 and §5.2).
+
+
+## "Bring in the new assets" (v2 §5.0)
+
+When Filip says this, run:
+
+```bash
+python3 tools/bring-in-assets.py --dry-run   # check the matches first
+python3 tools/bring-in-assets.py             # then do it
+```
+
+It matches each file in `assets/incoming/` to a manifest id by its filename
+(ignoring case, spaces and `(1)` suffixes), converts it with `sips` — scenes
+to JPEG at 1024px/quality 80, stickers to PNG at 512px with transparency —
+moves it to its exact manifest filename, and reports what is still missing.
+
+Then, by hand:
+1. **Check anything it could not match.** It never guesses; filing a picture
+   under the wrong id is worse than leaving it in the inbox.
+2. **Check the sticker transparency warnings.** A painted checkerboard or a
+   white box only shows up on the iPad, by which time it is too late.
+3. **Bump `CACHE_VERSION` in `sw.js` and every `?v=` in `index.html`,** or the
+   iPads will not pick the new files up.
+
+**"Sync the asset list"** means `python3 tools/sync-assets.py`, which rebuilds
+`assets/manifest.json` from `asset-guide.md`. The guide is the source: never
+hand-edit the manifest, and never edit both.
 
 ## Settled decisions
 
@@ -146,6 +219,35 @@ release** or an iPad will keep running the old JavaScript against new HTML.
   mid-session.
 
 ## Conventions in this codebase
+
+### v2 conventions (from V0)
+
+- **Every drag listens on `window`, not on the element that started it**, has
+  ONE clean-up function called from `pointerup`, `pointercancel` AND
+  `lostpointercapture`, and anything parked on `<body>` is swept up by
+  `clearDragLeftovers()`. This is what the stranded ghost cost us; use the
+  same shape for every new drag (v2 §4.1).
+- **`migrateAgent()` runs on every load**, including the adult panel's list
+  and the export. It only ever fills in what is missing, so it is safe to run
+  twice, and it never deletes — old fields go to `legacy`.
+- **Nothing in `assets.js` ever throws.** A missing file is a normal state,
+  not an error: `Assets.image()` resolves to `null`, `Assets.say()` speaks,
+  `Assets.sfx()` plays the generated sound.
+- **Asset existence checks ask the server fresh.** The Asset check is pressed
+  right after new files are dropped in, so a cached "missing" would tell Filip
+  a file is absent when it is sitting there.
+- **Mission ids are words**, and `MISSIONS` is the only list of them.
+  `blankMissions()` builds the per-agent record from it, so adding a mission
+  means touching one array.
+- **A mission is open if its session has come AND an adult has not switched it
+  off** — `missionIsOpen()`. A mission the child has already worked on stays
+  open whatever the setting; nobody is locked out of their own work.
+- **Sounds go through `Assets.sfx('sfx-…')`**, which uses Filip's file if it
+  exists and `Voice.sfx()`'s generated sound if not.
+- **Narration goes through `Assets.say('nar-…')`**, which uses the recording
+  if it exists and `speechSynthesis` if not. `[whispers]` is a tag for the
+  voice service and is stripped before speaking.
+
 
 - Data model lives in spec §8 and is created by `makeAgent()` in `app.js`.
   Pixels are a flat 256-entry array (`null` = empty square). Stickers store

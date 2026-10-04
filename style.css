@@ -814,9 +814,16 @@ body[data-motion="calm"] .sticker.just-landed { animation: none; }
 
 /* --- AURA: a glow around the agent ---
    drop-shadow follows the SHAPE of what it is applied to, unlike box-shadow
-   which would only outline the square canvas. Applied to the pixels and the
-   stickers separately so both glow. --aura is set by renderAgentView(). */
+   which would only outline the square canvas. --aura is set by
+   renderAgentView().
+
+   v2 §4.2: this used to list only the pixels and the stickers, so an agent
+   made in the Build or Draw door got no glow at all. Every layer is named
+   here now - whichever door the child used, their agent glows. */
 .agent-view.has-aura .agent-pixels,
+.agent-view.has-aura .agent-drawing,
+.agent-view.has-aura .agent-shapes,
+.agent-view.has-aura .door-canvas,
 .agent-view.has-aura .sticker-layer {
   filter:
     drop-shadow(0 0 6px var(--aura))
@@ -1924,3 +1931,143 @@ body[data-motion="off"] .scanner { display: none; }
 
 /* The adult panel's storage line now has two lines in it. */
 #storage-state { white-space: pre-line; }
+
+
+/* ============================================================
+   v2 V0 — SESSION, PRACTICE, ASSET CHECK AND PICTURE CARDS
+   ============================================================ */
+
+/* --- Picture cards (v2 §5.0, §9) ---
+   Every card looks the same whether its picture has arrived or not: the photo
+   if it exists, a gradient with the fallback emoji if it hasn't. §9 asks for
+   at least 120×120 with a one- or two-word label underneath. */
+.pic-card {
+  width: 150px;
+  border: none;
+  border-radius: 18px;
+  background: var(--navy-2);
+  color: var(--text);
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.pic-card.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.pic-card-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  /* The stand-in: a soft gradient behind a big emoji. */
+  background: linear-gradient(150deg, var(--navy-3), var(--navy-0));
+}
+.pic-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pic-card-emoji { font-size: 54px; line-height: 1; }
+/* Once the real picture loads it covers the emoji, so the emoji can stay in
+   place rather than being removed - nothing flickers if the image is slow. */
+.pic-card.has-image .pic-card-emoji { display: none; }
+.pic-card-label {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* --- Practice mode (v2 §3) --- */
+.practice-badge {
+  position: fixed;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  z-index: 96;
+  display: none;
+  padding: 3px 14px 4px;
+  border-radius: 0 0 10px 10px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  pointer-events: none;
+}
+body.is-practice .practice-badge { display: block; }
+
+/* --- The adult panel's session controls --- */
+.adult-sub { margin: 16px 0 8px; font-size: 17px; }
+.mission-switches { display: flex; flex-direction: column; gap: 6px; }
+.mission-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--navy-3);
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.06);
+}
+.mission-switch.is-on { color: var(--text); box-shadow: inset 0 0 0 2px var(--accent); }
+.ms-icon { font-size: 22px; }
+.ms-label { flex: 1; text-align: left; font-weight: 600; }
+.ms-state { font-size: 14px; }
+.mission-switch.is-on .ms-state { color: var(--accent); }
+
+.check-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 16px; }
+.check-row input { width: 24px; height: 24px; }
+
+/* --- Asset check (v2 §5.0) --- */
+.asset-check { margin-top: 12px; max-height: 360px; overflow-y: auto; }
+.asset-summary { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
+.asset-group { margin-bottom: 14px; }
+.asset-group-title { margin: 0 0 6px; font-size: 16px; }
+.asset-count { color: var(--muted); font-weight: 400; }
+.asset-list { display: flex; flex-direction: column; gap: 3px; }
+.asset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.03);
+  font-size: 14px;
+}
+.asset-row.is-ok { background: rgba(94,240,138,.08); }
+.asset-mark { flex: 0 0 auto; }
+.asset-id { flex: 0 0 auto; font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--muted); }
+.asset-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-play { min-height: 36px; padding: 0 10px; font-size: 14px; }
+
+/* --- "Coming soon" missions (v2 §3) --- */
+.soon-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+.soon-icon { font-size: 86px; opacity: .55; }
+.soon-text { margin: 0; font-size: 24px; letter-spacing: .03em; line-height: 1.4; }
+.soon-note {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* --- v2 §9: wherever children read --- */
+.m3-lead, .m4-question, .mission-title, .pic-card-label, .soon-text {
+  letter-spacing: .03em;
+  line-height: 1.4;
+}

@@ -11,3 +11,9 @@ screenshots/
 # macOS noise
 .DS_Store
 ._*
+
+# v2 §5.0: Filip's raw downloads and reference sheets never ship, and API keys
+# never go near the repo.
+assets/incoming/
+assets/reference/
+.env

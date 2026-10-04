@@ -18,19 +18,20 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v9';
+const CACHE_VERSION = 'agent-lab-v10';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
-   ./app.js?v=9 are two different URLs as far as it is concerned. */
+   ./app.js?v=10 are two different URLs as far as it is concerned. */
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=9',
-  './storage.js?v=9',
-  './audio.js?v=9',
-  './effects.js?v=9',
-  './app.js?v=9',
+  './style.css?v=10',
+  './storage.js?v=10',
+  './audio.js?v=10',
+  './effects.js?v=10',
+  './assets.js?v=10',
+  './app.js?v=10',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -44,12 +45,46 @@ const APP_FILES = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then(function (cache) { return cache.addAll(APP_FILES); })
+      .then(function (cache) {
+        // The app itself must all be there, so addAll's all-or-nothing is
+        // exactly right.
+        return cache.addAll(APP_FILES).then(function () { return cache; });
+      })
+      .then(cacheAssets)
       // Do NOT skip waiting here. A new worker waits until the child closes
       // the app, or until they tap the "New version" banner, so the app can
       // never change underneath someone mid-mission.
   );
 });
+
+/* v2 §5.0: the pictures and sounds are cached ONE AT A TIME, and a failure is
+   ignored. Filip is making these files week by week, so at any moment most of
+   them do not exist yet. Using addAll here would mean one missing picture
+   failed the whole install and left every iPad with no offline app at all. */
+function cacheAssets(cache) {
+  return fetch('./assets/manifest.json', { cache: 'no-cache' })
+    .then(function (response) {
+      if (!response.ok) throw new Error('no manifest');
+      return response.json();
+    })
+    .then(function (manifest) {
+      const files = [];
+      ['hq', 'situations', 'stickers', 'narrator', 'sfx'].forEach(function (group) {
+        (manifest[group] || []).forEach(function (item) {
+          if (item && item.file) files.push('./assets/' + item.file);
+        });
+      });
+      // One at a time, each failure swallowed.
+      return files.reduce(function (chain, url) {
+        return chain.then(function () {
+          return cache.add(url).catch(function () { /* not made yet */ });
+        });
+      }, Promise.resolve());
+    })
+    .catch(function () {
+      // No manifest at all is a normal state before any assets exist.
+    });
+}
 
 /* ACTIVATE: throw away caches from older versions, so an iPad does not slowly
    fill up with every release we ever made. */
