@@ -32,6 +32,38 @@ const Assets = (function () {
   const NARRATOR_VOLUME = 1.0;
   const SFX_VOLUME = 0.5;
 
+  /* HOW FAST THE NARRATOR SPEAKS (v2 §7)
+
+     An adult setting, 0.8x / 0.9x / 1.0x, default 0.9x. Children with
+     language disorders process speech more slowly (Zapparrata, Brooks & Ober,
+     2023), and ElevenLabs' newest model has no speed setting of its own, so
+     the app slows the playback itself.
+
+     preservesPitch keeps the voice sounding like a person rather than a
+     record played at the wrong speed. Safari needs the webkit- spelling too.
+     The speechSynthesis stand-in takes the same number as utterance.rate, so
+     a line without a recording is read at the same pace as one with. */
+  const DEFAULT_SPEED = 0.9;
+  let narrationSpeed = DEFAULT_SPEED;
+
+  function setSpeed(value) {
+    const speed = Number(value);
+    narrationSpeed = (speed >= 0.5 && speed <= 2) ? speed : DEFAULT_SPEED;
+    // Anything already loaded follows immediately.
+    audioCache.forEach(function (audio) {
+      if (audio && audio !== false && audio._isNarration) applySpeed(audio);
+    });
+  }
+
+  function getSpeed() { return narrationSpeed; }
+
+  function applySpeed(audio) {
+    audio.playbackRate = narrationSpeed;
+    audio.preservesPitch = true;
+    audio.webkitPreservesPitch = true;      // Safari
+    audio.mozPreservesPitch = true;
+  }
+
   const BASE = './assets/';
 
   let manifest = { version: 0, hq: [], situations: [], stickers: [], narrator: [], sfx: [] };
@@ -180,10 +212,11 @@ const Assets = (function () {
       stopSaying();
 
       if (entry && audioCache.get(id) !== false) {
-        const audio = getAudio(id, entry, NARRATOR_VOLUME);
+        const audio = getAudio(id, entry, NARRATOR_VOLUME, true);
         if (audio) {
           narrating = audio;
           audio.currentTime = 0;
+          applySpeed(audio);                // v2 §7
           return audio.play()
             .then(function () { return 'file'; })
             .catch(function () {
@@ -203,7 +236,8 @@ const Assets = (function () {
     if (!text || !('speechSynthesis' in window)) return 'none';
     const spoken = text.replace(/^\[[^\]]*\]\s*/, '');
     const utterance = new SpeechSynthesisUtterance(spoken);
-    utterance.rate = 0.95;
+    // v2 §7: the same pace as a recorded line, so the two are consistent.
+    utterance.rate = narrationSpeed;
     utterance.pitch = 1.05;
     utterance.volume = NARRATOR_VOLUME;
     speechSynthesis.speak(utterance);
@@ -245,7 +279,7 @@ const Assets = (function () {
     Voice.sfx(name);
   }
 
-  function getAudio(id, entry, volume) {
+  function getAudio(id, entry, volume, isNarration) {
     if (audioCache.has(id)) {
       const held = audioCache.get(id);
       return held === false ? null : held;
@@ -253,6 +287,8 @@ const Assets = (function () {
     const audio = new Audio(url(entry));
     audio.volume = volume;
     audio.preload = 'auto';
+    audio._isNarration = Boolean(isNarration);
+    if (isNarration) applySpeed(audio);
     // A file that turns out to be missing is remembered, so the stand-in is
     // used immediately next time rather than after another failed request.
     audio.addEventListener('error', function () { audioCache.set(id, false); });
@@ -288,6 +324,9 @@ const Assets = (function () {
     ready: ready,
     NARRATOR_VOLUME: NARRATOR_VOLUME,
     SFX_VOLUME: SFX_VOLUME,
+    DEFAULT_SPEED: DEFAULT_SPEED,
+    setSpeed: setSpeed,
+    getSpeed: getSpeed,
     item: item,
     list: list,
     url: url,

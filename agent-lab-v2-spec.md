@@ -149,6 +149,7 @@ assets/
   2. Convert it:
      - HQ and situation images become JPEG, longest side 1024 px, quality about 80.
      - Stickers become PNG, longest side 512 px, with transparency kept.
+     - Audio files (made by hand rather than by `tools/make_audio.py`) are moved as they are.
      - On a Mac use the built-in `sips` command; if it isn't available, ask Filip to use squoosh.app.
   3. Check that a sticker's corners are really transparent, not a painted checkerboard or a white box. If not, tell Filip.
   4. Move it to its folder under its exact manifest filename. Report what came in and what is still missing.
@@ -552,6 +553,7 @@ Events keep the v1 shape, plus `session` and `practice`:
 - **🔊 on each step** plays that step's narrator id through `Assets.say()`. The ids and texts are in `asset-guide.md` §4.5.
 - **Every picture card speaks its label when tapped,** as well as selecting it. A card's line is `nar-` plus the card id: `nar-sit-too-loud`, `nar-hq-library`, `nar-idea-fly`, `nar-people-friends`, `nar-act-give-time`, `nar-when-class`, `nar-door-parts`, and so on.
 - **Adult setting "Read instructions aloud automatically":** off by default, because three iPads share a table.
+- **Adult setting "Narration speed":** 0.8×, 0.9× or 1.0×, default 0.9×. Apply it with the audio element's `playbackRate`, keeping the pitch (`preservesPitch = true`, plus `webkitPreservesPitch` for Safari). The `speechSynthesis` fallback takes the same number as `utterance.rate`, so a stand-in line is read at the same pace as a recorded one. ElevenLabs' newest model (Eleven v4) has no speed setting, so the app slows narration itself. Children with language disorders process speech more slowly (Zapparrata, Brooks & Ober, 2023).
 - **Rule read-backs** are built from parts, so they use `speechSynthesis`.
 
 ## 8. Sounds
@@ -619,13 +621,13 @@ Build one milestone at a time and stop after each. "Done when" is the test.
 
 **V9 — Polish and final test.** Every 🔊 line wired up; sounds; motion levels; an offline install test on every iPad.
 
-**T1 — Narrator script** (any time after V0, when Filip asks). `tools/make_voices.py`, in standard-library Python only (`urllib`, `json`, `pathlib`):
-- **Keys:** reads `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` from `.env` (git-ignored) or the environment.
-- **What it makes:** for each narrator item in `assets/manifest.json` whose file is missing, sends the item's `text` to ElevenLabs text-to-speech and saves an MP3 under the item's exact filename. `--force` remakes all items; `--only <id>` makes one.
-- **Settings:** model, speed and voice settings sit in a small block at the top of the script. Start with speed 0.9.
-- **Output:** prints what it made and how many characters it used.
-- **Before writing it, check ElevenLabs' current API docs** for the endpoint, model ids and setting names.
-- **Privacy:** it sends nothing but narrator text. Never commit `.env`.
+**T1 — Audio script: already supplied.** Filip has `tools/make_audio.py`, so don't write another one. Know how it works and keep it working:
+- **What it is:** standard-library Python (`urllib`, `json`, `pathlib`) that makes the narrator lines and sound effects with ElevenLabs.
+- **What it reads:** the tables in `asset-guide.md` §4.5 and §4.6 directly, not the manifest. If you change the shape of those tables, update its parser too (`read_guide()`).
+- **Where it writes:** `assets/audio/narrator/<id>.mp3` and `assets/audio/sfx/<id>.mp3` under the exact manifest names, so audio needs no "bring in".
+- **Keys:** `setup` stores `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` in `.env` and adds `.env` to `.gitignore`. Never commit `.env`.
+- **Models:** the default is `eleven_v4`, which accepts only stability and similarity and understands `[whispers]`. An optional `NARRATOR_MODEL` line in `.env` switches models; for models without audio tags, the script removes the tags.
+- **Privacy:** it sends nothing but narrator text and sound descriptions.
 
 **T2 — Sticker script** (optional, when Filip asks). `tools/make_stickers.py` follows the same pattern with the OpenAI Images API:
 - it uses each sticker's `prompt` plus the sticker style from the guide;
@@ -659,4 +661,5 @@ Build one milestone at a time and stop after each. "Done when" is the test.
 ### References
 
 - Kuster, S. M., van Weerdenburg, M., Gompel, M., & Bosman, A. M. T. (2018). Dyslexie font does not benefit reading in children with or without dyslexia. *Annals of Dyslexia*, 68(1), 25–42. https://doi.org/10.1007/s11881-017-0154-6
+- Zapparrata, N. M., Brooks, P. J., & Ober, T. M. (2023). Developmental language disorder is associated with slower processing across domains: A meta-analysis of time-based tasks. *Journal of Speech, Language, and Hearing Research*, 66(1), 325–346. https://doi.org/10.1044/2022_JSLHR-22-00221
 - Zorzi, M., Barbiero, C., Facoetti, A., et al. (2012). Extra-large letter spacing improves reading in dyslexia. *PNAS*, 109(28), 11455–11459. https://doi.org/10.1073/pnas.1205566109

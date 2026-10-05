@@ -12,6 +12,11 @@ ids, converts them, and moves them in.
 Conversions (v2 §5.0):
   HQ and situation images -> JPEG, longest side 1024, quality ~80
   stickers                -> PNG, longest side 512, transparency kept
+  audio                   -> moved as it is
+
+AUDIO NORMALLY SKIPS THIS TOOL. tools/make_audio.py writes narrator lines and
+sound effects straight into assets/audio/ under their exact manifest names, so
+there is nothing to rename or convert. Only hand-made audio comes through here.
 
 It uses `sips`, which is built into macOS. If sips is missing it says so and
 leaves the file alone rather than shipping something the wrong size.
@@ -146,7 +151,9 @@ def main():
         print("%s  ->  %s" % (name, entry["file"]))
 
         if kind == "audio":
-            # Audio is already small; it only needs its exact filename.
+            # v2 §5.0: audio normally BYPASSES this tool entirely - make_audio.py
+            # writes straight to assets/audio/ under the exact manifest names.
+            # A file arriving here was made by hand, so it is moved as it is.
             if not DRY:
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
                 shutil.copy2(src, dest)

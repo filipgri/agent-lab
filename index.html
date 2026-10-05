@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=21">
+  <link rel="stylesheet" href="./style.css?v=22">
 </head>
 <body>
 
@@ -687,6 +687,16 @@
         <span>Sound</span>
         <button id="btn-adult-mute" class="btn" data-mute>🔊 On</button>
       </div>
+      <!-- v2 §7: children with language disorders process speech more slowly,
+           and the newest voice model has no speed setting of its own. -->
+      <div class="setting-row">
+        <span>Narration speed</span>
+        <div id="speed-group" class="seg-group">
+          <button class="btn seg" data-speed="0.8">0.8×</button>
+          <button class="btn seg" data-speed="0.9">0.9×</button>
+          <button class="btn seg" data-speed="1">1.0×</button>
+        </div>
+      </div>
       <div class="setting-row">
         <span>Motion</span>
         <div id="motion-group" class="seg-group">
@@ -814,12 +824,12 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=21"></script>
-<script src="./audio.js?v=21"></script>
-<script src="./effects.js?v=21"></script>
-<script src="./assets.js?v=21"></script>
-<script src="./stickers.js?v=21"></script>
-<script src="./parts.js?v=21"></script>
-<script src="./app.js?v=21"></script>
+<script src="./storage.js?v=22"></script>
+<script src="./audio.js?v=22"></script>
+<script src="./effects.js?v=22"></script>
+<script src="./assets.js?v=22"></script>
+<script src="./stickers.js?v=22"></script>
+<script src="./parts.js?v=22"></script>
+<script src="./app.js?v=22"></script>
 </body>
 </html>

@@ -119,7 +119,9 @@ const state = {
   // exports, so test data never contaminates the research data.
   practice: false,
   // v2 §5.3.2: 💩 and friends only appear when an adult turns this on.
-  silly: false
+  silly: false,
+  // v2 §7: how fast the narrator speaks. 0.8 / 0.9 / 1.0, default 0.9.
+  narrationSpeed: 0.9
 };
 
 
@@ -1201,6 +1203,7 @@ async function openAdultPanel() {
   paintSessionControls();
   paintMuteButtons();
   paintMotionButtons();
+  paintSpeedButtons();
   $('#export-result').innerHTML = '';
   $('#delete-confirm').hidden = true;
 }
@@ -1347,6 +1350,25 @@ async function setMotion(level) {
   paintMotionButtons();
 }
 
+/* v2 §7: the narration speed an adult has chosen. It reaches the audio
+   through Assets, which applies it as playbackRate with the pitch kept, and
+   as utterance.rate on the speechSynthesis stand-in. */
+async function setNarrationSpeed(speed) {
+  state.narrationSpeed = Number(speed);
+  Assets.setSpeed(state.narrationSpeed);
+  await Storage.setMeta('narrationSpeed', state.narrationSpeed);
+  paintSpeedButtons();
+  logEvent('narration_speed', { speed: state.narrationSpeed });
+  // Say a line at the new pace, so the choice can be heard rather than guessed.
+  speakLine('nar-make-intro');
+}
+
+function paintSpeedButtons() {
+  $$('[data-speed]').forEach(button => {
+    button.classList.toggle('is-on', Number(button.dataset.speed) === state.narrationSpeed);
+  });
+}
+
 function paintMotionButtons() {
   $$('[data-motion]').forEach(button => {
     button.classList.toggle('is-on', button.dataset.motion === state.motion);
@@ -1420,6 +1442,8 @@ function wireUp() {
   $('#btn-export').addEventListener('click', exportAll);
   $$('[data-motion]').forEach(b =>
     b.addEventListener('click', () => setMotion(b.dataset.motion)));
+  $$('[data-speed]').forEach(b =>
+    b.addEventListener('click', () => setNarrationSpeed(b.dataset.speed)));
 
   // Delete all, with the double confirmation the spec asks for.
   $('#btn-delete-all').addEventListener('click', () => {
@@ -1453,6 +1477,8 @@ async function boot() {
   state.missionOn = await Storage.getMeta('missionOn', {}) || {};
   state.practice  = await Storage.getMeta('practice', false);
   state.silly     = await Storage.getMeta('silly', false);
+  state.narrationSpeed = await Storage.getMeta('narrationSpeed', Assets.DEFAULT_SPEED);
+  Assets.setSpeed(state.narrationSpeed);
   paintPracticeBadge();
 
   // Spec §5a: default to Full, or Calm if the iPad has Reduce Motion switched on.
@@ -1464,6 +1490,7 @@ async function boot() {
   Voice.setMuted(state.muted);
   paintMuteButtons();
   paintMotionButtons();
+  paintSpeedButtons();
 
   // Milestone 9: offline support.
   registerServiceWorker();
@@ -2684,7 +2711,7 @@ function enterPowerup() {
                 about screens.
      storage.js keeps the recording as a Blob in its own IndexedDB store,
                 under an audioId (spec §8).
-     this file  keeps `agent.voice = { audioId, filter, yesClips }` and drives
+     this file  keeps `agent.voice = { audioId, filter, threeWays }` and drives
                 the buttons.
 
    WHY THE BLOB IS HELD IN MEMORY TOO
@@ -2770,7 +2797,7 @@ function paintYesSlots() {
     const slot = document.createElement('div');
     slot.className = 'yes-slot';
 
-    const filled = Boolean(state.agent.voice.yesClips[i] && yesClips[i]);
+    const filled = Boolean(state.agent.voice.threeWays[i] && yesClips[i]);
     const busy   = recordingSlot === i;
 
     const main = document.createElement('button');
@@ -2910,7 +2937,8 @@ async function chooseFilter(filterId) {
 
 /* ---------------------------------------------------------------------------
    THE BONUS "YES x3" SLOTS (spec §7)
-   The same recorder, into agent.voice.yesClips instead.
+   The same recorder, into agent.voice.threeWays instead.
+   v2 §5.6 renames this to "Say it 3 ways" with 📢 🤫 ❓ hints at V5.
    ------------------------------------------------------------------------ */
 async function recordYes(index) {
   Voice.unlock();
@@ -2927,11 +2955,11 @@ async function recordYes(index) {
 
   try {
     const result = await Voice.record({ onTick: () => {} });
-    const oldId = state.agent.voice.yesClips[index];
+    const oldId = state.agent.voice.threeWays[index];
 
     const id = uuid();
     await Storage.saveAudio(id, result.blob);
-    state.agent.voice.yesClips[index] = id;
+    state.agent.voice.threeWays[index] = id;
     yesClips[index] = result.blob;
 
     if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
@@ -2947,7 +2975,7 @@ async function recordYes(index) {
 }
 
 async function playYes(index) {
-  const id = state.agent.voice.yesClips[index];
+  const id = state.agent.voice.threeWays[index];
   if (!id || !yesClips[index]) return;
   Voice.unlock();
   try {
@@ -3011,6 +3039,7 @@ async function enterVoice() {
   hideTrouble();
   voiceClip = null;
   yesClips = [null, null, null];
+  if (!Array.isArray(voice.threeWays)) voice.threeWays = [null, null, null];
 
   if (voice.audioId) {
     const row = await Storage.loadAudio(voice.audioId);
@@ -3022,7 +3051,7 @@ async function enterVoice() {
   }
 
   for (let i = 0; i < 3; i++) {
-    const id = voice.yesClips[i];
+    const id = voice.threeWays[i];
     if (!id) continue;
     const row = await Storage.loadAudio(id);
     yesClips[i] = row ? row.blob : null;

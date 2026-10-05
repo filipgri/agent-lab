@@ -34,7 +34,7 @@ What to make in ChatGPT and ElevenLabs, how to make it, and what to call each fi
 - **Name it exactly as in the tables:** lower case, with hyphens. The extension doesn't matter (`.png`, `.jpg`, `.webp`, `.mp3`), because Claude Code converts files.
 - **Put downloads in `assets/incoming/`,** then tell Claude Code **"Bring in the new assets."** It resizes, compresses, renames and moves each file into place, then tells you what's still missing.
 - **Never put children's work into ChatGPT or ElevenLabs:** no names, drawings or voices. ElevenLabs is for over-18s only, and a child's voice is personal data. Typed requests (§7) are words you review first.
-- **Keep API keys out of the repo.** If you use the scripts, the keys live in a `.env` file, which Claude Code adds to `.gitignore` in V0. Check it's listed there before you create the file.
+- **Keep API keys out of the repo.** If you use the scripts, the keys live in a `.env` file. `tools/make_audio.py setup` adds `.env` to `.gitignore` for you.
 - **Judge every image on the iPad at small size** before you keep it.
 
 ---
@@ -180,25 +180,22 @@ The children asked for real recorded voices rather than synthetic speech. Treat 
 
 ### 4.3 Settings
 
-- **Model:** the newest one that follows audio tags such as `[whispers]` (Eleven v4 at the time of writing). If it sounds unstable, use Multilingual v2 and remove the tags.
-- **Speed: 0.9** (the range is 0.7–1.2). Children with language disorders process speech more slowly (Zapparrata, Brooks & Ober, 2023).
-- **Voice settings:** stability in the middle, style low, speaker boost on.
+- **Model:** Eleven v4 (`eleven_v4`), the newest model, which follows audio tags such as `[whispers]`. If it gives you trouble, add `NARRATOR_MODEL=eleven_multilingual_v2` to `.env`; the script then removes the tags, which that model would read aloud.
+- **Speed:** Eleven v4 has no speed setting; it takes only stability and similarity. Instead, the app plays narration a little slower (0.9×, an adult setting) without changing the pitch. Children with language disorders process speech more slowly (Zapparrata, Brooks & Ober, 2023), so choose a voice that already sounds unhurried.
+- **Voice settings:** stability 0.5 and similarity 0.75. The script sends only the settings the chosen model accepts.
 - **Output:** MP3, 44.1 kHz, 128 kbps.
 - **Pauses:** use full stops between short sentences. Avoid tags other than `[whispers]`.
 
 ### 4.4 Two ways to make the narration
 
-**With the script (recommended for 115 lines).**
-1. Ask Claude Code for **T1** (spec §10).
-2. Create a file called `.env` in the repo folder containing:
-   ```
-   ELEVENLABS_API_KEY=your-key-here
-   ELEVENLABS_VOICE_ID=the-voice-id
-   ```
-3. Say **"Make the narrator voices."** It makes every missing file with the exact name.
-4. Listen on the iPad (Asset check ▶️). To redo a line, say for example **"Redo nar-hq-intro."**
+**With the script (recommended for 115 lines).** `tools/make_audio.py` makes the narrator lines and the sound effects. It reads the tables in this guide and saves every file straight into `assets/audio/` under its exact name.
+1. Put `make_audio.py` in `agent-lab/tools/`.
+2. In Terminal, from the agent-lab folder, run `python3 tools/make_audio.py setup`. It asks for your API key, lets you pick the narrator from your voices, saves both in `.env`, and adds `.env` to `.gitignore`.
+3. Run `python3 tools/make_audio.py narrator` to make the session-2 lines. Add `--session 4` for everything.
+4. Run `python3 tools/make_audio.py play narrator` to listen.
+5. To redo one line, run `python3 tools/make_audio.py narrator --only nar-hq-intro --force`.
 
-The whole script is about 3,000 characters, which fits within a basic plan.
+Session 2 is 1,401 characters of text and all sessions together are 2,352, which fits within a basic plan. The step-by-step page "Agent Lab Voices" has every command with a copy button.
 
 **By hand.** Text to Speech → paste the line → Generate → Download → rename → `assets/incoming/`.
 
@@ -348,7 +345,9 @@ Lines starting with `[whispers]` keep the tag in the text.
 
 ### 4.6 Sound effects
 
-**How:** ElevenLabs → Sound Effects → paste the prompt plus the style line → set the duration → Generate → pick the best → Download → rename → `assets/incoming/`.
+**With the script:** run `python3 tools/make_audio.py sfx`, then `python3 tools/make_audio.py play sfx`. It adds the style line and the duration for you. Redo one sound with `--only sfx-stamp --force`.
+
+**By hand:** ElevenLabs → Sound Effects → paste the prompt plus the style line → set the duration → Generate → pick the best → Download → rename → `assets/incoming/`.
 
 **Style line for every sound:** *"Soft, friendly, cartoon-like and clean. Not too loud, no harsh high pitches, no music, no voices."* Some children may be sound-sensitive.
 

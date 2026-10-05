@@ -77,6 +77,7 @@ external fonts or libraries, or text-heavy instructions.
 | `icons/make-icons.py` | Draws the three app icons; re-run if you change them |
 | `tools/sync-assets.py` | Rebuilds `assets/manifest.json` from the asset guide |
 | `tools/bring-in-assets.py` | Files `assets/incoming/` into place, resized |
+| `tools/make_audio.py` | **Supplied by Filip.** Makes the narration and sounds with ElevenLabs. Do not write another — keep this one working |
 | `README.md` | Deploy steps, iPad setup, test checklists |
 
 v2 §1 also allows `parts.js` (V2) and `stickers.js` (V2) when those milestones
@@ -235,6 +236,24 @@ release** or an iPad will keep running the old JavaScript against new HTML.
   say when the agent uses it.
 
 
+## Audio: `tools/make_audio.py` (v2 §10, T1)
+
+**Filip supplies this script. Never write another one.** It reads the tables
+in `asset-guide.md` §4.5 and §4.6 *directly* — not the manifest — and writes
+straight to `assets/audio/narrator/<id>.mp3` and `assets/audio/sfx/<id>.mp3`
+under the exact manifest names. **So audio normally bypasses "bring in"
+entirely**; only hand-made audio goes through that tool.
+
+If the shape of those two tables ever changes, update the script's
+`read_guide()` to match, and check it still agrees with the manifest:
+
+```bash
+python3 tools/sync-assets.py        # rebuild the manifest from the guide
+```
+
+Its default model is `eleven_v4`, which understands `[whispers]` and has no
+speed setting — which is why the app slows narration itself (§7).
+
 ## "Bring in the new assets" (v2 §5.0)
 
 When Filip says this, run:
@@ -295,6 +314,11 @@ hand-edit the manifest, and never edit both.
   open whatever the setting; nobody is locked out of their own work.
 - **Sounds go through `Assets.sfx('sfx-…')`**, which uses Filip's file if it
   exists and `Voice.sfx()`'s generated sound if not.
+- **Narration speed is one setting in two places** (v2 §7). `Assets.setSpeed()`
+  applies it as `playbackRate` with `preservesPitch` (plus the `webkit-` and
+  `moz-` spellings) so the voice does not turn into a chipmunk, AND as
+  `utterance.rate` on the `speechSynthesis` stand-in — a line without a
+  recording must be read at the same pace as one with. Default 0.9×.
 - **Narration goes through `Assets.say('nar-…')`**, which uses the recording
   if it exists and `speechSynthesis` if not. `[whispers]` is a tag for the
   voice service and is stripped before speaking.
