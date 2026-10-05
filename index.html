@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=30">
+  <link rel="stylesheet" href="./style.css?v=33">
 </head>
 <body>
 
@@ -534,9 +534,14 @@
                 <div id="m4-filters" class="filter-row"></div>
               </div>
 
-              <!-- The optional bonus from spec §7: three ways of saying yes. -->
+              <!-- v2 §5.6: "Say it 3 ways". Three slots with hint icons -
+                   📢 big, 🤫 small, ❓ asking. The child says their password,
+                   or any word, three ways. -->
               <div id="m4-yes-block" class="m4-yes-block" hidden>
-                <h2 class="m4-question m4-question-small">Bonus: say “yes” three ways</h2>
+                <h2 class="m4-question m4-question-small">
+                  Say it 3 ways
+                  <button class="btn btn-icon-only" data-say="nar-voice-3ways" aria-label="Hear this">🔊</button>
+                </h2>
                 <div id="m4-yes" class="yes-row"></div>
               </div>
 
@@ -683,7 +688,19 @@
     </div>
   </main>
 
-  <footer class="bottombar">
+  <footer class="bottombar reveal-bar">
+    <!-- v2 §5.11: the two checks come before Seal and Finish, because they are
+         what the card is FOR - can the child still tell it is their agent at
+         badge size, and on the wall? -->
+    <button id="btn-badge-check" class="btn btn-stamp">
+      <span class="btn-icon">🏷️</span><span class="btn-label">Badge check</span>
+    </button>
+    <button id="btn-wall-check" class="btn btn-stamp">
+      <span class="btn-icon">🖼️</span><span class="btn-label">Wall check</span>
+    </button>
+    <button id="btn-seal" class="btn btn-stamp">
+      <span class="btn-icon">🔒</span><span class="btn-label">Seal</span>
+    </button>
     <button id="btn-save-card" class="btn btn-stamp">
       <span class="btn-icon">💾</span><span class="btn-label">Save card</span>
     </button>
@@ -801,6 +818,25 @@
           <button class="btn seg" data-speed="0.8">0.8×</button>
           <button class="btn seg" data-speed="0.9">0.9×</button>
           <button class="btn seg" data-speed="1">1.0×</button>
+        </div>
+      </div>
+      <!-- v2 §5.11: the badge check shows the render at life size, which
+           depends on how many CSS pixels this iPad puts in an inch. 132 is
+           right for the iPads we use; it is adjustable so the check stays
+           honest on other hardware. -->
+      <div class="setting-row">
+        <span>Badge size (px/inch)</span>
+        <div id="ppi-group" class="seg-group">
+          <button class="btn seg" data-ppi="120">120</button>
+          <button class="btn seg" data-ppi="132">132</button>
+          <button class="btn seg" data-ppi="144">144</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span>Wall palette</span>
+        <div id="wall-group" class="seg-group">
+          <button class="btn seg" data-wall="6">6 colour</button>
+          <button class="btn seg" data-wall="7">7 colour</button>
         </div>
       </div>
       <div class="setting-row">
@@ -952,12 +988,86 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=30"></script>
-<script src="./audio.js?v=30"></script>
-<script src="./effects.js?v=30"></script>
-<script src="./assets.js?v=30"></script>
-<script src="./stickers.js?v=30"></script>
-<script src="./parts.js?v=30"></script>
-<script src="./app.js?v=30"></script>
+<script src="./storage.js?v=33"></script>
+<script src="./audio.js?v=33"></script>
+<script src="./effects.js?v=33"></script>
+<script src="./assets.js?v=33"></script>
+<script src="./stickers.js?v=33"></script>
+<script src="./parts.js?v=33"></script>
+<script src="./app.js?v=33"></script>
+
+<!-- ============================================================ -->
+<!-- BADGE CHECK (v2 §5.11)                                        -->
+<!-- The badge face at its real size on the Tufty: 320x240 pixels  -->
+<!-- on a screen about 49 x 37 mm. Tiny on purpose.                -->
+<!-- ============================================================ -->
+<div id="badge-overlay" class="overlay" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="badge-title">Badge check</h3>
+      <button class="btn btn-icon-only" data-say="nar-card-badge" aria-label="Hear this">🔊</button>
+    </div>
+
+    <div class="badge-life">
+      <p class="badge-note">This is how big it really is.</p>
+      <canvas id="badge-canvas" width="320" height="240" class="badge-canvas"></canvas>
+    </div>
+
+    <div id="badge-zoom-wrap" class="badge-zoom-wrap" hidden>
+      <canvas id="badge-zoom" class="badge-zoom"></canvas>
+    </div>
+
+    <div class="sheet-tools">
+      <button id="btn-badge-zoom" class="btn tool" aria-label="Show it big">🔍<span class="tool-word">Big</span></button>
+      <button id="btn-badge-close" class="btn btn-accent" aria-label="Close">✓ Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- WALL CHECK (v2 §5.11)                                         -->
+<!-- 800x480, dithered to the e-paper panel's few colours.         -->
+<!-- ============================================================ -->
+<div id="wall-overlay" class="overlay" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3>Wall check</h3>
+      <button class="btn btn-icon-only" data-say="nar-card-wall" aria-label="Hear this">🔊</button>
+    </div>
+
+    <div class="wall-wrap">
+      <canvas id="wall-canvas" width="800" height="480" class="wall-canvas"></canvas>
+    </div>
+    <p id="wall-note" class="badge-note"></p>
+
+    <div class="sheet-tools">
+      <button id="btn-wall-close" class="btn btn-accent" aria-label="Close">✓ Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SEAL (v2 §5.2)                                                -->
+<!-- Three symbols, in order, from nine. Not security: a spy-themed -->
+<!-- privacy choice. A wrong try shakes and nothing locks out.      -->
+<!-- ============================================================ -->
+<div id="seal-overlay" class="overlay" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="seal-title">Seal your file?</h3>
+      <button id="seal-say" class="btn btn-icon-only" data-say="nar-card-seal" aria-label="Hear this">🔊</button>
+    </div>
+
+    <div id="seal-picked" class="seal-picked" aria-label="Your symbols"></div>
+    <div id="seal-symbols" class="seal-symbols"></div>
+
+    <div class="sheet-tools">
+      <button id="btn-seal-undo" class="btn tool" aria-label="Take one back">↶<span class="tool-word">Back</span></button>
+      <button id="btn-seal-adult" class="btn tool" aria-label="Ask a grown-up">🧑<span class="tool-word">Grown-up</span></button>
+      <button id="btn-seal-cancel" class="btn tool" aria-label="Not now">✕<span class="tool-word">Not now</span></button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

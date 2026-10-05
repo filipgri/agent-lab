@@ -338,10 +338,19 @@ body {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  /* The card's bar carries five buttons at V5. On a narrow iPad (the mini is
+     744 CSS px) they do not fit on one line, and nowrap would push Finish off
+     the edge - so it wraps instead. Nothing in this bar may become
+     unreachable. */
+  flex-wrap: wrap;
+  row-gap: 10px;
   gap: 14px;
   padding: 10px var(--gap) 14px;
   background: rgba(0,0,0,.25);
 }
+
+/* The card's own bar is tighter, so five fit on one line wherever they can. */
+.reveal-bar .btn-stamp { font-size: 22px; padding: 0 22px; }
 .btn-pass  { font-size: 19px; background: var(--navy-2); color: var(--muted); }
 .btn-stamp { font-size: 26px; min-height: 76px; padding: 0 34px; }
 
@@ -2670,4 +2679,89 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   .hq-stage-col { flex-direction: row; align-items: center; justify-content: center; }
   .hq-stage { width: min(40vw, 240px); }
   .hq-stage-tools { flex-direction: column; }
+}
+
+/* ============================================================
+   BADGE CHECK, WALL CHECK AND SEAL (v2 §5.11, §5.2)
+   ============================================================ */
+
+/* The badge at life size. The canvas is 320x240 device-independent pixels,
+   but the Tufty's screen is only about 49 x 37 mm, so it is scaled DOWN to
+   that physical size by app.js, which knows the px-per-inch setting. The
+   point of this check is that it looks tiny - that is the honest answer. */
+.badge-life { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.badge-note { margin: 0; font-size: 14px; color: var(--muted); letter-spacing: .03em; }
+.badge-canvas {
+  image-rendering: pixelated;
+  background: #000;
+  border-radius: 4px;
+  box-shadow: 0 0 0 3px #2b3b55, 0 6px 18px rgba(0,0,0,.5);
+}
+
+/* 🔍 Big: the same 320x240, blown up with no smoothing, so a child can see
+   what survives and what turns to mush. */
+.badge-zoom-wrap { display: flex; justify-content: center; }
+.badge-zoom {
+  image-rendering: pixelated;
+  width: min(100%, 480px);
+  background: #000;
+  border-radius: 8px;
+}
+
+.wall-wrap { display: flex; justify-content: center; }
+.wall-canvas {
+  image-rendering: pixelated;
+  width: min(100%, 520px);
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.5);
+}
+
+.sheet-tools { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* --- the seal --- */
+.seal-symbols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.seal-symbol {
+  min-width: var(--tap); min-height: 88px;
+  border: none; border-radius: 20px;
+  background: var(--navy-3); color: var(--text);
+  font-size: 44px; line-height: 1; cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.seal-symbol:active { transform: scale(.94); }
+
+/* The three slots filling up. They show the symbol, not a dot: the child is
+   choosing symbols in order, and hiding them would make it a memory test. */
+.seal-picked {
+  display: flex; gap: 12px; justify-content: center;
+  min-height: 72px; align-items: center;
+}
+.seal-slot {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: var(--navy-1);
+  box-shadow: inset 0 0 0 2px var(--navy-3);
+  display: grid; place-items: center;
+  font-size: 34px; line-height: 1;
+}
+.seal-slot.is-filled { box-shadow: inset 0 0 0 3px var(--accent); }
+
+/* A wrong try shakes. It never locks anyone out (v2 §5.2). */
+@keyframes seal-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px); }
+  40% { transform: translateX(9px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+.seal-picked.is-wrong { animation: seal-shake .4s ease; }
+@media (prefers-reduced-motion: reduce) { .seal-picked.is-wrong { animation: none; } }
+
+/* A sealed agent in the gallery. */
+.agent-tile .tile-lock {
+  position: absolute; top: 8px; right: 10px;
+  font-size: 22px; line-height: 1;
 }

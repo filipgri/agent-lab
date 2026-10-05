@@ -259,8 +259,28 @@ release** or an iPad will keep running the old JavaScript against new HTML.
   - Choosing a photograph clears a drawing and the other way round — including
     from the Power-up's Place tab, which is a shortcut to the same choice.
   - **Nowhere is an equal option**, not a way of undoing a mistake.
-- **Next: v2 V5 — Voice password** (v2 §5.6): the small change, including the
-  §5.6 rename of the three bonus slots to 📢 🤫 ❓.
+- **v2 V5 — done (5 October 2026).** Voice, the session-2 card and the seal.
+  - **§5.6 "Say it 3 ways".** The v1 "Yes ×3" bonus is now three slots with
+    hint icons — 📢 big, 🤫 small, ❓ asking. The slot is logged by its *way*,
+    not its number (`three_ways_record {slot: 'big'}`), because "yes2" answers
+    no research question.
+  - **§5.11 Badge check.** The badge face renders at 320×240 and is shown at
+    the size it will really be — 49 × 37 mm, from `state.badgePpi` (an adult
+    setting, default 132). It is meant to look tiny; that is the answer. 🔍
+    blows the same pixels up with no smoothing. Works before the badge
+    mission exists, using the default layout §5.11 describes.
+  - **§5.11 Wall check.** 800×480, dithered with Floyd–Steinberg to the
+    e-paper palette — Spectra 6 by default, 7 colours optional, an adult
+    setting. Verified to produce exactly 6 (or 7) distinct colours.
+  - **§5.2 The seal.** Three symbols in order from nine. A sealed tile in the
+    gallery shows 🔒 and asks before opening. A wrong try shakes and clears —
+    **no counter, no lock-out** — and "Ask a grown-up" opens any file with the
+    panel PIN, so a child who forgets can never lose their own work.
+- **Next: v2 V6 — Exports for the build team** (v2 §5.12) and moving agents
+  between iPads (§5.2).
+
+**→ Session 2 is now buildable end to end.** §10 asks for a full run on a real
+iPad in about 13 minutes before the session.
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)
@@ -318,6 +338,17 @@ hand-edit the manifest, and never edit both.
 ## Conventions in this codebase
 
 ### v2 conventions (from V3)
+
+- **An event about an agent that is not `state.agent` needs
+  `logEventOnAgent()`.** `logEvent()` writes to the agent in memory and leaves
+  the debounced save to catch up — but opening a sealed file replaces
+  `state.agent` with a fresh copy from storage, which threw the event away
+  before the save ran. The log recorded every failed unseal and never a
+  successful one. Anything logged against another agent must be written onto
+  that record and saved there and then.
+- **The card's bottom bar wraps.** It carries five buttons from V5 and an
+  iPad mini is 744 CSS px, where one line does not fit. Nothing in that bar
+  may become unreachable — Finish least of all.
 
 - **An animation's clean-up is a timer, not `animationend`.** The HQ landing
   runs on four layers and only the visible ones fire the event at all — and

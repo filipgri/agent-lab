@@ -693,8 +693,17 @@ async function renderGallery() {
       '<span class="gallery-emblem">' + emblem + '</span>' +
       '<span class="gallery-name">' + (agent.codename || 'Agent') + '</span>' +
       (agent.practice ? '<span class="gallery-practice">PRACTICE</span>' : '');
-    tile.setAttribute('aria-label', 'Open ' + (agent.codename || 'agent'));
-    tile.addEventListener('click', () => openAgentFromGallery(agent.id));
+    // v2 §5.2: a sealed tile shows the lock and asks before it opens.
+    if (agent.seal) {
+      tile.insertAdjacentHTML('beforeend', '<span class="tile-lock">🔒</span>');
+      tile.classList.add('is-sealed');
+    }
+    tile.setAttribute('aria-label',
+      (agent.seal ? 'Sealed: ' : 'Open ') + (agent.codename || 'agent'));
+    tile.addEventListener('click', () => {
+      if (agent.seal) askForSeal(agent, openAgentFromGallery);
+      else openAgentFromGallery(agent.id);
+    });
     box.appendChild(tile);
   });
 }
@@ -1215,6 +1224,8 @@ async function openAdultPanel() {
   paintMuteButtons();
   paintMotionButtons();
   paintSpeedButtons();
+  paintPpiButtons();
+  paintWallButtons();
   $('#export-result').innerHTML = '';
   $('#delete-confirm').hidden = true;
 }
@@ -1380,6 +1391,30 @@ function paintSpeedButtons() {
   });
 }
 
+/* v2 §5.11: the two settings the card's checks need. */
+async function setBadgePpi(value) {
+  state.badgePpi = Number(value);
+  await Storage.setMeta('badgePpi', state.badgePpi);
+  paintPpiButtons();
+  sizeBadgeToLife();            // if the badge check is open, it resizes live
+}
+
+async function setWallPalette(value) {
+  state.wallPalette = Number(value);
+  await Storage.setMeta('wallPalette', state.wallPalette);
+  paintWallButtons();
+}
+
+function paintPpiButtons() {
+  $$('[data-ppi]').forEach(b =>
+    b.classList.toggle('is-on', Number(b.dataset.ppi) === state.badgePpi));
+}
+
+function paintWallButtons() {
+  $$('[data-wall]').forEach(b =>
+    b.classList.toggle('is-on', Number(b.dataset.wall) === state.wallPalette));
+}
+
 function paintMotionButtons() {
   $$('[data-motion]').forEach(button => {
     button.classList.toggle('is-on', button.dataset.motion === state.motion);
@@ -1424,6 +1459,7 @@ function wireUp() {
   wireDoors();
   wirePowerup();
   wireHq();
+  wireCardV5();
   wireMood();
   wireVoice();
   wireBadge();
@@ -1456,6 +1492,10 @@ function wireUp() {
     b.addEventListener('click', () => setMotion(b.dataset.motion)));
   $$('[data-speed]').forEach(b =>
     b.addEventListener('click', () => setNarrationSpeed(b.dataset.speed)));
+  $$('[data-ppi]').forEach(b =>
+    b.addEventListener('click', () => setBadgePpi(b.dataset.ppi)));
+  $$('[data-wall]').forEach(b =>
+    b.addEventListener('click', () => setWallPalette(b.dataset.wall)));
 
   // Delete all, with the double confirmation the spec asks for.
   $('#btn-delete-all').addEventListener('click', () => {
@@ -1490,6 +1530,8 @@ async function boot() {
   state.practice  = await Storage.getMeta('practice', false);
   state.silly     = await Storage.getMeta('silly', false);
   state.narrationSpeed = await Storage.getMeta('narrationSpeed', Assets.DEFAULT_SPEED);
+  state.badgePpi     = await Storage.getMeta('badgePpi', 132);      // v2 §5.11
+  state.wallPalette  = await Storage.getMeta('wallPalette', 6);     // v2 §5.11
   Assets.setSpeed(state.narrationSpeed);
   paintPracticeBadge();
 
@@ -1503,6 +1545,8 @@ async function boot() {
   paintMuteButtons();
   paintMotionButtons();
   paintSpeedButtons();
+  paintPpiButtons();
+  paintWallButtons();
 
   // Milestone 9: offline support.
   registerServiceWorker();
@@ -2803,7 +2847,15 @@ function paintFilterButtons() {
   });
 }
 
-/* The three bonus "yes" slots (spec §7). Each is record, or play-and-redo. */
+/* v2 §5.6: "Say it 3 ways". Three slots, each with a hint icon - big, small,
+   asking - because the child is saying ONE word three ways, not three words.
+   The icon is the whole instruction; §12 rules out explaining it in text. */
+const THREE_WAYS = [
+  { icon: '📢', word: 'Big' },
+  { icon: '🤫', word: 'Small' },
+  { icon: '❓', word: 'Asking' }
+];
+
 function paintYesSlots() {
   const row = $('#m4-yes');
   if (!row) return;
@@ -2816,14 +2868,17 @@ function paintYesSlots() {
     const filled = Boolean(state.agent.voice.threeWays[i] && yesClips[i]);
     const busy   = recordingSlot === i;
 
+    const way = THREE_WAYS[i];
+
     const main = document.createElement('button');
     main.className = 'btn tool yes-btn' + (busy ? ' is-recording' : '');
     main.innerHTML = '<span class="filter-icon">' +
-                     (busy ? '⏹️' : filled ? '▶️' : '🎤') + '</span>' +
-                     '<span class="tool-word">Yes ' + (i + 1) + '</span>';
+                     (busy ? '⏹️' : filled ? '▶️' : way.icon) + '</span>' +
+                     '<span class="tool-word">' + way.word + '</span>';
     main.setAttribute('aria-label',
-      busy ? 'Stop recording yes ' + (i + 1)
-           : filled ? 'Play yes ' + (i + 1) : 'Record yes ' + (i + 1));
+      busy ? 'Stop recording, ' + way.word.toLowerCase()
+           : filled ? 'Play it ' + way.word.toLowerCase()
+                    : 'Record it ' + way.word.toLowerCase());
     main.addEventListener('click', () => {
       if (busy) Voice.stop();
       else if (filled) playYes(i);
@@ -2836,7 +2891,7 @@ function paintYesSlots() {
       const redo = document.createElement('button');
       redo.className = 'btn yes-redo';
       redo.textContent = '🔄';
-      redo.setAttribute('aria-label', 'Record yes ' + (i + 1) + ' again');
+      redo.setAttribute('aria-label', 'Record it ' + way.word.toLowerCase() + ' again');
       redo.addEventListener('click', () => recordYes(i));
       slot.appendChild(redo);
     }
@@ -2952,9 +3007,10 @@ async function chooseFilter(filterId) {
 
 
 /* ---------------------------------------------------------------------------
-   THE BONUS "YES x3" SLOTS (spec §7)
-   The same recorder, into agent.voice.threeWays instead.
-   v2 §5.6 renames this to "Say it 3 ways" with 📢 🤫 ❓ hints at V5.
+   "SAY IT 3 WAYS" (v2 §5.6; the v1 "Yes x3" bonus)
+   The same recorder, into agent.voice.threeWays. The slot is logged by its
+   WAY - big, small, asking - not by its number, because the research question
+   is which way a child reached for, and "yes2" answers nothing.
    ------------------------------------------------------------------------ */
 async function recordYes(index) {
   Voice.unlock();
@@ -2967,7 +3023,7 @@ async function recordYes(index) {
   Voice.stopPlayback();
   recordingSlot = index;
   renderVoice();
-  logEvent('record_start', { slot: 'yes' + (index + 1) });
+  logEvent('record_start', { slot: THREE_WAYS[index].word.toLowerCase() });
 
   try {
     const result = await Voice.record({ onTick: () => {} });
@@ -2980,7 +3036,9 @@ async function recordYes(index) {
 
     if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
 
-    logEvent('record_stop', { slot: 'yes' + (index + 1), ms: Math.round(result.ms) });
+    const way = THREE_WAYS[index].word.toLowerCase();
+    logEvent('record_stop', { slot: way, ms: Math.round(result.ms) });
+    logEvent('three_ways_record', { slot: way });     // v2 §5.6
     scheduleSave();
   } catch (err) {
     micFailed(err);
@@ -4204,6 +4262,8 @@ async function renderReveal() {
   $('#reveal-play').disabled = !agent.voice.audioId;
 
   renderRevealRules();
+
+  renderRevealButtons();          // the Seal button says Seal or Change seal
 
   // Fetch everything the Save button will need, now rather than on the tap.
   await preloadCardAssets();
@@ -6685,4 +6745,462 @@ function wireHq() {
   $('#btn-hq-draw').addEventListener('click', openHqDraw);
   $('#btn-hq-none').addEventListener('click', clearHq);
   $('#btn-hq-again').addEventListener('click', landAgent);
+}
+
+
+/* ===========================================================================
+   28. THE SEAL, THE BADGE CHECK AND THE WALL CHECK (v2 V5, §5.2 and §5.11)
+
+   Three things the session-2 card offers:
+
+   - **Seal** (§5.2) is NOT security. It is a spy-themed privacy choice, and
+     *who chooses to seal* is itself the research data. Three symbols in order
+     out of nine; a wrong try shakes and nothing ever locks a child out; and
+     an adult can always open a file with the panel PIN.
+
+   - **Badge check** (§5.11) renders the badge face at 320x240 and shows it at
+     the size it will really be - the Tufty's screen is about 49 x 37 mm. It
+     is meant to look tiny. The question is whether a child can still tell it
+     is their agent.
+
+   - **Wall check** (§5.11) renders at 800x480 and dithers it to the few
+     colours an e-paper panel can actually print.
+   ======================================================================== */
+
+/* §5.2's nine symbols, in the spec's order. */
+const SEAL_SYMBOLS = ['🦊', '🌙', '⚡', '🍕', '🎈', '🌵', '🐙', '🎲', '🔑'];
+const SEAL_LENGTH = 3;
+
+/* The Tufty 2040's screen, from §5.11. */
+const BADGE_W = 320, BADGE_H = 240;
+const BADGE_MM_W = 49, BADGE_MM_H = 37;
+const MM_PER_INCH = 25.4;
+
+/* The e-paper palettes (§5.11). Spectra 6 is the default; the 7-colour panel
+   adds orange. These are the only colours the wall can actually show, which
+   is the whole point of dithering to them. */
+const WALL_PALETTES = {
+  6: [[0,0,0], [255,255,255], [255,0,0], [255,255,0], [0,255,0], [0,0,255]],
+  7: [[0,0,0], [255,255,255], [255,0,0], [255,255,0], [0,255,0], [0,0,255], [255,128,0]]
+};
+
+
+/* ---------------------------------------------------------------------------
+   BADGE CHECK
+   ------------------------------------------------------------------------ */
+async function openBadgeCheck() {
+  if (!state.agent) return;
+  Voice.unlock();
+
+  logEvent('badge_check_open', {});
+  $('#badge-zoom-wrap').hidden = true;        // always starts life-size
+  $('#badge-overlay').hidden = false;
+  playSfx('sfx-file-open');
+
+  await drawBadgeFace($('#badge-canvas'));
+  sizeBadgeToLife();
+  speakLine('nar-card-badge');
+}
+
+/* Scale the 320x240 canvas down to its real physical size. CSS pixels are not
+   millimetres, so this needs to know how many of them this screen puts in an
+   inch - an adult setting, because it is wrong on other hardware. */
+function sizeBadgeToLife() {
+  const canvas = $('#badge-canvas');
+  if (!canvas) return;
+  const ppi = state.badgePpi || 132;
+  const widthPx  = (BADGE_MM_W / MM_PER_INCH) * ppi;
+  const heightPx = (BADGE_MM_H / MM_PER_INCH) * ppi;
+  canvas.style.width  = widthPx + 'px';
+  canvas.style.height = heightPx + 'px';
+}
+
+/* The badge face. v2 §5.11: if the badge mission has not been done yet, use a
+   default layout - the agent on the left, the emblem and codename on the
+   right - so the check works in session 2, before that mission exists. */
+async function drawBadgeFace(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, BADGE_W, BADGE_H);
+
+  await preloadCardAssets();
+
+  // The agent, filling the left square.
+  const pad = 8;
+  const size = BADGE_H - pad * 2;
+  drawAgentToCanvas(ctx, state.agent.cover, pad, pad, size, true);
+
+  // The emblem and codename on the right.
+  const rightX = pad + size + 12;
+  const rightW = BADGE_W - rightX - pad;
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffd23f';
+  ctx.font = '48px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillText((state.agent.emblem && state.agent.emblem.emoji) || '🕵️',
+               rightX + rightW / 2, 78);
+
+  // The codename, wrapped to the narrow column and shrunk until it fits.
+  ctx.fillStyle = '#fff';
+  const name = state.agent.codename || 'Agent';
+  let fontSize = 26;
+  let lines;
+  do {
+    ctx.font = '700 ' + fontSize + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+    lines = wrapText(ctx, name, rightW);
+    fontSize -= 2;
+  } while (lines.length > 3 && fontSize > 12);
+
+  lines.forEach((line, i) => {
+    ctx.fillText(line, rightX + rightW / 2,
+                 140 + i * (fontSize + 6) - (lines.length - 1) * (fontSize + 6) / 2);
+  });
+}
+
+/* Break a string into lines that fit a width. Canvas has no text wrapping. */
+function wrapText(ctx, text, maxWidth) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  words.forEach(word => {
+    const next = line ? line + ' ' + word : word;
+    if (ctx.measureText(next).width > maxWidth && line) { lines.push(line); line = word; }
+    else line = next;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+/* 🔍 Big: the same pixels, blown up with no smoothing. */
+function toggleBadgeZoom() {
+  const wrap = $('#badge-zoom-wrap');
+  const showing = wrap.hidden;
+  wrap.hidden = !showing;
+  if (!showing) return;
+
+  const from = $('#badge-canvas');
+  const to = $('#badge-zoom');
+  to.width = BADGE_W; to.height = BADGE_H;
+  const ctx = to.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(from, 0, 0);
+  logEvent('badge_zoom', {});
+}
+
+function closeBadgeCheck() { $('#badge-overlay').hidden = true; }
+
+
+/* ---------------------------------------------------------------------------
+   WALL CHECK
+   ------------------------------------------------------------------------ */
+async function openWallCheck() {
+  if (!state.agent) return;
+  Voice.unlock();
+
+  const which = state.wallPalette || 6;
+  logEvent('wall_check_open', { palette: which });
+  $('#wall-overlay').hidden = false;
+  playSfx('sfx-file-open');
+
+  const canvas = $('#wall-canvas');
+  await drawWallFace(canvas);
+  ditherToPalette(canvas, WALL_PALETTES[which] || WALL_PALETTES[6]);
+
+  $('#wall-note').textContent =
+    'The wall can only print ' + (WALL_PALETTES[which] || WALL_PALETTES[6]).length + ' colours.';
+  speakLine('nar-card-wall');
+}
+
+/* 800x480: the agent large on the left, emblem and codename on the right. */
+async function drawWallFace(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  await preloadCardAssets();
+
+  const pad = 20;
+  const size = canvas.height - pad * 2;
+  drawAgentToCanvas(ctx, state.agent.cover, pad, pad, size, true);
+
+  const rightX = pad + size + 24;
+  const rightW = canvas.width - rightX - pad;
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#000';
+  ctx.font = '110px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.fillText((state.agent.emblem && state.agent.emblem.emoji) || '🕵️',
+               rightX + rightW / 2, 150);
+
+  const name = state.agent.codename || 'Agent';
+  let fontSize = 54;
+  let lines;
+  do {
+    ctx.font = '700 ' + fontSize + 'px -apple-system, BlinkMacSystemFont, sans-serif';
+    lines = wrapText(ctx, name, rightW);
+    fontSize -= 3;
+  } while (lines.length > 3 && fontSize > 20);
+
+  lines.forEach((line, i) => {
+    ctx.fillText(line, rightX + rightW / 2,
+                 310 + i * (fontSize + 10) - (lines.length - 1) * (fontSize + 10) / 2);
+  });
+}
+
+/* Floyd-Steinberg dithering (§5.11).
+
+   An e-paper panel has no in-between colours: a pixel is one of six. Simply
+   snapping each pixel to the nearest one loses every gradient. Dithering
+   instead pushes the error - how far off the chosen colour was - onto the
+   neighbours that have not been drawn yet, so a half-tone becomes a mix of
+   two colours that READS as the shade from a step back. That is what the
+   fractions below are: 7/16 of the error to the right, then 3/16, 5/16 and
+   1/16 across the row underneath. */
+function ditherToPalette(canvas, palette) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const image = ctx.getImageData(0, 0, w, h);
+  const data = image.data;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+
+      const oldR = data[i], oldG = data[i + 1], oldB = data[i + 2];
+      const near = nearestColour(oldR, oldG, oldB, palette);
+
+      data[i] = near[0]; data[i + 1] = near[1]; data[i + 2] = near[2];
+
+      const errR = oldR - near[0], errG = oldG - near[1], errB = oldB - near[2];
+      spread(data, w, h, x + 1, y,     errR, errG, errB, 7 / 16);
+      spread(data, w, h, x - 1, y + 1, errR, errG, errB, 3 / 16);
+      spread(data, w, h, x,     y + 1, errR, errG, errB, 5 / 16);
+      spread(data, w, h, x + 1, y + 1, errR, errG, errB, 1 / 16);
+    }
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
+function spread(data, w, h, x, y, errR, errG, errB, factor) {
+  if (x < 0 || x >= w || y < 0 || y >= h) return;
+  const i = (y * w + x) * 4;
+  data[i]     = clamp255(data[i]     + errR * factor);
+  data[i + 1] = clamp255(data[i + 1] + errG * factor);
+  data[i + 2] = clamp255(data[i + 2] + errB * factor);
+}
+
+function clamp255(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+
+/* Nearest colour by plain squared distance. There is no need for a perceptual
+   colour space here: the palettes are six fully-saturated corners. */
+function nearestColour(r, g, b, palette) {
+  let best = palette[0], bestDist = Infinity;
+  for (let i = 0; i < palette.length; i++) {
+    const p = palette[i];
+    const dr = r - p[0], dg = g - p[1], db = b - p[2];
+    const dist = dr * dr + dg * dg + db * db;
+    if (dist < bestDist) { bestDist = dist; best = p; }
+  }
+  return best;
+}
+
+function closeWallCheck() { $('#wall-overlay').hidden = true; }
+
+
+/* ---------------------------------------------------------------------------
+   THE SEAL (v2 §5.2)
+
+   Two jobs in one sheet, told apart by `sealMode`:
+     'set'  - the child is choosing three symbols to seal this file
+     'open' - a sealed file is being opened and the symbols are being checked
+
+   It is deliberately gentle. A wrong try shakes the row and clears it; there
+   is no counter, no lock-out and no "2 tries left". The symbols are visible
+   as they are chosen, because this is an order-of-symbols choice, not a
+   memory test, and a child who forgets theirs is not locked out of their own
+   work - "Ask a grown-up" opens it with the adult PIN.
+   ------------------------------------------------------------------------ */
+/* Log an event onto an agent that is NOT the one in state, and save it
+   straight away.
+
+   `logEvent()` writes to `state.agent` and leaves the debounced save to catch
+   up. That is wrong here: opening a sealed file replaces `state.agent` with a
+   fresh copy loaded from storage, which threw the event away before the save
+   ran - so the log recorded every failed unseal and never a successful one. */
+async function logEventOnAgent(agent, action, detail) {
+  if (!agent) return;
+  if (!Array.isArray(agent.events)) agent.events = [];
+  agent.events.push({
+    t: nowIso(), session: state.session, practice: Boolean(state.practice),
+    mission: currentMissionId(), action: action, detail: detail || {}
+  });
+  await Storage.saveAgent(agent);
+}
+
+let sealMode = 'set';
+let sealPicked = [];
+let sealTargetId = null;        // which agent is being opened, in 'open' mode
+let sealOnOpen = null;          // what to do once it is open
+
+function openSealSheet() {
+  if (!state.agent) return;
+  Voice.unlock();
+
+  sealMode = 'set';
+  sealPicked = [];
+  sealTargetId = null;
+
+  $('#seal-title').textContent = state.agent.seal ? 'Change your symbols' : 'Seal your file?';
+  $('#seal-say').dataset.say = 'nar-card-seal';
+  $('#btn-seal-adult').hidden = true;        // nothing to unlock while setting
+  paintSealSymbols();
+  paintSealPicked();
+
+  $('#seal-overlay').hidden = false;
+  speakLine('nar-card-seal');
+}
+
+/* Asking for the symbols of a sealed agent, from the gallery. */
+function askForSeal(agent, onOpen) {
+  Voice.unlock();
+
+  sealMode = 'open';
+  sealPicked = [];
+  sealTargetId = agent.id;
+  sealOnOpen = onOpen;
+
+  $('#seal-title').textContent = (agent.codename || 'This file') + ' is sealed';
+  $('#seal-say').dataset.say = 'nar-seal-open';
+  $('#btn-seal-adult').hidden = false;
+  paintSealSymbols();
+  paintSealPicked();
+
+  $('#seal-overlay').hidden = false;
+  speakLine('nar-seal-open');
+}
+
+function paintSealSymbols() {
+  const box = $('#seal-symbols');
+  box.innerHTML = '';
+  SEAL_SYMBOLS.forEach(symbol => {
+    const button = document.createElement('button');
+    button.className = 'seal-symbol';
+    button.textContent = symbol;
+    button.setAttribute('aria-label', 'Symbol ' + symbol);
+    button.addEventListener('click', () => pickSeal(symbol));
+    box.appendChild(button);
+  });
+}
+
+function paintSealPicked(wrong) {
+  const row = $('#seal-picked');
+  row.innerHTML = '';
+  for (let i = 0; i < SEAL_LENGTH; i++) {
+    const slot = document.createElement('span');
+    slot.className = 'seal-slot' + (sealPicked[i] ? ' is-filled' : '');
+    slot.textContent = sealPicked[i] || '';
+    row.appendChild(slot);
+  }
+  row.classList.toggle('is-wrong', Boolean(wrong));
+}
+
+function pickSeal(symbol) {
+  if (sealPicked.length >= SEAL_LENGTH) return;
+  sealPicked.push(symbol);
+  playSfx('sfx-pop');
+  paintSealPicked();
+
+  if (sealPicked.length === SEAL_LENGTH) {
+    // A beat, so the child sees the third symbol land before anything happens.
+    setTimeout(sealComplete, 350);
+  }
+}
+
+function undoSeal() {
+  if (!sealPicked.length) return;
+  sealPicked.pop();
+  paintSealPicked();
+}
+
+function sealComplete() {
+  if (sealMode === 'set') {
+    state.agent.seal = sealPicked.join('');
+    logEvent('seal_set', {});          // WHICH symbols are not research data
+    playSfx('sfx-seal');
+    scheduleSave();
+    closeSealSheet();
+    toast('🔒 Sealed');
+    renderRevealButtons();
+    return;
+  }
+
+  // 'open'
+  openSealedAgent();
+}
+
+async function openSealedAgent() {
+  const agent = migrateAgent(await Storage.loadAgent(sealTargetId));
+  if (!agent) { closeSealSheet(); return; }
+
+  if (agent.seal === sealPicked.join('')) {
+    // Saved onto the file being opened, before it is reloaded.
+    await logEventOnAgent(agent, 'seal_open_ok', {});
+    playSfx('sfx-seal');
+    closeSealSheet();
+    if (sealOnOpen) sealOnOpen(agent.id);
+    return;
+  }
+
+  /* Wrong. Shake, clear, and let them try again as often as they like - there
+     is no counter and no lock-out. The attempt belongs to the file that was
+     knocked on, not to whatever agent happens to be open. */
+  await logEventOnAgent(agent, 'seal_open_fail', {});
+  paintSealPicked(true);
+  setTimeout(() => { sealPicked = []; paintSealPicked(); }, 450);
+}
+
+/* "Ask a grown-up": the panel PIN opens any file. A child who forgets their
+   symbols must never lose their own work. */
+async function sealAskAdult() {
+  const entered = prompt('Grown-up PIN');
+  if (entered === null) return;
+  if (String(entered).trim() !== ADULT_PIN) { paintSealPicked(true); return; }
+
+  const id = sealTargetId;
+  const agent = await Storage.loadAgent(id);
+  await logEventOnAgent(agent, 'seal_open_ok', { by: 'adult' });
+  closeSealSheet();
+  if (sealOnOpen) sealOnOpen(id);
+}
+
+function closeSealSheet() {
+  $('#seal-overlay').hidden = true;
+  sealPicked = [];
+}
+
+/* The Seal button says what it will do. */
+function renderRevealButtons() {
+  const button = $('#btn-seal');
+  if (!button || !state.agent) return;
+  const sealed = Boolean(state.agent.seal);
+  $('.btn-icon', button).textContent = sealed ? '🔓' : '🔒';
+  $('.btn-label', button).textContent = sealed ? 'Change seal' : 'Seal';
+}
+
+function wireCardV5() {
+  $('#btn-badge-check').addEventListener('click', openBadgeCheck);
+  $('#btn-badge-zoom').addEventListener('click', toggleBadgeZoom);
+  $('#btn-badge-close').addEventListener('click', closeBadgeCheck);
+
+  $('#btn-wall-check').addEventListener('click', openWallCheck);
+  $('#btn-wall-close').addEventListener('click', closeWallCheck);
+
+  $('#btn-seal').addEventListener('click', openSealSheet);
+  $('#btn-seal-undo').addEventListener('click', undoSeal);
+  $('#btn-seal-adult').addEventListener('click', sealAskAdult);
+  $('#btn-seal-cancel').addEventListener('click', closeSealSheet);
+  $('#seal-say').addEventListener('click', () => speakLine($('#seal-say').dataset.say));
 }
