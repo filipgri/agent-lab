@@ -245,9 +245,22 @@ release** or an iPad will keep running the old JavaScript against new HTML.
      number, each speaking its label when tapped, plus ✏️ **My own**.
   The ten effects are CSS animations in `style.css`, all gated on
   `fullMotion()`; `fx-stomp` shakes by ≤3px, as §5.4 requires.
-- **Next: v2 V4 — HQ** (v2 §5.5): "where is your agent strongest?", with
-  draw-your-own and the landing. The twelve photographs and `hq.id` are
-  already in place from V2.
+- **v2 V4 — done (5 October 2026).** The HQ: "where is your agent
+  strongest?" The agent stands on the left in whatever place it has; the
+  twelve photographs are two rows on the right — six real, six make-believe,
+  in §5.5's order — and tapping one drops the agent in with a small landing
+  (`hq-land`, 620ms, gated on `fullMotion()`).
+  - **✏️ Draw my own** reuses V3's shared ✏️ sheet through `openOwnCard`'s
+    `onKeep` hook, rather than adding a second sheet. The drawing is saved as
+    `hq.png` — a field the model had carried since V0 that nothing used.
+  - **A drawn place is an HQ like any other**: `setHqBackdrop()` and
+    `preloadCardAssets()` now fall back to it, so it shows behind the agent on
+    every screen and on the saved card, exactly as a photograph does.
+  - Choosing a photograph clears a drawing and the other way round — including
+    from the Power-up's Place tab, which is a shortcut to the same choice.
+  - **Nowhere is an equal option**, not a way of undoing a mistake.
+- **Next: v2 V5 — Voice password** (v2 §5.6): the small change, including the
+  §5.6 rename of the three bonus slots to 📢 🤫 ❓.
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)
@@ -305,6 +318,16 @@ hand-edit the manifest, and never edit both.
 ## Conventions in this codebase
 
 ### v2 conventions (from V3)
+
+- **An animation's clean-up is a timer, not `animationend`.** The HQ landing
+  runs on four layers and only the visible ones fire the event at all — and
+  none of them fire while the tab is in the background, which would leave
+  `is-landing` stuck on the stage for the rest of the session. `HQ_LAND_MS`
+  is kept beside the rule it mirrors in `style.css`.
+- **The ✏️ sheet is shared, and takes an `onKeep`.** `openOwnCard({title,
+  say, onKeep})` is how HQ draws its own place and how the Power-up keeps its
+  own situation card. Anything else that needs "draw it or say it" uses the
+  same sheet rather than adding another.
 
 - **The doors are `parts`, `pixel` and `draw`** (v2 §5.3), in that order on
   screen. The stored value, the `door_choose` event and the rail id all say

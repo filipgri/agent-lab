@@ -1046,6 +1046,7 @@ function goToMission(index, reasonAction) {
   if (mission.id === 'badge') enterBadge();
   if (mission.id === 'rules') enterRules();
   if (mission.id === 'voice') enterVoice();
+  if (mission.id === 'hq')    enterHq();
 }
 
 // Stamp it ✓ : this mission is done, move on.
@@ -1422,6 +1423,7 @@ function wireUp() {
   wireMake();
   wireDoors();
   wirePowerup();
+  wireHq();
   wireMood();
   wireVoice();
   wireBadge();
@@ -1607,6 +1609,16 @@ const HQ_BACKGROUND = {
    image is set as a CSS background so it sits under every layer - pixels,
    shapes, drawing and stickers - without being another element to position. */
 function setHqBackdrop(view, hqId) {
+  /* v2 §5.5 (V4): a place the child DREW is an HQ like any other, so it has to
+     become the background too. It is already a PNG data URL, so there is
+     nothing to load and no race to guard against. */
+  const drawn = state.agent && state.agent.hq && state.agent.hq.png;
+  if (!hqId && drawn) {
+    view.style.setProperty('--hq-image', 'url("' + drawn + '")');
+    view.classList.add('has-hq');
+    return;
+  }
+
   if (!hqId || typeof Assets === 'undefined') {
     view.style.removeProperty('--hq-image');
     view.classList.remove('has-hq');
@@ -2679,7 +2691,11 @@ function paintBackgroundOptions() {
 
 function setBackground(id) {
   state.agent.hq.id = (id === 'plain' ? null : id);
-  logEvent('hq_choose', { id: state.agent.hq.id });
+  /* The Place tab is a shortcut to the same choice the HQ mission makes, so it
+     has to behave the same way: a photograph replaces a drawn place (v2 §5.5),
+     or the drawing would linger in the data behind it. */
+  state.agent.hq.png = null;
+  logEvent('hq_choose', { id: state.agent.hq.id, from: 'place-tab' });
   paintBackgroundOptions();
   refreshAgentViews();
   scheduleSave();
@@ -4228,7 +4244,12 @@ async function preloadCardAssets() {
   const look = (agent.powerup && agent.powerup.look) || {};
   cardAssets.coverShapes = await loadImage(shapesToSvgUrl((agent.cover || {}).shapes));
   // v2 §5.5: the HQ is the agent's background on the card as well.
-  cardAssets.hq = agent.hq && agent.hq.id ? await Assets.image(agent.hq.id) : null;
+  /* The HQ behind the agent on the saved card: the photograph if one was
+     chosen, or the place the child drew (v2 §5.5). loadImage() takes any URL,
+     and a PNG data URL is one. */
+  cardAssets.hq = null;
+  if (agent.hq && agent.hq.id)       cardAssets.hq = await Assets.image(agent.hq.id);
+  else if (agent.hq && agent.hq.png) cardAssets.hq = await loadImage(agent.hq.png);
   cardAssets.boostShapes = await loadImage(shapesToSvgUrl(look.shapes));
 
   // v2 §5.3.2: every picture sticker the child has used.
@@ -6472,4 +6493,196 @@ function wirePowerup() {
   $('#own-cancel').addEventListener('click', closeOwnCard);
   $('#own-save').addEventListener('click', keepOwnCard);
   $('#own-say').addEventListener('click', () => speakLine($('#own-say').dataset.say));
+}
+
+
+/* ===========================================================================
+   27. HQ (v2 V4, spec §5.5)
+
+   "Where is your agent strongest?"
+
+   Twelve photographs in two groups - six real places, six make-believe ones -
+   and a thirteenth option the child draws. Tapping one drops the agent into
+   that place with a small landing.
+
+   The choice is just `hq.id`, which V2 already wired into every agent view
+   (`setHqBackdrop`), so choosing here changes the Power-up stage, the preview
+   thumbnail and the saved card at the same time. A drawn place is `hq.png`,
+   which nothing used until now.
+
+   There is no "right" place, and the app never says anything about the one a
+   child picks (v2 §12). The quiet room and the jungle are the same size on
+   screen and read out the same way.
+   ======================================================================== */
+
+/* The two groups, in the spec's order. The ids are the manifest's, so each
+   card's picture and its `nar-<id>` voice line both arrive for free. */
+const HQ_REAL    = ['hq-classroom', 'hq-playground', 'hq-library',
+                    'hq-quiet-room', 'hq-lunch-hall', 'hq-home'];
+const HQ_FANTASY = ['hq-space', 'hq-underwater', 'hq-jungle',
+                    'hq-city-rooftop', 'hq-sky-castle', 'hq-secret-lab'];
+
+function enterHq() {
+  if (!state.agent) return;
+  renderHq();
+  speakLine('nar-hq-intro');
+}
+
+function renderHq() {
+  if (!state.agent) return;
+  renderAgentView($('#hq-stage'), state.agent.cover, false);
+  paintHqRow('#hq-real', HQ_REAL);
+  paintHqRow('#hq-fantasy', HQ_FANTASY);
+  paintHqOwn();
+  paintHqWhere();
+}
+
+/* One row of picture cards. `Assets.card()` gives the photograph with its
+   emoji stand-in underneath, so an empty assets/ folder still works. */
+function paintHqRow(selector, ids) {
+  const box = $(selector);
+  if (!box) return;
+  box.innerHTML = '';
+
+  ids.forEach(id => {
+    const card = Assets.card(id);
+    if (agentHqId() === id) card.classList.add('is-on');
+    card.addEventListener('click', () => chooseHq(id));
+    box.appendChild(card);
+  });
+}
+
+/* The line under the agent: where it is right now, in words. */
+function paintHqWhere() {
+  const where = $('#hq-where');
+  if (!where) return;
+  const id = agentHqId();
+  if (state.agent.hq && state.agent.hq.png && !id) {
+    where.textContent = 'My own place';
+    return;
+  }
+  const entry = id ? Assets.item(id) : null;
+  where.textContent = entry ? entry.label : 'Nowhere yet';
+}
+
+function chooseHq(id) {
+  const changing = agentHqId() && agentHqId() !== id;
+  state.agent.hq.id = id;
+  state.agent.hq.png = null;           // a photograph replaces a drawn place
+
+  logEvent('hq_choose', { id: id, changed: Boolean(changing) });
+  speakLabel(id);                      // v2 §7: the card says its label
+  /* No pop here: landAgent() makes the sound for this action. Two at once
+     just muddles, and §4.6 has no separate landing sound. */
+
+  renderHq();
+  refreshAgentViews();                 // the preview and every other stage
+  landAgent();
+  scheduleSave();
+}
+
+/* "Nowhere" is an equal choice, not a way of clearing a mistake: an agent
+   does not have to have a place. */
+function clearHq() {
+  state.agent.hq.id = null;
+  state.agent.hq.png = null;
+  logEvent('hq_choose', { id: null });
+  playSfx('sfx-pop');
+  renderHq();
+  refreshAgentViews();
+  scheduleSave();
+}
+
+/* The landing (v2 §5.5). The class is removed first so that choosing the same
+   place twice replays it - an animation only restarts when the class is
+   actually added again. */
+const HQ_LAND_MS = 620;                 // must match the hq-land rule in style.css
+let hqLandTimer = null;
+
+function landAgent() {
+  const stage = $('#hq-stage');
+  if (!stage || !fullMotion()) return;
+
+  stage.classList.remove('is-landing');
+  void stage.offsetWidth;              // forces the browser to notice
+  stage.classList.add('is-landing');
+  playSfx('sfx-whoosh');               // §4.6's "quick, soft whoosh"
+
+  /* A timer, not `animationend`. Four layers carry this animation and only
+     the visible ones fire the event at all - and none of them fire if the
+     tab is in the background, which would leave `is-landing` stuck on the
+     stage for the rest of the session. A timer always arrives. */
+  clearTimeout(hqLandTimer);
+  hqLandTimer = setTimeout(() => stage.classList.remove('is-landing'),
+                           HQ_LAND_MS + 60);
+}
+
+
+/* ---------------------------------------------------------------------------
+   ✏️ DRAW MY OWN PLACE
+   Reuses the shared ✏️ sheet from V3 rather than adding another one: it
+   already has the brush, the palette, the mic and the keep/cancel buttons.
+   ------------------------------------------------------------------------ */
+function openHqDraw() {
+  openOwnCard({
+    title: 'Draw your own place',
+    say: 'nar-hq-draw',
+    onKeep: card => {
+      state.agent.hq.png = card.png;
+      state.agent.hq.id = null;        // a drawn place replaces a photograph
+      logEvent('hq_draw', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
+      if (card.audioId) state.agent.hq.audioId = card.audioId;
+      renderHq();
+      refreshAgentViews();
+      landAgent();
+      scheduleSave();
+    }
+  });
+}
+
+/* The drawn place, shown beside the ✏️ button once it exists. Tapping it asks
+   before removing, the same two-tap rule as the Power-up's own cards. */
+let hqOwnArmed = false;
+let hqOwnTimer = null;
+
+function paintHqOwn() {
+  const box = $('#hq-own');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!state.agent.hq || !state.agent.hq.png) return;
+
+  const tile = document.createElement('button');
+  tile.className = 'when-own is-on' + (hqOwnArmed ? ' is-armed' : '');
+  tile.innerHTML =
+    '<img class="hq-own-thumb" alt="" src="' + state.agent.hq.png + '">' +
+    '<span class="when-own-label">' + (hqOwnArmed ? 'Remove?' : 'My place') + '</span>';
+  tile.setAttribute('aria-label', 'My own place');
+  tile.addEventListener('click', armHqOwnRemove);
+  box.appendChild(tile);
+}
+
+function armHqOwnRemove() {
+  if (hqOwnArmed) {
+    clearTimeout(hqOwnTimer);
+    hqOwnArmed = false;
+    state.agent.hq.png = null;
+    logEvent('hq_draw_remove', {});
+    renderHq();
+    refreshAgentViews();
+    scheduleSave();
+    return;
+  }
+  clearTimeout(hqOwnTimer);
+  hqOwnArmed = true;
+  playSfx('sfx-pop');
+  hqOwnTimer = setTimeout(() => { hqOwnArmed = false; paintHqOwn(); }, 3000);
+  paintHqOwn();
+}
+
+
+/* Wiring the HQ up. Called once, from wireUp(). */
+function wireHq() {
+  $('#btn-hq-draw').addEventListener('click', openHqDraw);
+  $('#btn-hq-none').addEventListener('click', clearHq);
+  $('#btn-hq-again').addEventListener('click', landAgent);
 }

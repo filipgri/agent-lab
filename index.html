@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=27">
+  <link rel="stylesheet" href="./style.css?v=30">
 </head>
 <body>
 
@@ -379,11 +379,49 @@
         <!-- v2 §3: HQ and Force field arrive at V4 and V7. Until then they are
              honest placeholders rather than missing pips - a child can still
              Stamp it or Pass, so the run-through is never blocked. -->
+        <!-- ============ MISSION: HQ (v2 §5.5) ============
+             "Where is your agent strongest?" The agent stands in the chosen
+             place on the left; the twelve photographs are two rows on the
+             right, real places first, then make-believe ones. Tapping a card
+             drops the agent in with a small landing. -->
         <article class="mission-panel" data-mission="hq">
-          <div class="soon-wrap">
-            <span class="soon-icon">📍</span>
-            <p class="soon-text">Your agent's HQ is being built.</p>
-            <p class="soon-note">Coming soon</p>
+          <div class="hq-wrap">
+
+            <aside class="hq-stage-col">
+              <div id="hq-stage" class="agent-view hq-stage">
+                <canvas class="agent-pixels" width="16" height="16"></canvas>
+                <img class="agent-drawing" alt="" hidden>
+                <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
+                <div class="sticker-layer"></div>
+              </div>
+              <p id="hq-where" class="hq-where">Nowhere yet</p>
+              <div class="hq-stage-tools">
+                <button id="btn-hq-again" class="btn tool" aria-label="Land again">✨<span class="tool-word">Again</span></button>
+                <button id="btn-hq-none" class="btn tool" aria-label="No place">⬜<span class="tool-word">Nowhere</span></button>
+              </div>
+            </aside>
+
+            <div class="hq-picker">
+              <header class="power-head">
+                <h2 class="power-title">Where is your agent strongest?</h2>
+                <button class="btn btn-icon-only" data-say="nar-hq-intro" aria-label="Hear this">🔊</button>
+              </header>
+
+              <h3 class="hq-group-title">Real places</h3>
+              <div id="hq-real" class="hq-row"></div>
+
+              <h3 class="hq-group-title">Make-believe places</h3>
+              <div id="hq-fantasy" class="hq-row"></div>
+
+              <div class="hq-own-row">
+                <button id="btn-hq-draw" class="when-own" aria-label="Draw my own place">
+                  <span class="when-own-icon">✏️</span>
+                  <span class="when-own-label">Draw my own</span>
+                </button>
+                <div id="hq-own" class="hq-row"></div>
+              </div>
+            </div>
+
           </div>
         </article>
 
@@ -914,12 +952,12 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=27"></script>
-<script src="./audio.js?v=27"></script>
-<script src="./effects.js?v=27"></script>
-<script src="./assets.js?v=27"></script>
-<script src="./stickers.js?v=27"></script>
-<script src="./parts.js?v=27"></script>
-<script src="./app.js?v=27"></script>
+<script src="./storage.js?v=30"></script>
+<script src="./audio.js?v=30"></script>
+<script src="./effects.js?v=30"></script>
+<script src="./assets.js?v=30"></script>
+<script src="./stickers.js?v=30"></script>
+<script src="./parts.js?v=30"></script>
+<script src="./app.js?v=30"></script>
 </body>
 </html>

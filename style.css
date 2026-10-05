@@ -2610,3 +2610,64 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   .power-make { flex-direction: column; }
   .power-canvas-wrap { flex: 0 0 auto; width: min(100%, 260px); }
 }
+
+/* ============================================================
+   MISSION: HQ (v2 §5.5)
+   The agent on the left in its place, the twelve photographs on
+   the right in two groups. Same shape as the Power-up screen, so
+   a child who has done that one already knows how this works.
+   ============================================================ */
+.hq-wrap { display: flex; gap: 18px; flex: 1; min-height: 0; }
+
+.hq-stage-col { display: flex; flex-direction: column; gap: 10px; flex: 0 0 auto; }
+.hq-stage { width: min(34vw, 320px); aspect-ratio: 1; }
+.hq-where {
+  margin: 0; text-align: center; font-size: 17px; font-weight: 600;
+  letter-spacing: .03em; color: var(--muted);
+}
+.hq-stage-tools { display: flex; gap: 8px; justify-content: center; }
+
+/* The picker scrolls; the agent beside it does not move. */
+.hq-picker { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.hq-group-title {
+  margin: 16px 0 8px; font-size: 17px; font-weight: 600;
+  letter-spacing: .04em; color: var(--muted);
+}
+.hq-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.hq-row .pic-card { width: 136px; }
+.hq-row .pic-card-art { min-height: 100px; }
+.hq-own-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start;
+              margin-top: 16px; }
+.hq-own-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover;
+                background: #16263f; border-radius: 10px; }
+
+/* The landing (v2 §5.5): the agent drops into the place and settles.
+   Gated on fullMotion() like everything else, so Calm and Off still mean
+   something; prefers-reduced-motion is honoured below. */
+@keyframes hq-land {
+  0%   { transform: translateY(-22%) scale(.86); opacity: .25; }
+  55%  { transform: translateY(0)    scale(1.05); opacity: 1; }
+  75%  { transform: translateY(0)    scale(.97); }
+  100% { transform: translateY(0)    scale(1); }
+}
+.hq-stage.is-landing .agent-pixels,
+.hq-stage.is-landing .agent-drawing,
+.hq-stage.is-landing .agent-shapes,
+.hq-stage.is-landing .sticker-layer {
+  animation: hq-land .62s cubic-bezier(.22,.9,.3,1.1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hq-stage.is-landing .agent-pixels,
+  .hq-stage.is-landing .agent-drawing,
+  .hq-stage.is-landing .agent-shapes,
+  .hq-stage.is-landing .sticker-layer { animation: none; }
+}
+
+/* Portrait: the agent sits above the picker rather than beside it. */
+@media (orientation: portrait) {
+  .hq-wrap { flex-direction: column; }
+  .hq-stage-col { flex-direction: row; align-items: center; justify-content: center; }
+  .hq-stage { width: min(40vw, 240px); }
+  .hq-stage-tools { flex-direction: column; }
+}
