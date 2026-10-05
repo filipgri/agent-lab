@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=11">
+  <link rel="stylesheet" href="./style.css?v=17">
 </head>
 <body>
 
@@ -156,7 +156,7 @@
               <span class="door-icon">🟦</span><span>Pixel</span>
             </button>
             <button class="door-card" data-door="build">
-              <span class="door-icon">🔺</span><span>Build</span>
+              <span class="door-icon">🧩</span><span>Parts</span>
             </button>
             <button class="door-card" data-door="draw">
               <span class="door-icon">✏️</span><span>Draw</span>
@@ -206,16 +206,22 @@
                 </div>
               </div>
 
-              <!-- --- Build: a tray of shapes to drag on (spec §7) --- -->
+              <!-- --- Parts: the kit from parts.js (v2 §5.3.1) --- -->
               <div id="rail-build" class="rail-body" hidden>
-                <div id="shape-tray" class="shape-tray"></div>
-                <div id="build-palette" class="palette"></div>
-                <!-- Shown only while a shape is selected. Buttons, not pinch
-                     gestures, exactly as spec §7 asks. -->
+                <div id="parts-cats" class="parts-cats"></div>
+                <div id="parts-tray" class="parts-tray"></div>
+
+                <!-- The part's own palette first; everything else behind More. -->
+                <div id="parts-palette" class="palette"></div>
+                <button id="btn-parts-more" class="btn parts-more">+ More</button>
+
+                <!-- Shown only while a part is selected. Buttons, not pinch
+                     gestures, exactly as spec §7 and v2 §5.3.1 ask. -->
                 <div id="shape-controls" class="sticker-controls" hidden>
                   <button class="btn tool" data-shape="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
                   <button class="btn tool" data-shape="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
                   <button class="btn tool" data-shape="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
+                  <button class="btn tool" data-shape="flip"    aria-label="Flip">↔️<span class="tool-word">Flip</span></button>
                   <button class="btn tool" data-shape="front"   aria-label="Bring to front">⬆️<span class="tool-word">Front</span></button>
                   <button class="btn tool" data-shape="back"    aria-label="Send to back">⬇️<span class="tool-word">Back</span></button>
                   <button class="btn tool btn-danger" data-shape="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
@@ -236,6 +242,16 @@
               <!-- --- Stickers --- -->
               <div id="rail-stickers" class="rail-body" hidden>
                 <div id="sticker-tabs" class="sticker-tabs"></div>
+
+                <!-- 🔍 Search (v2 §5.3.2). No speech-to-text: that would send
+                     a child's voice to a server. -->
+                <div id="sticker-search-box" class="sticker-search" hidden>
+                  <input id="sticker-search" class="type-input type-input-small" type="text"
+                         maxlength="24" autocomplete="off" autocorrect="off"
+                         spellcheck="false" placeholder="Find a sticker">
+                  <p id="sticker-request" class="type-request" hidden>📡 Request sent to HQ</p>
+                </div>
+
                 <div id="sticker-tray" class="sticker-tray"></div>
               </div>
 
@@ -798,11 +814,12 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=11"></script>
-<script src="./audio.js?v=11"></script>
-<script src="./effects.js?v=11"></script>
-<script src="./assets.js?v=11"></script>
-<script src="./stickers.js?v=11"></script>
-<script src="./app.js?v=11"></script>
+<script src="./storage.js?v=17"></script>
+<script src="./audio.js?v=17"></script>
+<script src="./effects.js?v=17"></script>
+<script src="./assets.js?v=17"></script>
+<script src="./stickers.js?v=17"></script>
+<script src="./parts.js?v=17"></script>
+<script src="./app.js?v=17"></script>
 </body>
 </html>

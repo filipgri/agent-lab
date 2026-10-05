@@ -10,7 +10,7 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: v2 V1 — codename and gallery
+## Current state: v2 V2 — the parts kit
 
 Working now:
 
@@ -165,6 +165,16 @@ and sounds, each with a stand-in, so **the app works fully with an empty
 migrated to the v2 data model on load, keeping everything in `legacy`.
 Sessions decide which missions are open, and practice mode keeps try-outs out
 of the research data.
+
+**V2 — the parts kit.** The Build door is now **Parts**: 85 pieces drawn in
+code that a child taps to build a face. Tapping snaps a part onto the head, so
+a face takes about seven taps rather than ten careful drags. Every piece
+recolours — ten skin tones plus fantasy colours, thirteen hair colours — and
+all sixteen hairstyles and seven head coverings the brief asks for are there,
+alongside hearing aids, a cochlear implant and ear defenders as ordinary
+options rather than special ones. The sticker tray is now the full library
+with fourteen tabs and a 🔍 search. Open `tools/parts-sheet.html` to review
+every part before a session.
 
 **V1 — codename and gallery.** Two reels you can lock separately, a big
 tappable emoji that says the name, and typing your own spy name — which offers

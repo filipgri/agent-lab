@@ -30,6 +30,7 @@
     22. POLISH & JUICE    §5a animation, sounds, spoken prompts (Milestone 8)
     23. OFFLINE           service worker + update banner (Milestone 9)
     24. SESSION           session preset, practice mode, asset check (v2 V0)
+    25. PARTS KIT         heads, faces, hair and bodies (v2 V2)
    ========================================================================== */
 
 
@@ -43,7 +44,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 'v2-V1';
+const MILESTONE = 'v2-V2';
 
 // The six missions, in the order children meet them.
 /* The missions, in strip order (v2 spec §3). The ids are words now, not m1-m6:
@@ -1520,25 +1521,6 @@ const PALETTE = [
   '#43aa8b', '#4cc9f0', '#4361ee', '#b5179e'
 ];
 
-// The sticker tray, in the categories the spec lists (§7).
-const STICKER_TABS = [
-  /* ★ Me holds the child's own emblem (v2 §5.1), so they can put their symbol
-     on the agent like a logo, at any size. It is filled in by
-     buildStickerTray() rather than listed here, because it is different for
-     every child. V2 replaces the rest of this list with stickers.js. */
-  { id: 'me',     label: '★ Me',   emoji: [], isMe: true },
-  { id: 'head',   label: 'Head',   emoji: ['🎩','🧢','👑','⛑️','🎀','🪖'] },
-  { id: 'face',   label: 'Face',   emoji: ['👓','🕶️','🥸','😷'] },
-  { id: 'ears',   label: 'Ears',   emoji: ['🎧','🦻'] },
-  { id: 'moving', label: 'Moving', emoji: ['🦽','🦼','🦯','🛴','🛹'] },
-  { id: 'pets',   label: 'Pets',   emoji: ['🐱','🐶','🐉','🦊','🐸','🦜'] },
-  { id: 'things', label: 'Things', emoji: ['⚽','🎮','🎨','📚','🎵','🧸'] },
-  // Powers only appear on the Boost (spec §7, Mission 2), so this tab is
-  // filtered out while Mission 1's Cover is being edited.
-  { id: 'powers', label: 'Powers', boostOnly: true,
-    emoji: ['⚡','🔥','❄️','🌈','⭐','🪽','💥','🛡️','🧲','🌀'] }
-];
-
 /* MILESTONE 2 — the two extras the Boost adds on top of the Mission 1 editor.
 
    AURA: a glow around the agent, drawn with a CSS drop-shadow filter.
@@ -1764,7 +1746,26 @@ function renderAgentView(view, data, interactive, door) {
   (data.stickers || []).forEach((sticker, index) => {
     const el = document.createElement('span');
     el.className = 'sticker';
-    el.textContent = sticker.emoji;
+
+    /* v2 §5.3.2: exactly one of `emoji` and `asset` is set. A picture sticker
+       shows its fallback emoji until the file arrives, so an agent made this
+       week still looks right next week - and right now. */
+    if (sticker.asset) {
+      const entry = Assets.item(sticker.asset);
+      el.textContent = (entry && entry.fallback) || '🧩';
+      Assets.image(sticker.asset).then(img => {
+        if (!img) return;
+        el.textContent = '';
+        const picture = document.createElement('img');
+        picture.className = 'sticker-img';
+        picture.alt = '';
+        picture.src = img.src;
+        el.appendChild(picture);
+      });
+    } else {
+      el.textContent = sticker.emoji;
+    }
+
     el.style.left = (sticker.x * 100) + '%';
     el.style.top  = (sticker.y * 100) + '%';
     el.style.setProperty('--scale', sticker.scale);
@@ -1862,14 +1863,14 @@ function openEditor(mountSelector, which) {
 
   if (door === 'draw') openDrawDoor();
   else { coder.onStroke = null; }
-  if (door === 'build') buildShapeTray();
+  if (door === 'build') { buildPartsTray(); paintPartsPalette(); }
 
   setRail(door === 'pixel' ? 'paint' : door);
   paintPalette();
   paintToolButtons();
   buildStickerTray();
   paintShapeControls();
-  if (door === 'build') paintPalette('#build-palette');
+
   if (isBoost) { paintAuraSwatches(); paintBackgroundOptions(); }
   refreshAgentViews();
 }
@@ -2082,11 +2083,6 @@ function paintPalette(selector) {
       paintPalette('#build-palette');
       paintToolButtons();
 
-      // On the Build door the palette doubles as "recolour this shape".
-      if (state.agent && state.agent.door === 'build') {
-        buildShapeTray();
-        if (editor.selectedShape !== null) shapeAction('colour');
-      }
     });
     palette.appendChild(swatch);
   });
@@ -2102,62 +2098,154 @@ function paintToolButtons() {
    A sticker is { emoji, x, y, scale, rotation } with x and y stored 0-1, so a
    sticker put on an agent's head stays on its head at any screen size (§8).
    ------------------------------------------------------------------------ */
+/* THE STICKER TRAY (v2 §5.3.2)
+
+   The 31 emoji are gone: the library now comes from stickers.js, which also
+   merges in the picture stickers from the asset manifest, so a file Filip
+   adds this week appears here next week with no code change.
+
+   A sticker is `{ emoji, asset, x, y, scale, rotation }` with exactly one of
+   emoji and asset set (v2 §5.3.2, §6.1). */
 function buildStickerTray() {
   const tabs = $('#sticker-tabs');
   tabs.innerHTML = '';
 
-  // Powers belong to the Boost only, so drop that tab in Mission 1. If the
-  // child left the tray on Powers and then went back to Mission 1, move them
-  // to a tab that still exists.
-  const visibleTabs = STICKER_TABS.filter(t => !t.boostOnly || editor.part === 'powerup');
-  if (!visibleTabs.some(t => t.id === editor.tab)) editor.tab = visibleTabs[0].id;
+  const visibleTabs = Stickers.TABS;
+  if (!visibleTabs.some(t => t.id === editor.tab)) editor.tab = 'me';
 
   visibleTabs.forEach(tab => {
     const button = document.createElement('button');
-    button.className = 'btn seg' + (tab.id === editor.tab ? ' is-on' : '');
-    button.textContent = tab.label;
-    button.addEventListener('click', () => { editor.tab = tab.id; buildStickerTray(); });
+    button.className = 'btn seg sticker-tab' + (tab.id === editor.tab ? ' is-on' : '');
+    button.innerHTML = '<span class="sticker-tab-icon">' + tab.icon + '</span>' +
+                       '<span class="sticker-tab-label">' + tab.label + '</span>';
+    button.setAttribute('aria-label', tab.label);
+    button.addEventListener('click', () => {
+      editor.tab = tab.id;
+      buildStickerTray();
+      if (tab.id === 'search') $('#sticker-search').focus();
+    });
     tabs.appendChild(button);
   });
 
+  // The search field only belongs on the Search tab.
+  $('#sticker-search-box').hidden = editor.tab !== 'search';
+
   const tray = $('#sticker-tray');
   tray.innerHTML = '';
-  const current = visibleTabs.find(t => t.id === editor.tab);
 
-  // ★ Me is the child's own emblem, first (v2 §5.1).
-  const emoji = current.isMe ? meTabEmoji() : current.emoji;
+  let list;
+  if (editor.tab === 'search') {
+    const query = $('#sticker-search').value.trim();
+    list = query ? Stickers.search(query, { silly: state.silly }) : [];
+    if (!query) {
+      tray.innerHTML = '<p class="tray-empty">Type a word to find a sticker.</p>';
+      return;
+    }
+    if (list.length === 0) {
+      tray.innerHTML = '<p class="tray-empty">Nothing yet. HQ has been told.</p>';
+      return;
+    }
+  } else if (editor.tab === 'me') {
+    list = meTabStickers();
+  } else {
+    list = Stickers.inTab(editor.tab, { silly: state.silly });
+  }
 
-  if (emoji.length === 0) {
-    tray.innerHTML = '<p class="tray-empty">Your symbol appears here.</p>';
+  if (list.length === 0) {
+    tray.innerHTML = '<p class="tray-empty">Nothing in here yet.</p>';
     return;
   }
 
-  emoji.forEach(sticker => {
-    const button = document.createElement('button');
-    button.className = 'tray-sticker';
-    button.textContent = sticker;
-    button.setAttribute('aria-label', 'Sticker ' + sticker);
-    button.addEventListener('pointerdown', event => startTrayDrag(event, sticker));
-    tray.appendChild(button);
-  });
+  list.forEach(sticker => tray.appendChild(stickerTrayButton(sticker)));
 }
 
-/* What goes in ★ Me: the emblem, plus the plain spy so there is always
-   something there even before a child has chosen a symbol. */
-function meTabEmoji() {
-  const emblem = state.agent && state.agent.emblem && state.agent.emblem.emoji;
+/* One tray button. A picture sticker shows its image once the file exists and
+   its fallback emoji until then, so the tray looks the same either way. */
+function stickerTrayButton(sticker) {
+  const button = document.createElement('button');
+  button.className = 'tray-sticker' + (sticker.isNew ? ' is-new' : '');
+  button.setAttribute('aria-label', 'Sticker ' + (sticker.label || sticker.emoji));
+  button.title = sticker.label || '';
+
+  if (sticker.asset) {
+    button.textContent = sticker.fallback || '🧩';
+    Assets.image(sticker.asset).then(img => {
+      if (!img) return;
+      button.textContent = '';
+      const picture = document.createElement('img');
+      picture.className = 'tray-sticker-img';
+      picture.alt = '';
+      picture.src = img.src;
+      button.appendChild(picture);
+    });
+  } else {
+    button.textContent = sticker.emoji;
+  }
+
+  button.addEventListener('pointerdown', event => startTrayDrag(event, sticker));
+  return button;
+}
+
+/* ★ Me: the child's own emblem first (v2 §5.1). */
+function meTabStickers() {
+  const emblem = state.agent && state.agent.emblem;
   const out = [];
-  if (emblem) out.push(emblem);
-  if (out.indexOf('🕵️') === -1) out.push('🕵️');
+  if (emblem && emblem.asset) {
+    const entry = Assets.item(emblem.asset);
+    out.push({ asset: emblem.asset, emoji: null, label: (entry && entry.label) || 'My symbol',
+               fallback: (entry && entry.fallback) || '🧩' });
+  } else if (emblem && emblem.emoji) {
+    out.push({ emoji: emblem.emoji, asset: null, label: 'My symbol' });
+  }
+  if (!out.some(s => s.emoji === '🕵️')) out.push({ emoji: '🕵️', asset: null, label: 'Spy' });
   return out;
 }
 
-function addSticker(emoji, x, y) {
+/* Searching while the child types (v2 §5.3.2). A word with no sticker becomes
+   a request - which is how a child's idea reaches next week's list (§7). */
+let searchRequestTimer = null;
+
+function onStickerSearch() {
+  buildStickerTray();
+
+  const query = $('#sticker-search').value.trim();
+  const found = query ? Stickers.search(query, { silly: state.silly }).length : 0;
+  if (query.length >= 2) logEvent('sticker_search', { query: query, results: found });
+
+  const missed = query ? Stickers.unmatchedWords(query, { silly: state.silly }) : [];
+  $('#sticker-request').hidden = missed.length === 0;
+
+  /* Only record a request once the child has stopped typing, or "dragon"
+     would log d, dr, dra, drag... as five separate wishes. */
+  clearTimeout(searchRequestTimer);
+  if (missed.length === 0) return;
+  searchRequestTimer = setTimeout(() => {
+    if (!state.agent) return;
+    missed.forEach(word => {
+      const already = state.agent.requests.some(r => r.word === word);
+      if (already) return;
+      state.agent.requests.push({ word: word, where: 'sticker-search', t: nowIso() });
+      logEvent('sticker_request', { word: word });
+    });
+    scheduleSave();
+  }, 1200);
+}
+
+
+/* `sticker` is an entry from the library, or a bare emoji string from older
+   code. Stored as { emoji, asset, ... } with exactly one of the two set. */
+function addSticker(sticker, x, y) {
+  const entry = typeof sticker === 'string' ? { emoji: sticker, asset: null } : sticker;
+
   pushUndo();
   const p = ensurePixels();
-  p.stickers.push({ emoji: emoji, x: x, y: y, scale: 1, rotation: 0 });
+  p.stickers.push({
+    emoji: entry.emoji || null,
+    asset: entry.asset || null,
+    x: x, y: y, scale: 1, rotation: 0
+  });
   editor.selected = p.stickers.length - 1;
-  logEvent('sticker_add', { emoji: emoji });
+  logEvent('sticker_add', { emoji: entry.emoji || null, asset: entry.asset || null });
   playSfx('sfx-pop');
   refreshAgentViews();
 
@@ -2192,9 +2280,24 @@ function startTrayDrag(event, emoji) {
   const tray = event.currentTarget;
   try { tray.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
 
+  const entry = typeof emoji === 'string' ? { emoji: emoji, asset: null } : emoji;
+
   const ghost = document.createElement('span');
   ghost.className = 'sticker-ghost';
-  ghost.textContent = emoji;
+  if (entry.asset) {
+    ghost.textContent = entry.fallback || '🧩';
+    Assets.image(entry.asset).then(img => {
+      if (!img || !ghost.isConnected) return;
+      ghost.textContent = '';
+      const picture = document.createElement('img');
+      picture.className = 'sticker-img';
+      picture.alt = '';
+      picture.src = img.src;
+      ghost.appendChild(picture);
+    });
+  } else {
+    ghost.textContent = entry.emoji;
+  }
   ghost.style.left = event.clientX + 'px';
   ghost.style.top  = event.clientY + 'px';
   document.body.appendChild(ghost);
@@ -2232,10 +2335,10 @@ function startTrayDrag(event, emoji) {
       e.clientY >= rect.top  && e.clientY <= rect.bottom;
 
     if (insideStage) {
-      addSticker(emoji, (e.clientX - rect.left) / rect.width,
+      addSticker(entry, (e.clientX - rect.left) / rect.width,
                         (e.clientY - rect.top) / rect.height);
     } else if (moved < 12) {
-      addSticker(emoji, 0.5, 0.5);        // a tap: drop it in the middle
+      addSticker(entry, 0.5, 0.5);        // a tap: drop it in the middle
     }
   }
 
@@ -2310,7 +2413,7 @@ function startStickerDrag(event) {
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerup', up);
     el.removeEventListener('pointercancel', up);
-    if (moved) { logEvent('sticker_move', { emoji: el.textContent }); scheduleSave(); }
+    if (moved) { logEvent('sticker_move', {}); scheduleSave(); }
   }
 
   el.addEventListener('pointermove', move);
@@ -2349,7 +2452,7 @@ function stickerAction(what) {
   if (what === 'delete') {
     p.stickers.splice(editor.selected, 1);
     editor.selected = null;
-    logEvent('sticker_remove', { emoji: sticker.emoji });
+    logEvent('sticker_remove', { emoji: sticker.emoji || null, asset: sticker.asset || null });
   }
   refreshAgentViews();
   scheduleSave();
@@ -2946,9 +3049,38 @@ const coder = {
 /* ---------------------------------------------------------------------------
    THE SLOTS
    ------------------------------------------------------------------------ */
+/* The v1 feeling-code screen is kept until V7 replaces it with mood codes
+   (v2 §3), but the DATA is already v2: `moodCodes`, each with a `sign`.
+   These three accessors are the whole adaptor, so the screen below can stay
+   as it is and still write the right shape.
+
+   "Which one is your agent wearing today?" has no v2 field - V7 replaces it
+   with "who can read this sign?" - so the chosen index lives in `legacy`,
+   which is exactly what legacy is for. */
+function moodCodes() {
+  if (!Array.isArray(state.agent.moodCodes)) state.agent.moodCodes = [];
+  return state.agent.moodCodes;
+}
+
+function wornIndex() {
+  const value = state.agent.legacy && state.agent.legacy.feelingWorn;
+  return value === undefined ? null : value;
+}
+
+function setWornIndex(index) {
+  if (!state.agent.legacy) state.agent.legacy = {};
+  state.agent.legacy.feelingWorn = index;
+}
+
+// A mood code's drawing, wherever it is stored.
+function signPng(code) {
+  if (!code) return null;
+  return (code.sign && code.sign.png) || code.png || null;
+}
+
 function renderMood() {
   if (!state.agent) return;
-  const codes = state.agent.feelingCodes;
+  const codes = moodCodes();
 
   const row = $('#m3-slots');
   row.innerHTML = '';
@@ -2962,10 +3094,10 @@ function renderMood() {
 
     if (code) {
       slot.innerHTML =
-        '<img class="m3-slot-img" alt="" src="' + code.png + '">' +
+        '<img class="m3-slot-img" alt="" src="' + (signPng(code) || '') + '">' +
         '<span class="m3-slot-tags">' +
           (code.face ? '<span>' + code.face + '</span>' : '') +
-          (code.audioId ? '<span>🎤</span>' : '') +
+          ((code.audioId || (code.sign && code.sign.audioId)) ? '<span>🎤</span>' : '') +
           '<span>' + moveIcon(code.move) + '</span>' +
         '</span>';
     } else {
@@ -2992,13 +3124,13 @@ function renderWornRow() {
   if (!row) return;
   row.innerHTML = '';
 
-  const codes = state.agent.feelingCodes;
-  const worn = state.agent.feelingWorn;
+  const codes = moodCodes();
+  const worn = wornIndex();
 
   codes.forEach((code, i) => {
     const button = document.createElement('button');
     button.className = 'm3-worn-option' + (worn === i ? ' is-on' : '');
-    button.innerHTML = '<img class="m3-worn-img" alt="" src="' + code.png + '">';
+    button.innerHTML = '<img class="m3-worn-img" alt="" src="' + (signPng(code) || '') + '">';
     button.setAttribute('aria-label', 'Wear code ' + (i + 1));
     button.addEventListener('click', () => setWorn(i));
     row.appendChild(button);
@@ -3014,7 +3146,7 @@ function renderWornRow() {
 }
 
 function setWorn(index) {
-  state.agent.feelingWorn = index;
+  setWornIndex(index);
   logEvent('feeling_worn', { index: index });
   renderWornRow();
   renderPreview();
@@ -3026,7 +3158,7 @@ function setWorn(index) {
    THE MAKER
    ------------------------------------------------------------------------ */
 function openCoder(index) {
-  const existing = state.agent.feelingCodes[index];
+  const existing = moodCodes()[index];
 
   coder.index = index;
   coder.canvas = $('#m3-canvas');
@@ -3235,12 +3367,6 @@ function paintCodePalette(selector) {
     swatch.addEventListener('click', () => {
       coder.colour = colour;
       paintCodePalette(selector);
-      // On the Build door the palette is also "change this shape's colour".
-      if (selector === '#build-palette') {
-        editor.colour = colour;
-        buildShapeTray();
-        if (editor.selectedShape !== null) shapeAction('colour');
-      }
     });
     box.appendChild(swatch);
   });
@@ -3340,7 +3466,7 @@ async function recordCodeName() {
 
   try {
     const result = await Voice.record({ maxMs: 5000, onTick: () => {} });
-    const oldId = coder.draft.audioId;
+    const oldId = coder.draft.audioId || (coder.draft.sign && coder.draft.sign.audioId);
 
     const id = uuid();
     await Storage.saveAudio(id, result.blob);
@@ -3379,10 +3505,18 @@ async function keepCode() {
   }
 
   const index = coder.index;
-  const codes = state.agent.feelingCodes;
+  const codes = moodCodes();
   const isNew = !codes[index];
 
-  coder.draft.png = coder.canvas.toDataURL('image/png');
+  /* Written in the v2 shape (v2 §6.1): the drawing is the code's `sign`.
+     The v1 screen's face and movement are kept, and V7 fills in the rest -
+     the moment, the readers - when it replaces this screen. */
+  const png = coder.canvas.toDataURL('image/png');
+  coder.draft.sign = { png: png, audioId: coder.draft.audioId ||
+                       (coder.draft.sign && coder.draft.sign.audioId) || null };
+  coder.draft.png = png;              // kept so the open editor still reads it
+  if (coder.draft.situation === undefined) coder.draft.situation = null;
+  if (!Array.isArray(coder.draft.readers)) coder.draft.readers = [];
 
   // Codes fill the slots in order, so a code made in slot 3 while 1 and 2 are
   // empty still lands at the front of the list.
@@ -3396,7 +3530,7 @@ async function keepCode() {
   });
 
   // The first code made is worn by default - the child can change it below.
-  if (isNew && state.agent.feelingWorn === null) state.agent.feelingWorn = codes.length - 1;
+  if (isNew && wornIndex() === null) setWornIndex(codes.length - 1);
 
   closeCoder();
   scheduleSave();
@@ -3404,16 +3538,17 @@ async function keepCode() {
 
 async function removeCode() {
   const index = coder.index;
-  const codes = state.agent.feelingCodes;
+  const codes = moodCodes();
   const code = codes[index];
   if (!code) { closeCoder(); return; }
 
-  if (code.audioId) { Voice.forget(code.audioId); await Storage.deleteAudio(code.audioId); }
+  const audioId = code.audioId || (code.sign && code.sign.audioId);
+  if (audioId) { Voice.forget(audioId); await Storage.deleteAudio(audioId); }
   codes.splice(index, 1);
 
   // The worn code may have been the one removed, or may have shuffled down.
-  if (state.agent.feelingWorn === index) state.agent.feelingWorn = null;
-  else if (state.agent.feelingWorn > index) state.agent.feelingWorn--;
+  if (wornIndex() === index) setWornIndex(null);
+  else if (wornIndex() > index) setWornIndex(wornIndex() - 1);
 
   logEvent('feeling_code_remove', {});
   closeCoder();
@@ -3917,7 +4052,8 @@ function enterRules() {
 
 // Pictures the card needs, loaded ahead of the Save button being pressed.
 const cardAssets = { feeling: null, rules: {}, voiceBlob: null,
-                     coverDrawing: null, boostDrawing: null };
+                     coverDrawing: null, boostDrawing: null,
+                     coverShapes: null, boostShapes: null, stickers: {} };
 
 // Canvas versions of the Mission 2 backgrounds (CSS gradients cannot be read
 // back out, so the saved card paints its own approximation).
@@ -3958,10 +4094,10 @@ async function renderReveal() {
   renderAgentView($('#reveal-boost'), (agent.powerup && agent.powerup.look) || {}, false);
 
   // The feeling code being worn, if there is one.
-  const worn = agent.feelingCodes[agent.feelingWorn];
+  const worn = (agent.moodCodes || [])[wornIndex()];
   const feelingBox = $('#reveal-feeling');
   feelingBox.innerHTML = worn
-    ? '<img alt="" src="' + worn.png + '">' +
+    ? '<img alt="" src="' + (signPng(worn) || '') + '">' +
       (worn.face ? '<span class="dossier-face">' + worn.face + '</span>' : '')
     : '<span class="dossier-none">none</span>';
 
@@ -4000,13 +4136,27 @@ function renderRevealRules() {
 async function preloadCardAssets() {
   const agent = state.agent;
 
-  const worn = agent.feelingCodes[agent.feelingWorn];
-  cardAssets.feeling = await loadImage(worn ? worn.png : null);
+  const worn = (agent.moodCodes || [])[wornIndex()];
+  cardAssets.feeling = await loadImage(signPng(worn));
 
   // Milestone 7: the Draw door's picture has to be loaded too, or a child who
   // used Draw would get a blank agent on the saved card.
   cardAssets.coverDrawing = await loadImage((agent.cover || {}).drawingPng);
   cardAssets.boostDrawing = await loadImage(((agent.powerup && agent.powerup.look) || {}).drawingPng);
+
+  // v2 V2: the Parts door's layer, rasterised from the same SVG the screen
+  // draws, so the card cannot disagree with what the child made.
+  const look = (agent.powerup && agent.powerup.look) || {};
+  cardAssets.coverShapes = await loadImage(shapesToSvgUrl((agent.cover || {}).shapes));
+  cardAssets.boostShapes = await loadImage(shapesToSvgUrl(look.shapes));
+
+  // v2 §5.3.2: every picture sticker the child has used.
+  cardAssets.stickers = {};
+  const used = [].concat(agent.cover.stickers || [], look.stickers || []);
+  for (const sticker of used) {
+    if (!sticker.asset || cardAssets.stickers[sticker.asset]) continue;
+    cardAssets.stickers[sticker.asset] = await Assets.image(sticker.asset);
+  }
 
   cardAssets.rules = {};
   for (const rule of RULE_CARDS) {
@@ -4094,7 +4244,7 @@ function drawCardToCanvas(canvas) {
   // --- feeling code ---
   label(ctx, 'FEELING CODE', 60, 760);
   roundedBox(ctx, 60, 780, 380, 300, '#16263f');   // dark, so white ink reads
-  const worn = agent.feelingCodes[agent.feelingWorn];
+  const worn = (agent.moodCodes || [])[wornIndex()];
   if (cardAssets.feeling) {
     ctx.drawImage(cardAssets.feeling, 100, 790, 280, 280);
     if (worn && worn.face) {
@@ -4230,7 +4380,8 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
   }
 
   if (door === 'build') {
-    drawShapesToCanvas(ctx, data.shapes || [], x, y, size);
+    const layer = withExtras ? cardAssets.boostShapes : cardAssets.coverShapes;
+    if (layer) ctx.drawImage(layer, x, y, size, size);
     drawStickersToCanvas(ctx, data.stickers || [], x, y, size);
     ctx.restore();
     ctx.textAlign = 'left';
@@ -4272,15 +4423,89 @@ function drawStickersToCanvas(ctx, stickers, x, y, size) {
     ctx.save();
     ctx.translate(x + sticker.x * size, y + sticker.y * size);
     ctx.rotate((sticker.rotation || 0) * Math.PI / 180);
-    ctx.font = Math.round(size * 0.14 * (sticker.scale || 1)) + 'px ' + CARD_FONT;
-    ctx.fillText(sticker.emoji, 0, 0);
+    const px = Math.round(size * 0.14 * (sticker.scale || 1));
+
+    // v2 §5.3.2: picture stickers have to be drawn here too.
+    const img = sticker.asset ? cardAssets.stickers[sticker.asset] : null;
+    if (img) {
+      ctx.drawImage(img, -px / 2, -px / 2, px, px);
+    } else {
+      const entry = sticker.asset ? Assets.item(sticker.asset) : null;
+      ctx.font = px + 'px ' + CARD_FONT;
+      ctx.fillText(sticker.emoji || (entry && entry.fallback) || '🧩', 0, 0);
+    }
     ctx.restore();
   });
 }
 
-/* The Build door's shapes, drawn with canvas rather than SVG. The outlines
-   match shapeElement() above: both describe the same seven shapes in a
-   20-unit box centred on zero, so the card matches the screen. */
+/* THE SHAPES AND PARTS, ON THE SAVED CARD (v2 V2)
+
+   v1 redrew the seven shapes with canvas calls. That stopped being sensible
+   at 85 parts: every part would have to be described twice, once as SVG for
+   the screen and once as canvas for the card, and the two would drift apart
+   the first time one was adjusted.
+
+   So the card now RASTERISES THE SAME SVG the screen uses. The shapes layer
+   is serialised to an SVG document, turned into a data URL, loaded as an
+   image and drawn. One description of each part, and the card cannot
+   disagree with the screen.
+
+   Images load asynchronously, so these are prepared in preloadCardAssets()
+   before the Save button can be pressed (Safari only allows share() straight
+   off a tap). */
+function shapesToSvgUrl(shapes) {
+  if (!shapes || shapes.length === 0) return null;
+
+  let body = '';
+  layerOrder(shapes).forEach(({ shape }) => {
+    const part = Parts.get(shape.type);
+    const transform = shapeTransform(shape, part);
+    if (part) {
+      // The tint is written in directly: a data URL has no stylesheet.
+      const painted = part.svg
+        .replace(/class="tint tint-stroke"/g,
+                 'fill="' + shape.colour + '" stroke="' + shape.colour + '"')
+        .replace(/class="tint-stroke"/g, 'stroke="' + shape.colour + '"')
+        .replace(/class="tint"/g, 'fill="' + shape.colour + '"');
+      body += '<g transform="' + transform + '">' + painted + '</g>';
+    } else {
+      body += '<g transform="' + transform + '" fill="' + shape.colour + '">' +
+              v1ShapeMarkup(shape.type) + '</g>';
+    }
+  });
+
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ' +
+              'width="600" height="600">' +
+              '<g stroke="#1b1b2f" stroke-width="2.5" stroke-linejoin="round" ' +
+              'stroke-linecap="round" vector-effect="non-scaling-stroke">' +
+              body + '</g></svg>';
+
+  // encodeURIComponent rather than base64: it keeps the markup readable in a
+  // debugger and handles the quotes and hashes in colours safely.
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+/* The seven v1 shapes as markup, matching shapeElement()'s geometry. */
+function v1ShapeMarkup(type) {
+  if (type === 'circle')   return '<circle cx="0" cy="0" r="10"/>';
+  if (type === 'oval')     return '<ellipse cx="0" cy="0" rx="10" ry="6.5"/>';
+  if (type === 'square')   return '<rect x="-9" y="-9" width="18" height="18"/>';
+  if (type === 'rounded')  return '<rect x="-9" y="-9" width="18" height="18" rx="4.5"/>';
+  if (type === 'triangle') return '<polygon points="0,-10 9.5,8 -9.5,8"/>';
+  if (type === 'star') {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? 10 : 4.2;
+      const a = (Math.PI / 5) * i - Math.PI / 2;
+      pts.push((Math.cos(a) * r).toFixed(2) + ',' + (Math.sin(a) * r).toFixed(2));
+    }
+    return '<polygon points="' + pts.join(' ') + '"/>';
+  }
+  return '<path d="M0,-9 C6,-9 10,-4 9,1 C8,6 4,9 0,9 C-5,9 -10,6 -9,0 ' +
+         'C-8,-5 -6,-9 0,-9 Z"/>';
+}
+
+// Kept for anything still asking; the card uses the rasterised layer instead.
 function drawShapesToCanvas(ctx, shapes, x, y, size) {
   const k = size / 100;                 // the SVG viewBox is 100 units wide
   shapes.forEach(shape => {
@@ -4450,21 +4675,44 @@ function make(tag, attrs) {
   return el;
 }
 
+/* v2 §5.3.1: a part's drawing order follows its category - a body behind a
+   head, a head behind ears, hair over the lot - unless the child has used
+   ⬆️ or ⬇️, which sets an explicit `z`. The array order breaks ties, so two
+   parts on the same layer stay in the order they were added. */
+function layerOrder(shapes) {
+  return shapes
+    .map((shape, index) => ({ shape, index }))
+    .sort((a, b) => {
+      const za = a.shape.z === undefined ? Parts.layerOf(a.shape.type) : a.shape.z;
+      const zb = b.shape.z === undefined ? Parts.layerOf(b.shape.type) : b.shape.z;
+      if (za !== zb) return za - zb;
+      return a.index - b.index;
+    });
+}
+
 function renderShapes(svg, shapes, interactive) {
   svg.innerHTML = '';
-  shapes.forEach((shape, index) => {
-    const group = make('g', {
-      // Order matters: move first, then turn, then size.
-      transform: 'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
-                 'rotate(' + (shape.rotation || 0) + ') ' +
-                 'scale(' + (shape.size || 1) + ')'
-    });
-    const el = shapeElement(shape.type);
-    el.setAttribute('fill', shape.colour);
-    group.appendChild(el);
+
+  layerOrder(shapes).forEach(({ shape, index }) => {
+    const part = Parts.get(shape.type);
+    const group = make('g', { transform: shapeTransform(shape, part) });
+
+    if (part) {
+      /* A part is an SVG fragment in its own 100x100 box, so it is dropped in
+         as markup. The `tint` class is what takes the child's colour, set
+         here on the group so every tinted element inside follows. */
+      group.innerHTML = part.svg;
+      group.setAttribute('class', 'part-group');
+      group.style.setProperty('--tint', shape.colour);
+    } else {
+      // One of the seven v1 shapes, still drawn the way it always was.
+      const el = shapeElement(shape.type);
+      el.setAttribute('fill', shape.colour);
+      group.appendChild(el);
+    }
 
     if (interactive && index === editor.selectedShape) {
-      group.setAttribute('class', 'is-selected');
+      group.setAttribute('class', (part ? 'part-group ' : '') + 'is-selected');
     }
     if (interactive) {
       group.dataset.index = index;
@@ -4474,29 +4722,22 @@ function renderShapes(svg, shapes, interactive) {
   });
 }
 
+/* Where a shape sits, as one transform.
 
-/* ---------------------------------------------------------------------------
-   THE SHAPE TRAY
-   ------------------------------------------------------------------------ */
-function buildShapeTray() {
-  const tray = $('#shape-tray');
-  tray.innerHTML = '';
-  SHAPES.forEach(shape => {
-    const button = document.createElement('button');
-    button.className = 'tray-shape';
-    button.setAttribute('aria-label', 'Shape ' + shape.label);
-
-    // A little preview of the shape itself, rather than a word.
-    const svg = make('svg', { viewBox: '-12 -12 24 24' });
-    const el = shapeElement(shape.id);
-    el.setAttribute('fill', editor.colour);
-    svg.appendChild(el);
-    button.appendChild(svg);
-
-    button.addEventListener('pointerdown', event => startShapeTrayDrag(event, shape.id));
-    tray.appendChild(button);
-  });
+   The two kinds measure differently, which is why this is in one place:
+     a v1 shape is drawn around 0,0 in a 20-unit box, so `size` is a scale;
+     a PART is drawn in a 100-unit box with its middle at 50,50, so it has to
+     be shifted back by half its box before being scaled into position.
+   `flipX` mirrors a part, which is how one ear or one tail serves both sides. */
+function shapeTransform(shape, part) {
+  const flip = shape.flipX ? ' scale(-1,1)' : '';
+  const base = 'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
+               'rotate(' + (shape.rotation || 0) + ')' + flip;
+  if (!part) return base + ' scale(' + (shape.size || 1) + ')';
+  return base + ' scale(' + (shape.size || 1) + ') translate(-50,-50)';
 }
+
+
 
 function addShape(type, x, y) {
   pushUndo();
@@ -4573,6 +4814,7 @@ function startShapeDrag(event) {
   editor.selected = null;
   paintShapeSelection();
   paintShapeControls();
+  paintPartsPalette();          // v2 §5.3.1: this part's own colours first
 
   const startX = event.clientX, startY = event.clientY;
   const rect0 = stageEl.getBoundingClientRect();
@@ -4640,22 +4882,22 @@ function shapeAction(what) {
   if (!shape) return;
   pushUndo();
 
-  if (what === 'bigger')  shape.size = Math.min(5, (shape.size || 1) + 0.3);
-  if (what === 'smaller') shape.size = Math.max(0.3, (shape.size || 1) - 0.3);
+  /* A part measures its size as a fraction of the stage, a v1 shape as a
+     scale factor, so the steps differ. Without this, one ➕ on a part made it
+     fill the screen. */
+  const isPart = Parts.isPart(shape.type);
+  const step = isPart ? 0.06 : 0.3;
+  const min  = isPart ? 0.05 : 0.3;
+  const max  = isPart ? 1.6  : 5;
+
+  if (what === 'bigger')  shape.size = Math.min(max, (shape.size || 1) + step);
+  if (what === 'smaller') shape.size = Math.max(min, (shape.size || 1) - step);
   if (what === 'rotate')  shape.rotation = ((shape.rotation || 0) + 30) % 360;
   if (what === 'colour')  shape.colour = editor.colour;
+  if (what === 'flip')    { flipPart(); return; }
 
-  // Last in the list is drawn last, so "front" means moving to the end.
-  if (what === 'front') {
-    p.shapes.splice(index, 1);
-    p.shapes.push(shape);
-    editor.selectedShape = p.shapes.length - 1;
-  }
-  if (what === 'back') {
-    p.shapes.splice(index, 1);
-    p.shapes.unshift(shape);
-    editor.selectedShape = 0;
-  }
+  // v2 §5.3.1: ⬆️ and ⬇️ override the category layer order.
+  if (what === 'front' || what === 'back') { layerPart(what); return; }
   if (what === 'delete') {
     p.shapes.splice(index, 1);
     editor.selectedShape = null;
@@ -4738,6 +4980,13 @@ function wireDoors() {
 
   $$('[data-shape]').forEach(b =>
     b.addEventListener('click', () => shapeAction(b.dataset.shape)));
+
+  // v2 V2: the parts kit's palette toggle and the sticker search.
+  $('#btn-parts-more').addEventListener('click', () => {
+    partsUi.morePalette = !partsUi.morePalette;
+    paintPartsPalette();
+  });
+  $('#sticker-search').addEventListener('input', onStickerSearch);
 
   $$('[data-brush]').forEach(b => b.addEventListener('click', () => {
     coder.width = Number(b.dataset.brush);
@@ -5387,4 +5636,248 @@ function wireSessionControls() {
 
   $('#btn-practice').addEventListener('click', () => setPractice(!state.practice));
   $('#btn-asset-check').addEventListener('click', runAssetCheck);
+}
+
+
+/* ==========================================================================
+   25. THE PARTS KIT (added in v2 V2, spec §5.3.1)
+   ==========================================================================
+
+   WHAT THIS ADDS
+   v1's Build door had seven shapes. A child could decorate an agent with
+   them, but not build a face. parts.js draws 85 parts - heads, eyes, brows,
+   mouths, noses, ears, hair, headwear, bodies and extras - and this section
+   puts them on the agent.
+
+   THE ONE THING THAT MAKES IT WORK
+   Tapping a face part does not drop it in the middle of the stage. It snaps
+   to where it belongs ON THE MOST RECENTLY ADDED HEAD, scaled to that head
+   (v2 §5.3.1). That is what lets a child build a face by tapping rather than
+   by dragging ten things into alignment - and it is why "a face can be built
+   in under a minute" is V2's test.
+
+   Parts live in the SAME `shapes` array as the v1 shapes, as more `type`s
+   (v2 §5.3.1), so renderShapes, the card renderer, undo and the Boost copy
+   all work on them without being duplicated.
+   ========================================================================== */
+
+// Which part tray is open, and whether the full colour range is showing.
+const partsUi = { cat: 'heads', morePalette: false };
+
+/* The most recently added head, if there is one. Face parts land on it. */
+function mostRecentHead() {
+  const shapes = ensurePixels().shapes;
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    const part = Parts.get(shapes[i].type);
+    if (part && part.cat === 'heads') return shapes[i];
+  }
+  return null;
+}
+
+/* Work out where a tapped part should land, and how big it should be.
+
+   A head or a body uses the stage: its anchor and size are fractions of the
+   whole picture. A face part uses the HEAD: its anchor is a position across
+   the head's own box (0.5, 0.44 is where eyes go) and its size is a fraction
+   of the head's width. With no head yet, it falls back to the stage so the
+   part still appears somewhere sensible rather than nowhere. */
+function placementFor(part) {
+  const head = mostRecentHead();
+  const onFace = Parts.FACE_CATS.indexOf(part.cat) !== -1;
+
+  if (!onFace || !head) {
+    return { x: part.anchor.x, y: part.anchor.y, size: part.size };
+  }
+
+  const headPart = Parts.get(head.type);
+  const headSize = head.size || 0.4;          // the head's width, 0-1 of stage
+
+  // The head's box runs from its centre out by half its size in each
+  // direction, so an anchor of 0.5,0.44 is converted into stage coordinates.
+  return {
+    x: head.x + (part.anchor.x - 0.5) * headSize,
+    y: head.y + (part.anchor.y - 0.5) * headSize,
+    // A face part's size is given relative to the head it sits on.
+    size: part.size * headSize / (headPart ? 1 : 1)
+  };
+}
+
+function addPart(partId) {
+  const part = Parts.get(partId);
+  if (!part) return;
+
+  pushUndo();
+  const p = ensurePixels();
+  const place = placementFor(part);
+
+  p.shapes.push({
+    type: part.id,
+    x: place.x, y: place.y,
+    size: place.size,
+    rotation: 0,
+    colour: Parts.defaultColour(part),
+    flipX: false
+  });
+
+  editor.selectedShape = p.shapes.length - 1;
+  editor.selected = null;
+  logEvent('part_add', { type: part.id, cat: part.cat, onHead: Boolean(mostRecentHead()) });
+  playSfx('sfx-pop');
+  refreshAgentViews();
+  paintShapeControls();
+  paintPartsPalette();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   THE TRAYS
+   Non-human options come first inside each category (v2 §5.3.1); parts.js
+   lists them in that order, so this only has to keep it.
+   ------------------------------------------------------------------------ */
+function buildPartsTray() {
+  const tabs = $('#parts-cats');
+  if (!tabs) return;
+  tabs.innerHTML = '';
+
+  Parts.CATEGORIES.forEach(cat => {
+    const button = document.createElement('button');
+    button.className = 'btn seg parts-cat' + (cat.id === partsUi.cat ? ' is-on' : '');
+    button.innerHTML = '<span class="parts-cat-icon">' + cat.icon + '</span>' +
+                       '<span class="parts-cat-label">' + cat.label + '</span>';
+    button.setAttribute('aria-label', cat.label);
+    button.addEventListener('click', () => {
+      partsUi.cat = cat.id;
+      buildPartsTray();
+    });
+    tabs.appendChild(button);
+  });
+
+  const tray = $('#parts-tray');
+  tray.innerHTML = '';
+
+  // The Shapes tab is still the seven v1 shapes.
+  if (partsUi.cat === 'shapes') {
+    SHAPES.forEach(shape => {
+      tray.appendChild(shapeTrayButton(shape.id, shape.label));
+    });
+    return;
+  }
+
+  Parts.inCategory(partsUi.cat).forEach(part => {
+    const button = document.createElement('button');
+    button.className = 'tray-part';
+    button.setAttribute('aria-label', part.label);
+    button.title = part.label;
+
+    // A little preview, drawn with the part's own default colour.
+    const svg = make('svg', { viewBox: '0 0 100 100' });
+    const g = make('g', {});
+    g.innerHTML = part.svg;
+    g.setAttribute('class', 'part-group');
+    g.style.setProperty('--tint', Parts.defaultColour(part));
+    svg.appendChild(g);
+    button.appendChild(svg);
+
+    // Tap to place; drag to place where you let go.
+    button.addEventListener('click', () => addPart(part.id));
+    tray.appendChild(button);
+  });
+}
+
+// One of the seven v1 shapes, as a tray button (kept from Milestone 7).
+function shapeTrayButton(id, label) {
+  const button = document.createElement('button');
+  button.className = 'tray-part';
+  button.setAttribute('aria-label', 'Shape ' + label);
+  const svg = make('svg', { viewBox: '-12 -12 24 24' });
+  const el = shapeElement(id);
+  el.setAttribute('fill', editor.colour);
+  svg.appendChild(el);
+  button.appendChild(svg);
+  button.addEventListener('pointerdown', event => startShapeTrayDrag(event, id));
+  return button;
+}
+
+
+/* ---------------------------------------------------------------------------
+   COLOURING A PART (v2 §5.3.1)
+   The part's own palette comes first - hair colours for hair, skin tones for
+   a head - and everything else is behind "More". A child colouring hair
+   should not have to hunt through sixteen brights for a brown.
+   ------------------------------------------------------------------------ */
+function paintPartsPalette() {
+  const box = $('#parts-palette');
+  if (!box) return;
+  box.innerHTML = '';
+
+  const shape = ensurePixels().shapes[editor.selectedShape];
+  const part = shape ? Parts.get(shape.type) : null;
+
+  const own = Parts.paletteFor(part);
+  const colours = partsUi.morePalette
+    ? own.concat(Parts.PALETTES.any.filter(c => own.indexOf(c) === -1))
+    : own;
+
+  colours.forEach(colour => {
+    const swatch = document.createElement('button');
+    swatch.className = 'swatch' + (shape && shape.colour === colour ? ' is-on' : '');
+    swatch.style.background = colour;
+    swatch.setAttribute('aria-label', 'Colour ' + colour);
+    swatch.addEventListener('click', () => recolourPart(colour));
+    box.appendChild(swatch);
+  });
+
+  const more = $('#btn-parts-more');
+  if (more) {
+    more.textContent = partsUi.morePalette ? '− Fewer' : '+ More';
+    more.hidden = false;
+  }
+}
+
+function recolourPart(colour) {
+  editor.colour = colour;
+  const p = ensurePixels();
+  const shape = p.shapes[editor.selectedShape];
+  if (!shape) { paintPartsPalette(); return; }
+
+  pushUndo();
+  shape.colour = colour;
+  logEvent('part_recolour', { type: shape.type, colour: colour });
+  refreshAgentViews();
+  paintPartsPalette();
+  buildPartsTray();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   FLIP AND LAYER (v2 §5.3.1)
+   ⬆️ ⬇️ override the category order; ↔️ mirrors a part.
+   ------------------------------------------------------------------------ */
+function flipPart() {
+  const shape = ensurePixels().shapes[editor.selectedShape];
+  if (!shape) return;
+  pushUndo();
+  shape.flipX = !shape.flipX;
+  logEvent('part_flip', { type: shape.type, flipped: shape.flipX });
+  refreshAgentViews();
+  scheduleSave();
+}
+
+/* Move a part in front of or behind everything else. This sets an explicit
+   `z`, which is what overrides the category order. */
+function layerPart(direction) {
+  const p = ensurePixels();
+  const shape = p.shapes[editor.selectedShape];
+  if (!shape) return;
+  pushUndo();
+
+  const layers = p.shapes.map(s => (s.z === undefined ? Parts.layerOf(s.type) : s.z));
+  shape.z = direction === 'front' ? Math.max.apply(null, layers.concat([0])) + 1
+                                  : Math.min.apply(null, layers.concat([0])) - 1;
+
+  logEvent('part_layer', { type: shape.type, to: direction });
+  refreshAgentViews();
+  scheduleSave();
 }

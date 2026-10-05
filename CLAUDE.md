@@ -69,6 +69,8 @@ external fonts or libraries, or text-heavy instructions.
 | `effects.js` | Particles on one canvas, and the screen shake (§5a) |
 | `assets.js` | Pictures, narration and sounds, each with a stand-in (v2 §5.0) |
 | `stickers.js` | The sticker library and its forgiving keyword search (v2 §5.3.2) |
+| `parts.js` | The 85-part kit: heads, faces, hair, bodies (v2 §5.3.1) |
+| `tools/parts-sheet.html` | Every part in every palette, for review before a session |
 | `sw.js` | Service worker: caches the app so it runs offline |
 | `manifest.json` | PWA settings (name, standalone, icons) |
 | `assets/manifest.json` | **Generated** from `asset-guide.md`; never hand-edit |
@@ -87,7 +89,7 @@ file list (§4) only allows `audio.js` and `effects.js` to join, in later
 milestones.
 
 Script load order: `storage.js`, `audio.js`, `effects.js`, `assets.js`,
-`stickers.js`, then `app.js`.
+`stickers.js`, `parts.js`, then `app.js`.
 All four carry a `?v=` cache-buster in `index.html`; **bump it on every
 release** or an iPad will keep running the old JavaScript against new HTML.
 
@@ -201,9 +203,25 @@ release** or an iPad will keep running the old JavaScript against new HTML.
     `agent_open`. Practice agents are labelled.
   - **★ Me** is the first sticker tab and holds the child's emblem, so they
     can put their symbol on the agent like a logo.
-- **Next: v2 V2 — Parts kit and sticker library** (v2 §5.3), which replaces
-  the seven shapes with a drawn parts kit and swaps the 31-emoji tray for
-  `stickers.js`'s full library.
+- **v2 V2 — done (5 October 2026).** The parts kit and the sticker library.
+  - **New file `parts.js`: 85 SVG parts** across ten categories, meeting every
+    minimum in v2 §5.3.1 — including all sixteen hairstyles (afro, afro puffs,
+    cornrows, box braids, locs, twists…) and all seven head coverings (hijab,
+    turban, headscarf, beanie, cap, hood, headband), plus hearing aids,
+    a cochlear implant processor and ear defenders as ordinary ear options.
+  - **Tapping snaps to the head.** A face part lands where it belongs on the
+    most recently added head, scaled to it — which is what makes "a face in
+    under a minute" true. Seven taps builds a face.
+  - Parts live in the same `shapes` array as the v1 shapes, so undo, the
+    Power-up copy and the card renderer all got them for free.
+  - **The Build door is now Parts**; the seven v1 shapes live in its Shapes
+    category and still work.
+  - **The sticker tray is the full library** from `stickers.js`: fourteen
+    tabs, ★ Me first, 🔍 Search with requests, and picture stickers that
+    appear when their files arrive.
+  - **New review page `tools/parts-sheet.html`** shows all 85 in any palette.
+- **Next: v2 V3 — Power-up** (v2 §5.4): invent a power, pick its effect, and
+  say when the agent uses it.
 
 
 ## "Bring in the new assets" (v2 §5.0)
@@ -273,6 +291,17 @@ hand-edit the manifest, and never edit both.
   prefix beats a typo, and a sticker whose LABEL is the word beats one that
   merely lists it as a keyword — otherwise typing "ninja" offered a karate
   belt first. Children do not scroll past wrong answers.
+- **A part is SVG in a 100×100 box centred on 50,50** (v2 §5.3.1). `class="tint"`
+  takes the child's colour; everything else keeps its own fill, which is how
+  eye whites stay white. The outline is set once in CSS on `.part-group`, with
+  `vector-effect: non-scaling-stroke` so a big head does not get a crayon
+  border. Add a part to `parts.js` and it appears — nothing else to touch.
+- **Voluminous hair is a ring, not a disc.** An afro drawn solid covered the
+  whole face. Big hair uses `fill-rule="evenodd"` with the face cut out.
+- **The saved card RASTERISES the same SVG the screen draws.** v1 redrew each
+  shape with canvas calls; at 85 parts that would mean describing every one
+  twice and watching the two drift apart. `shapesToSvgUrl()` serialises the
+  layer, and `preloadCardAssets()` loads it before Save can be pressed.
 - **Any screen that can grow must scroll.** The Start screen is centred while
   it fits and scrolls once the gallery is there; with a full iPad the gallery
   was pushed off a screen that could not scroll, so a child could reach

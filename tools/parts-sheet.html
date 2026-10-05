@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Lab — parts sheet</title>
+
+<!--
+  tools/parts-sheet.html — every part, in every colour (v2 spec §5.3.1)
+  =====================================================================
+  "A review page: tools/parts-sheet.html shows every part in every palette,
+  so Filip can check them before a session."
+
+  Open it straight from the folder, or over the test server:
+      http://localhost:8000/tools/parts-sheet.html
+
+  It loads ../parts.js, so it always shows exactly what the app will draw.
+  Nothing here is part of the app; the app never loads anything from tools/.
+-->
+
+<style>
+  :root {
+    --navy-0: #060f1f; --navy-1: #0b1b33; --navy-2: #12294a; --navy-3: #1d3a63;
+    --accent: #ffd23f; --text: #fff; --muted: #9fb3d1;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    background: var(--navy-1); color: var(--text);
+    font-family: var(--font); line-height: 1.4; letter-spacing: .02em;
+  }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub { margin: 0 0 20px; color: var(--muted); font-size: 15px; }
+
+  .controls {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    padding: 12px; margin-bottom: 20px;
+    border-radius: 14px; background: var(--navy-2);
+    box-shadow: 0 6px 18px rgba(0,0,0,.4);
+  }
+  label { font-size: 14px; color: var(--muted); }
+  select, button {
+    font-family: var(--font); font-size: 15px;
+    padding: 8px 12px; border: none; border-radius: 10px;
+    background: var(--navy-3); color: var(--text); cursor: pointer;
+  }
+  button.on { background: var(--accent); color: #10233f; font-weight: 700; }
+
+  h2 { margin: 26px 0 10px; font-size: 19px; }
+  h2 .count { color: var(--muted); font-weight: 400; font-size: 15px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+  .cell {
+    background: var(--navy-2); border-radius: 14px; padding: 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .cell.light { background: #f4ead6; }
+  .cell svg { width: 100%; aspect-ratio: 1; overflow: visible; }
+  .id { font-size: 11px; color: var(--muted); font-family: ui-monospace, Menlo, monospace;
+        word-break: break-all; text-align: center; }
+  .cell.light .id { color: #6a5c3c; }
+
+  /* The same outline rule the app uses, so this sheet is a true preview. */
+  .part-group { stroke: #1b1b2f; stroke-width: 2.5; stroke-linejoin: round;
+                stroke-linecap: round; vector-effect: non-scaling-stroke; }
+  .part-group .tint { fill: var(--tint, #4cc9f0); }
+  .part-group .tint-stroke { stroke: var(--tint, #4cc9f0); }
+  .part-group .tint.tint-stroke { fill: var(--tint, #4cc9f0); stroke: var(--tint, #4cc9f0); }
+
+  .swatches { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+  .swatches span { width: 14px; height: 14px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Agent Lab — parts sheet</h1>
+<p class="sub">
+  Every part the app can draw, straight from <code>parts.js</code>.
+  Check these at arm's length and at thumbnail size before a session.
+</p>
+
+<div class="controls">
+  <label for="palette">Colour</label>
+  <select id="palette"></select>
+  <button id="btn-all">Show every colour</button>
+  <button id="btn-bg">Light background</button>
+  <span id="summary" class="sub" style="margin:0"></span>
+</div>
+
+<div id="sheet"></div>
+
+<script src="../parts.js"></script>
+<script>
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var showAll = false;
+  var light = false;
+
+  // Every colour in the kit, de-duplicated, for the "show every colour" view.
+  function allColours() {
+    var seen = {}, out = [];
+    Object.keys(Parts.PALETTES).forEach(function (key) {
+      Parts.PALETTES[key].forEach(function (c) {
+        if (!seen[c]) { seen[c] = true; out.push(c); }
+      });
+    });
+    return out;
+  }
+
+  function swatch(part, colour) {
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    var g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'part-group');
+    g.innerHTML = part.svg;
+    g.style.setProperty('--tint', colour);
+    svg.appendChild(g);
+    return svg;
+  }
+
+  function build() {
+    var sheet = document.getElementById('sheet');
+    sheet.innerHTML = '';
+
+    var chosen = document.getElementById('palette').value;
+    var total = 0;
+
+    Parts.CATEGORIES.forEach(function (cat) {
+      var parts = Parts.inCategory(cat.id);
+      if (parts.length === 0) return;          // 'shapes' has no parts entries
+      total += parts.length;
+
+      var h = document.createElement('h2');
+      h.innerHTML = cat.icon + ' ' + cat.label +
+                    ' <span class="count">' + parts.length + '</span>';
+      sheet.appendChild(h);
+
+      var grid = document.createElement('div');
+      grid.className = 'grid';
+
+      parts.forEach(function (part) {
+        var colours = showAll
+          ? allColours()
+          : (chosen === 'default'
+              ? [Parts.defaultColour(part)]
+              : [Parts.PALETTES[chosen][0]]);
+
+        if (showAll) {
+          // One cell per part, showing it in every colour at once.
+          var cell = document.createElement('div');
+          cell.className = 'cell' + (light ? ' light' : '');
+          cell.appendChild(swatch(part, Parts.defaultColour(part)));
+          var row = document.createElement('div');
+          row.className = 'swatches';
+          Parts.paletteFor(part).forEach(function (c) {
+            var s = document.createElement('span');
+            s.style.background = c;
+            row.appendChild(s);
+          });
+          cell.appendChild(row);
+          var id = document.createElement('div');
+          id.className = 'id';
+          id.textContent = part.id;
+          cell.appendChild(id);
+          grid.appendChild(cell);
+
+          // And one cell per colour in its own palette, to catch any that
+          // vanish against the background.
+          Parts.paletteFor(part).forEach(function (c) {
+            var extra = document.createElement('div');
+            extra.className = 'cell' + (light ? ' light' : '');
+            extra.appendChild(swatch(part, c));
+            var cid = document.createElement('div');
+            cid.className = 'id';
+            cid.textContent = c;
+            extra.appendChild(cid);
+            grid.appendChild(extra);
+          });
+        } else {
+          var one = document.createElement('div');
+          one.className = 'cell' + (light ? ' light' : '');
+          one.appendChild(swatch(part, colours[0]));
+          var oid = document.createElement('div');
+          oid.className = 'id';
+          oid.textContent = part.id;
+          one.appendChild(oid);
+          grid.appendChild(one);
+        }
+      });
+
+      sheet.appendChild(grid);
+    });
+
+    document.getElementById('summary').textContent =
+      total + ' parts · ' + Parts.CATEGORIES.length + ' categories';
+  }
+
+  // --- set the controls up ---
+  var select = document.getElementById('palette');
+  ['default'].concat(Object.keys(Parts.PALETTES)).forEach(function (key) {
+    var option = document.createElement('option');
+    option.value = key;
+    option.textContent = key === 'default' ? 'Each part’s default' : key;
+    select.appendChild(option);
+  });
+  select.addEventListener('change', build);
+
+  document.getElementById('btn-all').addEventListener('click', function () {
+    showAll = !showAll;
+    this.classList.toggle('on', showAll);
+    build();
+  });
+  document.getElementById('btn-bg').addEventListener('click', function () {
+    light = !light;
+    this.classList.toggle('on', light);
+    build();
+  });
+
+  build();
+</script>
+</body>
+</html>
