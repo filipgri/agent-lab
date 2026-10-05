@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=22">
+  <link rel="stylesheet" href="./style.css?v=25">
 </head>
 <body>
 
@@ -287,20 +287,88 @@
         <!-- MISSION 2 - BOOST (spec §7). The Boost version starts as a copy of
              the Cover, and the Cover stays visible beside it as a reminder of
              what the agent looked like before. -->
+        <!-- MISSION: POWER-UP (v2 §5.4).
+             Three steps on ONE screen, so a child can see where they are and
+             go back. Each step has its own 🔊 line and a small ➡️ to skip. -->
         <article class="mission-panel" data-mission="powerup">
-          <div class="boost-row">
-            <!-- The untouched Mission 1 agent, for comparison only. -->
-            <aside class="cover-aside">
-              <div class="cover-label">Cover</div>
-              <button id="btn-power-replay" class="btn btn-replay" aria-label="Play the boost again">✨</button>
-              <div id="m2-cover" class="agent-view cover-thumb">
+
+          <div class="power-wrap">
+
+            <!-- The agent, standing in its HQ if it has one, with the effect
+                 playing on it. -->
+            <aside class="power-stage-col">
+              <div id="power-stage" class="agent-view power-stage">
                 <canvas class="agent-pixels" width="16" height="16"></canvas>
                 <img class="agent-drawing" alt="" hidden>
                 <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
                 <div class="sticker-layer"></div>
               </div>
+              <div class="power-stage-tools">
+                <button id="btn-power-replay" class="btn tool" aria-label="Play the power-up again">✨<span class="tool-word">Again</span></button>
+                <button id="btn-power-look" class="btn tool" aria-label="Change my look">🎨<span class="tool-word">My look</span></button>
+              </div>
             </aside>
-            <div id="m2-editor-mount" class="editor-mount"></div>
+
+            <div class="power-steps">
+
+              <!-- ============ STEP 1: make up a power ============ -->
+              <section id="power-step-1" class="power-step">
+                <header class="power-head">
+                  <h2 class="power-title">1. Make up a power</h2>
+                  <button class="btn btn-icon-only" data-say="nar-power-make" aria-label="Hear this">🔊</button>
+                  <button class="btn power-skip" data-step="2" aria-label="Skip to step 2">➡️</button>
+                </header>
+
+                <!-- Blank first. The ten ideas are NOT on this screen until
+                     the child asks for them (v2 §5.4). -->
+                <div class="power-make">
+                  <div class="m3-canvas-wrap power-canvas-wrap">
+                    <canvas id="power-canvas" class="m3-canvas" width="320" height="320"></canvas>
+                  </div>
+                  <div class="power-make-tools">
+                    <div id="power-palette" class="palette"></div>
+                    <div class="tool-row">
+                      <button id="power-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+                      <button id="power-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+                      <button id="power-mic" class="btn tool" aria-label="Say your power">🎤<span id="power-mic-word" class="tool-word">Say it</span></button>
+                    </div>
+                    <button id="btn-power-ideas" class="btn m3-ideas">💡 Need ideas?</button>
+                  </div>
+                </div>
+
+                <div id="power-ideas" class="power-ideas" hidden></div>
+              </section>
+
+              <!-- ============ STEP 2: what does it look like? ============ -->
+              <section id="power-step-2" class="power-step">
+                <header class="power-head">
+                  <h2 class="power-title">2. What does it look like?</h2>
+                  <button class="btn btn-icon-only" data-say="nar-power-effect" aria-label="Hear this">🔊</button>
+                  <button class="btn power-skip" data-step="3" aria-label="Skip to step 3">➡️</button>
+                </header>
+                <div id="power-effects" class="power-effects"></div>
+              </section>
+
+              <!-- ============ STEP 3: when does the agent use it? ============ -->
+              <section id="power-step-3" class="power-step">
+                <header class="power-head">
+                  <h2 class="power-title">3. When does your agent use it?</h2>
+                  <button class="btn btn-icon-only" data-say="nar-power-when" aria-label="Hear this">🔊</button>
+                </header>
+                <p class="power-hint">Choose as many as you like.</p>
+                <div id="power-when" class="power-when"></div>
+              </section>
+
+            </div>
+          </div>
+
+          <!-- The editor, for "Change my look". Hidden until asked for. -->
+          <div id="m2-editor-mount" class="editor-mount" hidden></div>
+          <div id="m2-cover" class="agent-view cover-thumb" hidden>
+            <canvas class="agent-pixels" width="16" height="16"></canvas>
+            <img class="agent-drawing" alt="" hidden>
+            <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
+            <div class="sticker-layer"></div>
           </div>
         </article>
 
@@ -778,6 +846,28 @@
   </div>
 </div>
 
+<!-- ✏️ MY OWN CARD (v2 §5.4, §5.5). When none of the cards is the right
+     one, a child draws or says their own. -->
+<div id="own-overlay" class="overlay" hidden>
+  <div class="sheet sheet-draw">
+    <div class="sheet-head">
+      <h3 id="own-title">Make your own card</h3>
+      <button id="own-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+    </div>
+    <div class="m3-canvas-wrap draw-sheet-canvas">
+      <canvas id="own-canvas" class="m3-canvas" width="320" height="320"></canvas>
+    </div>
+    <div id="own-palette" class="palette"></div>
+    <div class="sheet-actions">
+      <button id="own-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+      <button id="own-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+      <button id="own-mic" class="btn tool" aria-label="Say it">🎤<span id="own-mic-word" class="tool-word">Say it</span></button>
+      <button id="own-cancel" class="btn">Cancel</button>
+      <button id="own-save" class="btn btn-accent">✓ Keep</button>
+    </div>
+  </div>
+</div>
+
 <!-- TYPE YOUR OWN SPY NAME (v2 §5.1). Never a real name: the placeholder
      says "Make up a spy name", and nothing here asks who the child is. -->
 <div id="type-overlay" class="overlay" hidden>
@@ -824,12 +914,12 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=22"></script>
-<script src="./audio.js?v=22"></script>
-<script src="./effects.js?v=22"></script>
-<script src="./assets.js?v=22"></script>
-<script src="./stickers.js?v=22"></script>
-<script src="./parts.js?v=22"></script>
-<script src="./app.js?v=22"></script>
+<script src="./storage.js?v=25"></script>
+<script src="./audio.js?v=25"></script>
+<script src="./effects.js?v=25"></script>
+<script src="./assets.js?v=25"></script>
+<script src="./stickers.js?v=25"></script>
+<script src="./parts.js?v=25"></script>
+<script src="./app.js?v=25"></script>
 </body>
 </html>

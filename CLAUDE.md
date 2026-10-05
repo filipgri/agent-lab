@@ -232,8 +232,22 @@ release** or an iPad will keep running the old JavaScript against new HTML.
     choice is already saved as `hq.id`, so V4 inherits it.
   - The 10 situation cards are still unseen until **V3** builds Power-up
     step 3, which is the first screen that uses them.
-- **Next: v2 V3 — Power-up** (v2 §5.4): invent a power, pick its effect, and
-  say when the agent uses it.
+- **v2 V3 — done (5 October 2026).** The Power-up, replacing the v1 Boost.
+  Three steps on one screen, each with its own 🔊 line and a ➡️ to skip.
+  1. **Make up a power** — a blank canvas first, with an optional 🎤. The ten
+     idea tiles are *not rendered at all* until the child taps **Need ideas?**,
+     and `ideas_open` carries `drawnFirst`, so the log answers the research
+     question on its own: did the child invent before being offered a list?
+  2. **What does it look like?** — ten effects, each played on the agent the
+     moment it is tapped, with its sound. An idea brings its default effect
+     (`idea-fly` → `fx-float`); changing it logs `power_effect_choose`.
+  3. **When does your agent use it?** — the ten situation photographs, any
+     number, each speaking its label when tapped, plus ✏️ **My own**.
+  The ten effects are CSS animations in `style.css`, all gated on
+  `fullMotion()`; `fx-stomp` shakes by ≤3px, as §5.4 requires.
+- **Next: v2 V4 — HQ** (v2 §5.5): "where is your agent strongest?", with
+  draw-your-own and the landing. The twelve photographs and `hq.id` are
+  already in place from V2.
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)
@@ -289,6 +303,25 @@ hand-edit the manifest, and never edit both.
   mid-session.
 
 ## Conventions in this codebase
+
+### v2 conventions (from V3)
+
+- **A renamed field has to be chased into every screen that read it.**
+  `migrateAgent()` moves v1 fields into `legacy`, and three missions in a row
+  have now crashed because they still reached for the old path —
+  `feelingCodes`, `yesClips`, and `places` (which V8 replaces with Badge &
+  poster, so the v1 screen now reads `legacy.places` through `placesStore()`).
+  After renaming anything in §6, grep for the old name across `app.js`.
+- **`min-height: 0` matters as much as `min-width: 0` in a flex column.**
+  A flex item defaults to `min-height: auto` and refuses to shrink below its
+  content, so the Power-up's three steps pushed past the screen instead of
+  letting `.power-steps` scroll, and `body { overflow: hidden }` clipped the
+  rest. `.mission-body` had `min-width: 0` but not `min-height: 0`. Portrait
+  broke; landscape looked fine — **always check both.**
+- **A child's own work never disappears on one tap.** A kept ✏️ My own card
+  asks first: one tap arms it (it turns red and says "Remove?"), a second
+  within three seconds removes it, and it disarms itself otherwise. No dialog
+  — §12 rules out text-heavy UI — and the whole 136px card stays the target.
 
 ### v2 conventions (from V0)
 

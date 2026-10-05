@@ -284,7 +284,12 @@ body {
 .preview-emoji { font-size: 72px; }
 .preview-name { font-size: 16px; color: var(--muted); text-align: center; }
 
-.mission-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+/* min-height:0 matters as much as min-width:0 here. A flex item defaults to
+   min-height:auto, which refuses to shrink below its content, so a tall panel
+   (the Power-up's three steps) pushed past the screen instead of letting its
+   own scroller take over, and body{overflow:hidden} clipped the rest. */
+.mission-body { flex: 1; min-width: 0; min-height: 0;
+                display: flex; flex-direction: column; gap: 14px; }
 .mission-head { display: flex; align-items: center; gap: 14px; }
 .mission-title { margin: 0; font-size: 34px; }
 
@@ -2409,3 +2414,199 @@ body.is-practice .practice-badge { display: block; }
 .bg-options .hq-pick .pic-card-art { min-height: 0; aspect-ratio: 4 / 3; }
 .bg-options .hq-pick .pic-card-emoji { font-size: 30px; }
 .bg-options .hq-pick .pic-card-label { font-size: 13px; }
+
+
+/* ============================================================
+   v2 V3 — POWER-UP (spec §5.4)
+   ============================================================ */
+
+.power-wrap { flex: 1; min-height: 0; display: flex; gap: var(--gap); }
+
+.power-stage-col {
+  flex: 0 0 240px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.power-stage { width: 100%; height: auto; aspect-ratio: 1; flex: 0 0 auto; }
+.power-stage-tools { display: flex; gap: 8px; }
+.power-stage-tools .tool { flex: 1; }
+
+/* The three steps scroll together, so a child can see where they are and go
+   back (v2 §5.4: "three steps on one screen"). */
+.power-steps {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 4px;
+}
+.power-step { display: flex; flex-direction: column; gap: 10px; }
+.power-head { display: flex; align-items: center; gap: 10px; }
+.power-title {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: .03em;
+  line-height: 1.4;
+}
+.power-skip { min-height: 48px; padding: 0 14px; font-size: 18px; background: var(--navy-2); }
+.power-hint { margin: 0; color: var(--muted); font-size: 16px; letter-spacing: .03em; }
+
+/* --- Step 1 --- */
+.power-make { display: flex; gap: 12px; align-items: flex-start; }
+.power-canvas-wrap { flex: 0 0 220px; width: 220px; height: auto; }
+.power-make-tools { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.power-make-tools .palette { grid-template-columns: repeat(6, 1fr); }
+#power-mic.is-recording { animation: record-pulse 1s ease-in-out infinite; }
+
+/* The ten ideas. Hidden until asked for - that is the whole point. */
+.power-ideas { display: flex; gap: 8px; flex-wrap: wrap; }
+.idea-tile {
+  min-width: 104px;
+  min-height: 92px;
+  border: none;
+  border-radius: 16px;
+  background: var(--navy-3);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.idea-tile.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.idea-icon { font-size: 32px; line-height: 1; }
+.idea-label { font-size: 13px; letter-spacing: .03em; line-height: 1.3; text-align: center; }
+
+/* --- Step 2: the effects --- */
+.power-effects { display: flex; gap: 8px; flex-wrap: wrap; }
+.effect-tile { min-width: 96px; min-height: 88px; }
+
+/* --- Step 3: the situation cards --- */
+.power-when { display: flex; gap: 10px; flex-wrap: wrap; }
+.power-when .pic-card { width: 136px; }
+.power-when .pic-card-art { min-height: 100px; }
+.when-own {
+  width: 136px;
+  border: none;
+  border-radius: 18px;
+  background: var(--navy-2);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+  border: 3px dashed rgba(255,255,255,.18);
+}
+.when-own-icon { font-size: 40px; }
+.when-own-label { font-size: 15px; font-weight: 600; letter-spacing: .03em; }
+.own-card-thumb { width: 100%; aspect-ratio: 4/3; object-fit: contain;
+                  background: #16263f; border-radius: 10px; }
+
+/* Armed to be removed: one more tap and it goes (see armOwnRemove in app.js). */
+.when-own.is-armed {
+  border-color: var(--danger, #ff6b6b);
+  box-shadow: inset 0 0 0 2px var(--danger, #ff6b6b);
+}
+.when-own.is-armed .when-own-label { color: var(--danger, #ff6b6b); }
+
+/* ============================================================
+   THE TEN POWER EFFECTS (v2 §5.4)
+   Each plays on the agent itself. transform and opacity only, and nothing
+   flashes more than three times a second (§5a).
+   ============================================================ */
+.fx-lightning { animation: fx-lightning 900ms ease-out; }
+@keyframes fx-lightning {
+  0%,100% { filter: none; transform: translateX(0); }
+  10% { filter: brightness(2.6); transform: translateX(-4px); }
+  22% { filter: none; transform: translateX(4px); }
+  40% { filter: brightness(2.2); transform: translateX(-2px); }
+  55% { filter: none; transform: translateX(0); }
+}
+.fx-freeze { animation: fx-freeze 1100ms ease-out; }
+@keyframes fx-freeze {
+  0% { filter: none; }
+  40% { filter: brightness(1.2) saturate(.3) hue-rotate(170deg); transform: scale(.97); }
+  100% { filter: none; transform: scale(1); }
+}
+.fx-fade { animation: fx-fade 1100ms ease-in-out; }
+@keyframes fx-fade {
+  0%,100% { opacity: 1; }
+  45% { opacity: .08; }
+  70% { opacity: .08; }
+}
+.fx-speed { animation: fx-speed 800ms cubic-bezier(.3,0,.2,1); }
+@keyframes fx-speed {
+  0% { transform: translateX(0); opacity: 1; }
+  30% { transform: translateX(-70px); opacity: .25; }
+  32% { transform: translateX(70px); opacity: .25; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.fx-thoughts { animation: fx-thoughts 1100ms ease-in-out; }
+@keyframes fx-thoughts {
+  0%,100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-8px) scale(1.03); }
+  60% { transform: translateY(0) scale(.99); }
+}
+.fx-shield { animation: fx-shield 1100ms ease-out; }
+@keyframes fx-shield {
+  0% { transform: scale(1); filter: none; }
+  35% { transform: scale(1.06); filter: brightness(1.5) drop-shadow(0 0 14px #7fe7ff); }
+  100% { transform: scale(1); filter: none; }
+}
+.fx-float { animation: fx-float 1300ms ease-in-out; }
+@keyframes fx-float {
+  0%,100% { transform: translateY(0) rotate(0); }
+  40% { transform: translateY(-34px) rotate(-3deg); }
+  70% { transform: translateY(-26px) rotate(3deg); }
+}
+/* §5a: a shake of 3px or less, never violent. */
+.fx-stomp { animation: fx-stomp 700ms ease-out; }
+@keyframes fx-stomp {
+  0%,100% { transform: translateY(0); }
+  25% { transform: translateY(-14px); }
+  45% { transform: translateY(0) scaleY(.94); }
+  55% { transform: translateX(-3px); }
+  65% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
+.fx-teleport { animation: fx-teleport 1200ms ease-in-out; }
+@keyframes fx-teleport {
+  0% { transform: rotate(0) scale(1); opacity: 1; }
+  35% { transform: rotate(360deg) scale(.1); opacity: 0; }
+  55% { transform: rotate(360deg) scale(.1); opacity: 0; }
+  100% { transform: rotate(720deg) scale(1); opacity: 1; }
+}
+.fx-grow { animation: fx-grow 1200ms cubic-bezier(.34,1.3,.64,1); }
+@keyframes fx-grow {
+  0%,100% { transform: scale(1); }
+  30% { transform: scale(1.35); }
+  65% { transform: scale(.6); }
+}
+
+/* Calm and Off keep the choice but stop the showing (§5a). */
+body[data-motion="calm"] .power-stage,
+body[data-motion="off"] .power-stage { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .power-stage { animation: none !important; } }
+
+@media (orientation: portrait) {
+  .power-wrap { flex-direction: column; }
+  .power-stage-col { flex: 0 0 auto; width: 100%; flex-direction: row; align-items: flex-start; }
+  .power-stage { width: min(42vw, 240px); }
+  .power-stage-tools { flex-direction: column; }
+  .power-make { flex-direction: column; }
+  .power-canvas-wrap { flex: 0 0 auto; width: min(100%, 260px); }
+}

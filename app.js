@@ -31,6 +31,7 @@
     23. OFFLINE           service worker + update banner (Milestone 9)
     24. SESSION           session preset, practice mode, asset check (v2 V0)
     25. PARTS KIT         heads, faces, hair and bodies (v2 V2)
+    26. POWER-UP          power, effect, and when it is used (v2 V3)
    ========================================================================== */
 
 
@@ -44,7 +45,7 @@ const ADULT_PIN = '2468';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.
-const MILESTONE = 'v2-V2';
+const MILESTONE = 'v2-V3';
 
 // The six missions, in the order children meet them.
 /* The missions, in strip order (v2 spec §3). The ids are words now, not m1-m6:
@@ -2672,28 +2673,14 @@ function setBackground(id) {
 }
 
 /* ---------------------------------------------------------------------------
-   Wiring Mission 2 up. Called once, from wireUp().
+   The v1 Boost's entry point lived here. v2 V3 replaced it with the three-step
+   Power-up in section 26, which is where enterPowerup() and wirePowerup() now
+   are. This section keeps what that screen still uses: copyCoverToPowerup(),
+   the aura swatches and the place picker.
    ------------------------------------------------------------------------ */
-function wirePowerup() {
+function watchPowerupViews() {
   watchAgentView($('#m2-cover'));
-}
-
-// Called by goToMission whenever Mission 2 opens.
-function enterPowerup() {
-  if (!state.agent) return;
-
-  // Make sure boost has its arrays before anything reads them.
-  if (!Array.isArray(state.agent.powerup.look.pixels)) state.agent.powerup.look.pixels = [];
-  if (!Array.isArray(state.agent.powerup.look.stickers)) state.agent.powerup.look.stickers = [];
-
-  const copied = copyCoverToPowerup();
-  if (copied) scheduleSave();
-
-  openEditor('#m2-editor-mount', 'powerup');
-
-  // Spec §5a: the power-up plays once when Mission 2 opens. A moment later,
-  // so the editor has been laid out and the stage is where it will stay.
-  setTimeout(playBoostPowerUp, 350);
+  watchAgentView($('#power-stage'));
 }
 
 
@@ -3701,13 +3688,23 @@ let openPlace = null;        // which place card is flipped open
    The front of each card shows small icons of what is going there (spec §7),
    so a child can see at a glance what they have agreed to without opening it.
    ------------------------------------------------------------------------ */
+/* v2 §5.10 replaces this screen with Badge & poster, which is V8's job. Until
+   then the v1 places screen has to keep working: migrateAgent() moved `places`
+   into `legacy`, so read and write it there. Reaching for state.agent.places
+   threw the moment any v2 agent opened this mission. */
+function placesStore() {
+  if (!state.agent.legacy) state.agent.legacy = {};
+  if (!state.agent.legacy.places) state.agent.legacy.places = {};
+  return state.agent.legacy.places;
+}
+
 function renderBadge() {
   if (!state.agent) return;
   const row = $('#m5-cards');
   row.innerHTML = '';
 
   PLACES.forEach(place => {
-    const chosen = state.agent.places[place.id] || {};
+    const chosen = placesStore()[place.id] || {};
     const on = PARTS.filter(part => chosen[part.id]);
 
     const card = document.createElement('button');
@@ -3771,7 +3768,7 @@ function closePlaceCard() {
 function paintPartToggles() {
   const box = $('#m5-parts');
   box.innerHTML = '';
-  const chosen = state.agent.places[openPlace] || {};
+  const chosen = placesStore()[openPlace] || {};
 
   PARTS.forEach(part => {
     const on = Boolean(chosen[part.id]);
@@ -3795,7 +3792,7 @@ function paintPartToggles() {
 }
 
 function togglePart(partId) {
-  const places = state.agent.places;
+  const places = placesStore();
   if (!places[openPlace]) places[openPlace] = {};
   const now = !places[openPlace][partId];
   places[openPlace][partId] = now;
@@ -5963,4 +5960,503 @@ function layerPart(direction) {
   logEvent('part_layer', { type: shape.type, to: direction });
   refreshAgentViews();
   scheduleSave();
+}
+
+
+/* ==========================================================================
+   26. POWER-UP (v2 V3, spec §5.4)
+   ==========================================================================
+
+   WHAT CHANGED FROM THE BOOST
+   v1's Mission 2 asked a child to make a second, shinier version of their
+   agent. It captured WHAT they chose and nothing about what it was for. v2
+   §2 is blunt about why that failed: "a glow with no job can't be interpreted,
+   so it can't become a requirement for the badge."
+
+   So the Power-up asks three questions instead of one, on a single screen:
+     1. what is your power?          (blank canvas first, ideas only on request)
+     2. what does it look like?      (ten effects, played on the agent)
+     3. WHEN does your agent use it? (the ten situation cards)
+
+   Step 3 is the one that matters. Power x situation is the link v2 is after:
+   it shows the moments where children want support.
+
+   TWO RULES THIS SECTION KEEPS
+   - **The ideas stay hidden** until the child has drawn something or tapped
+     "Need ideas?". A child shown ten powers picks one; a child given a blank
+     square invents. The event log records which happened, in order.
+   - **No communication-themed powers are offered** (v2 §5.4). If children
+     invent them, that is a finding, not a prompt we planted.
+   ========================================================================== */
+
+// The ten ideas, each with the effect it brings (v2 §5.4). Note what is NOT
+// here: nothing about talking, being understood, or making yourself heard.
+const POWER_IDEAS = [
+  { id: 'idea-freeze',    icon: '⏸️', label: 'Freeze time',     effect: 'fx-freeze' },
+  { id: 'idea-invisible', icon: '👻', label: 'Turn invisible',  effect: 'fx-fade' },
+  { id: 'idea-speed',     icon: '⚡', label: 'Super speed',     effect: 'fx-speed' },
+  { id: 'idea-mind',      icon: '💭', label: 'Read minds',      effect: 'fx-thoughts' },
+  { id: 'idea-shield',    icon: '🛡️', label: 'Shield',          effect: 'fx-shield' },
+  { id: 'idea-fly',       icon: '🪽', label: 'Fly',             effect: 'fx-float' },
+  { id: 'idea-strong',    icon: '💪', label: 'Super strong',    effect: 'fx-stomp' },
+  { id: 'idea-teleport',  icon: '🌀', label: 'Teleport',        effect: 'fx-teleport' },
+  { id: 'idea-grow',      icon: '🔍', label: 'Grow and shrink', effect: 'fx-grow' },
+  { id: 'idea-animals',   icon: '🐾', label: 'Talk to animals', effect: 'fx-thoughts' }
+];
+
+// The ten effects. The sound id is the effect id with fx- swapped for sfx-.
+const POWER_EFFECTS = [
+  { id: 'fx-lightning', icon: '⚡', label: 'Lightning' },
+  { id: 'fx-freeze',    icon: '❄️', label: 'Freeze' },
+  { id: 'fx-fade',      icon: '👻', label: 'Vanish' },
+  { id: 'fx-speed',     icon: '💨', label: 'Zoom' },
+  { id: 'fx-thoughts',  icon: '💭', label: 'Thoughts' },
+  { id: 'fx-shield',    icon: '🛡️', label: 'Shield' },
+  { id: 'fx-float',     icon: '🪽', label: 'Float' },
+  { id: 'fx-stomp',     icon: '💥', label: 'Stomp' },
+  { id: 'fx-teleport',  icon: '🌀', label: 'Teleport' },
+  { id: 'fx-grow',      icon: '🔍', label: 'Grow' }
+];
+
+// Whether the ideas have been revealed this visit. Never remembered: each
+// child meets the blank square first.
+let ideasOpen = false;
+
+
+/* ---------------------------------------------------------------------------
+   THE WHOLE SCREEN
+   ------------------------------------------------------------------------ */
+function renderPowerup() {
+  if (!state.agent) return;
+  renderAgentView($('#power-stage'), state.agent.powerup.look, false);
+  paintPowerIdeas();
+  paintPowerEffects();
+  paintPowerWhen();
+  paintPowerMic();
+}
+
+function enterPowerup() {
+  if (!state.agent) return;
+  disarmOwnRemove();     // never arrive with a card still asking to be removed
+
+  const look = state.agent.powerup.look;
+  if (!Array.isArray(look.pixels)) look.pixels = [];
+  if (!Array.isArray(look.stickers)) look.stickers = [];
+  if (!Array.isArray(look.shapes)) look.shapes = [];
+
+  const copied = copyCoverToPowerup();
+  if (copied) scheduleSave();
+
+  // Back to the three steps, not wherever "Change my look" left things.
+  closePowerLook();
+  ideasOpen = false;
+  $('#power-ideas').hidden = true;
+  $('#btn-power-ideas').hidden = false;
+
+  // The power drawing uses the shared brush.
+  coder.canvas = $('#power-canvas');
+  coder.undoStack = [];
+  coder.colour = CODE_COLOURS[0];
+  coder.width = 14;
+  coder.mirror = false;
+  coder.onStroke = savePowerDrawing;
+  clearCodeCanvas();
+  const existing = state.agent.powerup.power.png;
+  if (existing) drawPngToCanvas(existing);
+  paintCodePalette('#power-palette');
+
+  renderPowerup();
+  speakLine('nar-powerup-intro');
+
+  // Spec §5a: the power-up plays once when the mission opens.
+  setTimeout(playBoostPowerUp, 350);
+}
+
+
+/* ---------------------------------------------------------------------------
+   STEP 1: MAKE UP A POWER (v2 §5.4)
+   Blank first. Always.
+   ------------------------------------------------------------------------ */
+function savePowerDrawing() {
+  state.agent.powerup.power.png = $('#power-canvas').toDataURL('image/png');
+  logEvent('power_draw', {});
+  scheduleSave();
+}
+
+/* The ideas are revealed only when asked for. The event log therefore shows
+   whether a child drew first or reached for the list - which is the finding
+   this screen exists to produce. */
+function openPowerIdeas() {
+  ideasOpen = true;
+  $('#power-ideas').hidden = false;
+  $('#btn-power-ideas').hidden = true;
+  logEvent('ideas_open', { drawnFirst: Boolean(state.agent.powerup.power.png) });
+  speakLine('nar-power-ideas');
+  paintPowerIdeas();
+}
+
+function paintPowerIdeas() {
+  const box = $('#power-ideas');
+  if (!box) return;
+  box.innerHTML = '';
+  if (!ideasOpen) return;
+
+  POWER_IDEAS.forEach(idea => {
+    const tile = document.createElement('button');
+    const chosen = state.agent.powerup.power.idea === idea.id;
+    tile.className = 'idea-tile' + (chosen ? ' is-on' : '');
+    tile.innerHTML = '<span class="idea-icon">' + idea.icon + '</span>' +
+                     '<span class="idea-label">' + idea.label + '</span>';
+    tile.setAttribute('aria-label', idea.label);
+    tile.addEventListener('click', () => chooseIdea(idea));
+    box.appendChild(tile);
+  });
+}
+
+/* An idea brings its default effect, which the child can then change
+   (v2 §5.4). Choosing it also plays it, so the link is immediate. */
+function chooseIdea(idea) {
+  const power = state.agent.powerup.power;
+  power.idea = idea.id;
+  if (!power.effect) power.effect = idea.effect;
+
+  logEvent('power_idea_choose', { idea: idea.id, effect: power.effect });
+  speakLabel(idea.id);
+  paintPowerIdeas();
+  paintPowerEffects();
+  fireEffect(power.effect);
+  scheduleSave();
+}
+
+async function recordPower() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+
+  const button = $('#power-mic');
+  button.classList.add('is-recording');
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const power = state.agent.powerup.power;
+    const oldId = power.audioId;
+
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    power.audioId = id;
+    if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
+
+    logEvent('power_record', { ms: Math.round(result.ms) });
+    playSfx('sfx-pop');
+    scheduleSave();
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  button.classList.remove('is-recording');
+  paintPowerMic();
+}
+
+function paintPowerMic() {
+  const button = $('#power-mic');
+  if (!button) return;
+  const has = Boolean(state.agent.powerup.power.audioId);
+  button.classList.toggle('is-on', has);
+  $('#power-mic-word').textContent = has ? 'Saved' : 'Say it';
+}
+
+
+/* ---------------------------------------------------------------------------
+   STEP 2: WHAT DOES IT LOOK LIKE? (v2 §5.4)
+   Each effect plays on the agent the moment it is tapped, with its sound.
+   ------------------------------------------------------------------------ */
+function paintPowerEffects() {
+  const box = $('#power-effects');
+  if (!box) return;
+  box.innerHTML = '';
+
+  POWER_EFFECTS.forEach(effect => {
+    const tile = document.createElement('button');
+    const chosen = state.agent.powerup.power.effect === effect.id;
+    tile.className = 'btn tool effect-tile' + (chosen ? ' is-on' : '');
+    tile.innerHTML = '<span class="filter-icon">' + effect.icon + '</span>' +
+                     '<span class="tool-word">' + effect.label + '</span>';
+    tile.setAttribute('aria-label', effect.label);
+    tile.addEventListener('click', () => chooseEffect(effect));
+    box.appendChild(tile);
+  });
+}
+
+function chooseEffect(effect) {
+  state.agent.powerup.power.effect = effect.id;
+  logEvent('power_effect_choose', { effect: effect.id });
+  paintPowerEffects();
+  fireEffect(effect.id);
+  scheduleSave();
+}
+
+/* Play an effect on the agent. The sound id is the effect id with fx- swapped
+   for sfx-, which is how asset-guide §4.6 names them. */
+function fireEffect(effectId) {
+  if (!effectId) return;
+  const stage = $('#power-stage');
+  if (!stage) return;
+
+  POWER_EFFECTS.forEach(e => stage.classList.remove(e.id));
+  void stage.offsetWidth;                    // restart the animation
+  stage.classList.add(effectId);
+  playSfx('sfx-' + effectId.replace(/^fx-/, ''));
+  logEvent('power_fire', { effect: effectId });
+
+  // Take the class off again, so the next tap always replays it.
+  setTimeout(() => stage.classList.remove(effectId), 1500);
+}
+
+
+/* ---------------------------------------------------------------------------
+   STEP 3: WHEN DOES YOUR AGENT USE IT? (v2 §5.4)
+
+   The ten situation cards. Any number may be chosen - a power is not for one
+   moment only. Each card speaks its label when tapped (v2 §7).
+
+   "Someone is unkind" can bring up real experiences. The app does not react
+   to it: it is logged exactly like every other card, and the facilitators
+   follow the school's safeguarding route. Treating it specially in software
+   would single a child out at the moment they least want it.
+   ------------------------------------------------------------------------ */
+function paintPowerWhen() {
+  const box = $('#power-when');
+  if (!box) return;
+  box.innerHTML = '';
+
+  const chosen = state.agent.powerup.when || [];
+
+  Assets.list('situations').forEach(situation => {
+    const card = Assets.card(situation.id);
+    if (chosen.indexOf(situation.id) !== -1) card.classList.add('is-on');
+    card.addEventListener('click', () => toggleWhen(situation.id));
+    box.appendChild(card);
+  });
+
+  // ✏️ My own, for a moment none of the ten covers.
+  const own = document.createElement('button');
+  own.className = 'when-own';
+  own.setAttribute('aria-label', 'Make your own card');
+  own.innerHTML = '<span class="when-own-icon">✏️</span>' +
+                  '<span class="when-own-label">My own</span>';
+  own.addEventListener('click', openOwnCard);
+  box.appendChild(own);
+
+  // The child's own cards, alongside the ten.
+  (state.agent.powerup.whenOwn || []).forEach((card, index) => {
+    const tile = document.createElement('button');
+    tile.className = 'when-own is-on';
+    tile.innerHTML = (card.png
+        ? '<img class="own-card-thumb" alt="" src="' + card.png + '">'
+        : '<span class="when-own-icon">🎤</span>') +
+      '<span class="when-own-label">My own</span>';
+    tile.setAttribute('aria-label', 'My own card ' + (index + 1));
+    // Tapping asks first (see armOwnRemove) - a child's drawing should never
+    // vanish on one stray tap, and there is nowhere in the model (§6) to keep
+    // an own card that is switched off, so removing is the only other action.
+    if (ownRemoveArmed === index) {
+      tile.classList.add('is-armed');
+      tile.querySelector('.when-own-label').textContent = 'Remove?';
+    }
+    tile.addEventListener('click', () => armOwnRemove(index));
+    box.appendChild(tile);
+  });
+}
+
+function toggleWhen(situationId) {
+  const list = state.agent.powerup.when;
+  const at = list.indexOf(situationId);
+  const on = at === -1;
+
+  if (on) list.push(situationId);
+  else list.splice(at, 1);
+
+  logEvent('power_when_toggle', { situation: situationId, on: on });
+  speakLabel(situationId);        // v2 §7: the card says its label
+  playSfx('sfx-pop');
+  paintPowerWhen();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   ✏️ MY OWN CARD
+   A shared sheet: draw it, say it, or both. Used by step 3 now and by HQ and
+   mood codes later, which is why `ownCardKeep` says where the result goes.
+   ------------------------------------------------------------------------ */
+let ownCardKeep = null;
+let ownCardAudioId = null;
+
+function openOwnCard(options) {
+  const opts = (options && options.title) ? options : {};
+  ownCardAudioId = null;
+  ownCardKeep = opts.onKeep || function (card) {
+    state.agent.powerup.whenOwn.push(card);
+    logEvent('power_when_own', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
+    paintPowerWhen();
+    scheduleSave();
+  };
+
+  $('#own-title').textContent = opts.title || 'Make your own card';
+  $('#own-say').dataset.say = opts.say || 'nar-own-card';
+
+  coder.canvas = $('#own-canvas');
+  coder.undoStack = [];
+  coder.colour = CODE_COLOURS[0];
+  coder.width = 14;
+  coder.mirror = false;
+  coder.onStroke = null;
+  clearCodeCanvas();
+  paintCodePalette('#own-palette');
+  paintOwnMic();
+
+  $('#own-overlay').hidden = false;
+  speakLine(opts.say || 'nar-own-card');
+}
+
+function closeOwnCard() {
+  $('#own-overlay').hidden = true;
+  clearCodeCanvas();
+  // Hand the brush back to whatever was using it.
+  coder.canvas = $('#power-canvas');
+  coder.onStroke = savePowerDrawing;
+  coder.undoStack = [];
+}
+
+function paintOwnMic() {
+  const button = $('#own-mic');
+  if (!button) return;
+  button.classList.toggle('is-on', Boolean(ownCardAudioId));
+  $('#own-mic-word').textContent = ownCardAudioId ? 'Saved' : 'Say it';
+}
+
+async function recordOwnCard() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+
+  const button = $('#own-mic');
+  button.classList.add('is-recording');
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    if (ownCardAudioId) await Storage.deleteAudio(ownCardAudioId);
+    ownCardAudioId = id;
+    playSfx('sfx-pop');
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  button.classList.remove('is-recording');
+  paintOwnMic();
+}
+
+function keepOwnCard() {
+  const drawn = canvasHasInk();
+  if (!drawn && !ownCardAudioId) { toast('Draw it or say it first'); return; }
+
+  const card = {
+    png: drawn ? coder.canvas.toDataURL('image/png') : null,
+    audioId: ownCardAudioId
+  };
+  const keep = ownCardKeep;
+  ownCardAudioId = null;
+  closeOwnCard();
+  if (keep) keep(card);
+  playSfx('sfx-pop');
+}
+
+/* One tap arms, a second tap within 3 seconds removes. No dialog: §12 rules
+   out text-heavy UI, and the whole 136px card stays the touch target. */
+let ownRemoveArmed = null;
+let ownRemoveTimer = null;
+
+function armOwnRemove(index) {
+  if (ownRemoveArmed === index) { disarmOwnRemove(); removeOwnCard(index); return; }
+  clearTimeout(ownRemoveTimer);
+  ownRemoveArmed = index;
+  playSfx('sfx-pop');
+  ownRemoveTimer = setTimeout(() => { ownRemoveArmed = null; paintPowerWhen(); }, 3000);
+  paintPowerWhen();
+}
+
+function disarmOwnRemove() {
+  clearTimeout(ownRemoveTimer);
+  ownRemoveArmed = null;
+}
+
+async function removeOwnCard(index) {
+  const list = state.agent.powerup.whenOwn;
+  const card = list[index];
+  if (!card) return;
+  if (card.audioId) { Voice.forget(card.audioId); await Storage.deleteAudio(card.audioId); }
+  list.splice(index, 1);
+  logEvent('power_when_own_remove', {});
+  paintPowerWhen();
+  scheduleSave();
+}
+
+
+/* ---------------------------------------------------------------------------
+   CHANGE MY LOOK (optional, v2 §5.4)
+   Opens the editor on powerup.look. The glow lives here.
+   ------------------------------------------------------------------------ */
+function openPowerLook() {
+  $('.power-wrap').hidden = true;
+  $('#m2-editor-mount').hidden = false;
+  $('#m2-cover').hidden = false;
+  openEditor('#m2-editor-mount', 'powerup');
+  speakLine('nar-look-edit');
+  logEvent('look_edit_open', {});
+}
+
+function closePowerLook() {
+  const wrap = $('.power-wrap');
+  if (!wrap) return;
+  wrap.hidden = false;
+  $('#m2-editor-mount').hidden = true;
+  $('#m2-cover').hidden = true;
+  hideEditor();
+  // The brush belongs to the power drawing again.
+  coder.canvas = $('#power-canvas');
+  coder.onStroke = savePowerDrawing;
+  renderPowerup();
+}
+
+
+/* ---------------------------------------------------------------------------
+   Wiring the Power-up up. Called once, from wireUp().
+   ------------------------------------------------------------------------ */
+function wirePowerup() {
+  attachBrush($('#power-canvas'));
+  attachBrush($('#own-canvas'));
+
+  $('#power-undo').addEventListener('click', () => { undoCode(); savePowerDrawing(); });
+  $('#power-clear').addEventListener('click', () => { clearCode(); savePowerDrawing(); });
+  $('#power-mic').addEventListener('click', recordPower);
+  $('#btn-power-ideas').addEventListener('click', openPowerIdeas);
+  $('#btn-power-look').addEventListener('click', openPowerLook);
+
+  // Every 🔊 on this screen says its own step's line.
+  $$('[data-say]').forEach(b =>
+    b.addEventListener('click', () => speakLine(b.dataset.say)));
+
+  // ➡️ skips to the next step by scrolling to it: the steps stay on one
+  // screen, so skipping is moving, not hiding.
+  $$('.power-skip').forEach(b => b.addEventListener('click', () => {
+    const target = $('#power-step-' + b.dataset.step);
+    if (target) target.scrollIntoView({ behavior: fullMotion() ? 'smooth' : 'auto',
+                                        block: 'start' });
+    logEvent('power_step_skip', { to: Number(b.dataset.step) });
+  }));
+
+  $('#own-undo').addEventListener('click', undoCode);
+  $('#own-clear').addEventListener('click', clearCode);
+  $('#own-mic').addEventListener('click', recordOwnCard);
+  $('#own-cancel').addEventListener('click', closeOwnCard);
+  $('#own-save').addEventListener('click', keepOwnCard);
+  $('#own-say').addEventListener('click', () => speakLine($('#own-say').dataset.say));
 }
