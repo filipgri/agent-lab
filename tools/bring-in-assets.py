@@ -106,6 +106,14 @@ def main():
 
     files = [f for f in sorted(os.listdir(INCOMING))
              if not f.startswith(".") and os.path.isfile(os.path.join(INCOMING, f))]
+
+    # Two kinds of file are named in the asset guide but deliberately kept OUT
+    # of the manifest, so they need their own homes:
+    #   ref-*  reference sheets (guide §3.4) - for drawing parts against.
+    #          Git-ignored and never shipped; the app must not see them.
+    #   ui-*   optional interface art (guide §3.5).
+    specials = {"ref-": os.path.join(ASSETS, "reference"),
+                "ui-":  os.path.join(ASSETS, "img", "ui")}
     if not files:
         print("assets/incoming/ is empty.")
     brought, unmatched = [], []
@@ -113,6 +121,22 @@ def main():
     for name in files:
         src = os.path.join(INCOMING, name)
         key = normalise(name)
+
+        # --- the two special kinds, before the manifest lookup ---
+        prefix = next((p for p in specials if name.lower().startswith(p)), None)
+        if prefix and key not in index:
+            folder = specials[prefix]
+            # A reference sheet is only ever looked at, so it keeps its format;
+            # it is just made small enough to open quickly.
+            dest = os.path.join(folder, os.path.splitext(name)[0] +
+                                (".png" if prefix == "ui-" else ".jpg"))
+            print("%s  ->  %s" % (name, os.path.relpath(dest, ASSETS)))
+            if convert(src, dest, "sticker" if prefix == "ui-" else "scene"):
+                brought.append(os.path.splitext(name)[0])
+                if not DRY:
+                    os.remove(src)
+            continue
+
         if key not in index:
             unmatched.append(name)
             continue
