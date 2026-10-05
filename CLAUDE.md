@@ -339,6 +339,20 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **`renderAgentView()` takes an `owner`.** `data` is only half an agent (a
+  cover or a look); the HQ and the door live on the whole agent, and the
+  function used to reach for `state.agent` — which was right everywhere until
+  the gallery started drawing *other people's* agents. Pass the owner when
+  drawing an agent that is not the open one, or it borrows the open agent's
+  place and door.
+- **Codenames are not unique, and the gallery must cope.** 24 adjectives ×
+  24 animals = 576, so in a group of 20 two children share a codename about
+  a quarter of the time — more once anyone types their own. Clashing tiles
+  show the agent itself instead of the emblem, because a child knows their
+  own drawing on sight. Tiles with a name of their own are unchanged (§5.2),
+  and a clash between agents with no art yet keeps the emblems rather than
+  showing two empty boxes.
+
 - **An event about an agent that is not `state.agent` needs
   `logEventOnAgent()`.** `logEvent()` writes to the agent in memory and leaves
   the debounced save to catch up — but opening a sealed file replaces

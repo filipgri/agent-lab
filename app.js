@@ -685,14 +685,60 @@ async function renderGallery() {
   box.innerHTML = '';
   if (agents.length === 0) return;
 
+  /* Two children CAN land on the same codename - there are only 24 adjectives
+     and 24 animals, so in a group of 20 it happens about a quarter of the
+     time, and more often still once anyone types their own. Two identical
+     tiles leave a child no way to find their own work, and let them open
+     somebody else's by mistake.
+
+     So when a codename is shared, those tiles show the agent itself instead
+     of the emblem. A child knows their own drawing on sight, which no amount
+     of text would manage. Tiles with a name of their own are unchanged
+     (v2 §5.2). */
+  const seen = {};
+  agents.forEach(a => {
+    const key = (a.codename || '').toLowerCase();
+    seen[key] = (seen[key] || 0) + 1;
+  });
+
+  /* Only worth swapping in if there is something to see. Two children who
+     clash in the first minute, before either has drawn anything, would get
+     two empty boxes - which is worse than two emblems. Judged per tile, so a
+     clash where only one child has started still tells them apart. */
+  const hasArt = agent => {
+    const c = agent.cover || {};
+    return Boolean(
+      (c.shapes && c.shapes.length) ||
+      c.drawingPng ||
+      (c.stickers && c.stickers.length) ||
+      (c.pixels && c.pixels.some(p => p))
+    );
+  };
+
   agents.forEach(agent => {
     const tile = document.createElement('button');
     tile.className = 'gallery-tile' + (agent.practice ? ' is-practice-agent' : '');
     const emblem = (agent.emblem && agent.emblem.emoji) || '🕵️';
+    const shared = seen[(agent.codename || '').toLowerCase()] > 1 && hasArt(agent);
+
     tile.innerHTML =
-      '<span class="gallery-emblem">' + emblem + '</span>' +
+      (shared
+        ? '<span class="gallery-agent agent-view" data-door="pixel">' +
+            '<canvas class="agent-pixels" width="16" height="16"></canvas>' +
+            '<img class="agent-drawing" alt="" hidden>' +
+            '<svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>' +
+            '<span class="sticker-layer"></span>' +
+          '</span>'
+        : '<span class="gallery-emblem">' + emblem + '</span>') +
       '<span class="gallery-name">' + (agent.codename || 'Agent') + '</span>' +
       (agent.practice ? '<span class="gallery-practice">PRACTICE</span>' : '');
+
+    // Draw this agent - not the one that happens to be open (see
+    // renderAgentView's `owner`).
+    if (shared) {
+      const view = tile.querySelector('.gallery-agent');
+      renderAgentView(view, agent.cover || {}, false, agent.door, agent);
+    }
     // v2 §5.2: a sealed tile shows the lock and asks before it opens.
     if (agent.seal) {
       tile.insertAdjacentHTML('beforeend', '<span class="tile-lock">🔒</span>');
@@ -1652,11 +1698,12 @@ const HQ_BACKGROUND = {
 /* Put the HQ photograph behind an agent, if that photograph exists. The
    image is set as a CSS background so it sits under every layer - pixels,
    shapes, drawing and stickers - without being another element to position. */
-function setHqBackdrop(view, hqId) {
+function setHqBackdrop(view, hqId, owner) {
   /* v2 §5.5 (V4): a place the child DREW is an HQ like any other, so it has to
      become the background too. It is already a PNG data URL, so there is
      nothing to load and no race to guard against. */
-  const drawn = state.agent && state.agent.hq && state.agent.hq.png;
+  const agent = owner || state.agent;
+  const drawn = agent && agent.hq && agent.hq.png;
   if (!hqId && drawn) {
     view.style.setProperty('--hq-image', 'url("' + drawn + '")');
     view.classList.add('has-hq');
@@ -1801,7 +1848,12 @@ function undo() {
    renderAgentView() paints one .agent-view: the canvas, then the stickers.
    refreshAgentViews() updates every copy on screen at once.
    ------------------------------------------------------------------------ */
-function renderAgentView(view, data, interactive, door) {
+function renderAgentView(view, data, interactive, door, owner) {
+  /* `data` is a cover or a look - half an agent. The HQ and the door live on
+     the WHOLE agent, and until the gallery started drawing other people's
+     agents this function just reached for `state.agent` and was always right.
+     It is not right for a gallery tile, so the owner can be passed in. */
+  const agent = owner || state.agent;
   // MILESTONE 2: the Boost carries a background and an aura. Both are pure CSS,
   // set here as an attribute and a custom property, so the same function draws
   // a plain Cover and a glowing Boost in a space scene.
@@ -1809,9 +1861,9 @@ function renderAgentView(view, data, interactive, door) {
      the card." Now that the twelve places are photographed, the agent stands
      in the real one; the CSS gradient stays as the stand-in for a place with
      no picture yet, so an empty assets/ folder still works. */
-  const hqId = agentHqId();
+  const hqId = (agent && agent.hq && agent.hq.id) || null;
   view.dataset.bg = hqToBackground(hqId);
-  setHqBackdrop(view, hqId);
+  setHqBackdrop(view, hqId, agent);
   const aura = AURAS.find(a => a.id === (data.glow || data.aura));
   view.style.setProperty('--aura', aura && aura.colour ? aura.colour : 'transparent');
   view.classList.toggle('has-aura', Boolean(aura && aura.colour));
@@ -1819,7 +1871,7 @@ function renderAgentView(view, data, interactive, door) {
   /* MILESTONE 7: there are three doors now, and each keeps its own work
      (spec §7). Only the chosen one is shown - otherwise a child who tried
      Pixel, then switched to Draw, would see both at once. */
-  const which = door || (state.agent && state.agent.door) || 'pixel';
+  const which = door || (agent && agent.door) || 'pixel';
   view.dataset.door = which;          // CSS uses this to hide the pixel grid
 
   const canvas = $('canvas.agent-pixels', view);
