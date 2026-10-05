@@ -819,6 +819,15 @@ const V1_BACKGROUND_TO_HQ = {
 
 function migrateAgent(agent) {
   if (!agent || typeof agent !== 'object') return agent;
+
+  /* --- the Build door is called Parts in v2 §5.3 ---
+     This runs BEFORE the v2 early return, because agents made during V0-V3 are
+     already schemaVersion 2 and may still say "build". renderAgentView() only
+     draws shapes for 'parts', so an agent that missed this would quietly lose
+     its face. The child always saw "Parts"; only the stored value and the
+     research log said "build". */
+  if (agent.door === 'build') agent.door = 'parts';
+
   if (agent.schemaVersion === 2) return fillDefaults(agent);
 
   const legacy = agent.legacy || {};
@@ -1788,7 +1797,7 @@ function renderAgentView(view, data, interactive, door) {
        quietly sets a JavaScript property and leaves the HTML attribute in
        place, so the CSS rule for [hidden] goes on hiding it. The attribute has
        to be set and removed by hand. */
-    if (which === 'build') {
+    if (which === 'parts') {
       svg.removeAttribute('hidden');
       renderShapes(svg, data.shapes || [], interactive);
     } else {
@@ -1886,6 +1895,10 @@ function chooseDoor(door) {
   const switching = state.agent.door && state.agent.door !== door;
   state.agent.door = door;
   logEvent(switching ? 'door_switch' : 'door_choose', { door: door });
+  /* v2 §7: a picture card speaks its label when tapped, and its line is `nar-`
+     plus the card id - so the door ids have to match the recordings
+     (nar-door-parts, nar-door-pixel, nar-door-draw). */
+  speakLine('nar-door-' + door);
   openEditor('#m1-editor-mount', 'cover');
   scheduleSave();
 }
@@ -1919,7 +1932,7 @@ function openEditor(mountSelector, which) {
 
   if (door === 'draw') openDrawDoor();
   else { coder.onStroke = null; }
-  if (door === 'build') { buildPartsTray(); paintPartsPalette(); }
+  if (door === 'parts') { buildPartsTray(); paintPartsPalette(); }
 
   setRail(door === 'pixel' ? 'paint' : door);
   paintPalette();
@@ -2092,7 +2105,7 @@ function clearAll() {
   // Only clear the door the child is actually using. Wiping all three would
   // throw away work they cannot see and did not ask about.
   if (door === 'pixel') p.pixels = new Array(GRID * GRID).fill(null);
-  if (door === 'build') p.shapes = [];
+  if (door === 'parts') p.shapes = [];
   if (door === 'draw') {
     pushCodeUndo();
     clearCodeCanvas();
@@ -2113,7 +2126,7 @@ function clearAll() {
    ------------------------------------------------------------------------ */
 function setRail(which) {
   // One body per tab. Milestone 2 added Aura and Place.
-  ['paint', 'build', 'draw', 'stickers', 'aura', 'background'].forEach(name => {
+  ['paint', 'parts', 'draw', 'stickers', 'aura', 'background'].forEach(name => {
     $('#rail-' + name).hidden = which !== name;
   });
   $$('[data-rail]').forEach(b => b.classList.toggle('is-on', b.dataset.rail === which));
@@ -4459,7 +4472,7 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
     return;
   }
 
-  if (door === 'build') {
+  if (door === 'parts') {
     const layer = withExtras ? cardAssets.boostShapes : cardAssets.coverShapes;
     if (layer) ctx.drawImage(layer, x, y, size, size);
     drawStickersToCanvas(ctx, data.stickers || [], x, y, size);

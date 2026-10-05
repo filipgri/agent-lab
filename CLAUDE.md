@@ -216,7 +216,7 @@ release** or an iPad will keep running the old JavaScript against new HTML.
   - Parts live in the same `shapes` array as the v1 shapes, so undo, the
     Power-up copy and the card renderer all got them for free.
   - **The Build door is now Parts**; the seven v1 shapes live in its Shapes
-    category and still work.
+    category and still work. (Renamed in the data too, after V3 — see below.)
   - **The sticker tray is the full library** from `stickers.js`: fourteen
     tabs, ★ Me first, 🔍 Search with requests, and picture stickers that
     appear when their files arrive.
@@ -305,6 +305,19 @@ hand-edit the manifest, and never edit both.
 ## Conventions in this codebase
 
 ### v2 conventions (from V3)
+
+- **The doors are `parts`, `pixel` and `draw`** (v2 §5.3), in that order on
+  screen. The stored value, the `door_choose` event and the rail id all say
+  `parts`; nothing says `build` any more except the one line in
+  `migrateAgent()` that renames it. That line sits **before** the
+  `schemaVersion === 2` early return, because agents made during V0–V3 are
+  already v2 and may still say `build` — and `renderAgentView()` only draws
+  shapes for `parts`, so one that missed it would quietly lose its face.
+- **A card's id is also its voice line.** v2 §7 gives every picture card a
+  `nar-` plus its id, so an id that drifts from the asset guide silently
+  loses its narration: `nar-door-parts.mp3` had been sitting unplayed because
+  the door was called `build`. When naming anything a child can tap, check
+  `asset-guide.md` first.
 
 - **A renamed field has to be chased into every screen that read it.**
   `migrateAgent()` moves v1 fields into `legacy`, and three missions in a row

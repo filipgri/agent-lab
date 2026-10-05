@@ -123,7 +123,7 @@ Working now:
 
 ### The Build and Draw doors work
 
-- **Build:** a tray of seven shapes — circle, oval, square, rounded square,
+- **Parts** (called Build in v1): a tray of seven shapes — circle, oval, square, rounded square,
   triangle, star, blob. Drag one on, or tap it to drop it in the middle. Tap a
   shape to select it, then use **buttons** to make it bigger or smaller, turn
   it, send it to the front or back, recolour it, or remove it. Buttons rather

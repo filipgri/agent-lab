@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=25">
+  <link rel="stylesheet" href="./style.css?v=27">
 </head>
 <body>
 
@@ -152,11 +152,11 @@
           <!-- STEP 1: the three doors. The child picks one and can come back
                and switch; each door keeps its own work (spec §7). -->
           <div id="m1-doors" class="door-row">
+            <button class="door-card" data-door="parts">
+              <span class="door-icon">🧩</span><span>Parts</span>
+            </button>
             <button class="door-card" data-door="pixel">
               <span class="door-icon">🟦</span><span>Pixel</span>
-            </button>
-            <button class="door-card" data-door="build">
-              <span class="door-icon">🧩</span><span>Parts</span>
             </button>
             <button class="door-card" data-door="draw">
               <span class="door-icon">✏️</span><span>Draw</span>
@@ -189,7 +189,7 @@
                    them only while the Boost version is being edited. -->
               <div class="rail-tabs">
                 <button class="btn seg" data-rail="paint" data-door-only="pixel">🎨 Paint</button>
-                <button class="btn seg" data-rail="build" data-door-only="build" hidden>🔺 Shapes</button>
+                <button class="btn seg" data-rail="parts" data-door-only="parts" hidden>🔺 Shapes</button>
                 <button class="btn seg" data-rail="draw" data-door-only="draw" hidden>✏️ Brush</button>
                 <button class="btn seg" data-rail="stickers">🧩 Stickers</button>
                 <button class="btn seg" data-rail="aura" data-boost-only hidden>✨ Aura</button>
@@ -207,7 +207,7 @@
               </div>
 
               <!-- --- Parts: the kit from parts.js (v2 §5.3.1) --- -->
-              <div id="rail-build" class="rail-body" hidden>
+              <div id="rail-parts" class="rail-body" hidden>
                 <div id="parts-cats" class="parts-cats"></div>
                 <div id="parts-tray" class="parts-tray"></div>
 
@@ -914,12 +914,12 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=25"></script>
-<script src="./audio.js?v=25"></script>
-<script src="./effects.js?v=25"></script>
-<script src="./assets.js?v=25"></script>
-<script src="./stickers.js?v=25"></script>
-<script src="./parts.js?v=25"></script>
-<script src="./app.js?v=25"></script>
+<script src="./storage.js?v=27"></script>
+<script src="./audio.js?v=27"></script>
+<script src="./effects.js?v=27"></script>
+<script src="./assets.js?v=27"></script>
+<script src="./stickers.js?v=27"></script>
+<script src="./parts.js?v=27"></script>
+<script src="./app.js?v=27"></script>
 </body>
 </html>
