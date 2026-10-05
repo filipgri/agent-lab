@@ -21,7 +21,9 @@ of pixels wrapped in four labelled chunks. So the file is built directly.
 """
 
 import os
+import shutil
 import struct
+import subprocess
 import zlib
 
 # The app's colours, from style.css.
@@ -128,9 +130,38 @@ def write_png(path, size):
     return len(png)
 
 
+def from_artwork(here, source):
+    """Resize Filip's own icon (assets/img/ui/ui-app-icon.png) into the three
+    sizes, using the built-in `sips`. Returns True if it worked.
+
+    The drawn icon below is only the fallback now: real artwork beats a few
+    trapezoids, and this is the thing children tap on the home screen."""
+    if not os.path.exists(source) or not shutil.which("sips"):
+        return False
+    for size in (180, 192, 512):
+        out = os.path.join(here, "icon-%d.png" % size)
+        result = subprocess.run(
+            ["sips", "-s", "format", "png", "-z", str(size), str(size),
+             source, "--out", out],
+            capture_output=True)
+        if result.returncode != 0:
+            print("sips failed:", result.stderr.decode().strip()[:120])
+            return False
+        print("wrote icon-%d.png from ui-app-icon.png" % size)
+    return True
+
+
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
-    for size in (180, 192, 512):
-        name = os.path.join(here, "icon-%d.png" % size)
-        written = write_png(name, size)
-        print("wrote %s (%d bytes)" % (os.path.basename(name), written))
+    root = os.path.dirname(here)
+    artwork = os.path.join(root, "assets", "img", "ui", "ui-app-icon.png")
+
+    if from_artwork(here, artwork):
+        print("\nUsed the supplied artwork. Delete it to fall back to the "
+              "drawn icon.")
+    else:
+        print("No ui-app-icon.png (or no sips) - drawing the icon instead.")
+        for size in (180, 192, 512):
+            name = os.path.join(here, "icon-%d.png" % size)
+            written = write_png(name, size)
+            print("wrote %s (%d bytes)" % (os.path.basename(name), written))

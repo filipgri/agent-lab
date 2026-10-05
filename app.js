@@ -402,9 +402,14 @@ function renderPreview() {
   // to pick one. While an editor is open it mirrors whatever is being edited,
   // so the thumbnail and the stage never disagree. Anywhere else it shows the
   // Boost if one exists, because that is the agent's latest self.
+  /* `state.agent[editor.part]` was right while the two halves were `cover`
+     and `boost`, both top level. v2 moved the Boost to `powerup.look`, one
+     level deeper, so that lookup returned the WRAPPER - which has no art on
+     it, and the preview went blank for the whole of Power-up. part() already
+     knows the path, so it should be the only thing that does. */
   const editorOpen = !$('#editor').hidden;
   const boost = (state.agent.powerup && state.agent.powerup.look) || {};
-  const shown = editorOpen ? (state.agent[editor.part] || {})
+  const shown = editorOpen ? (part() || {})
                            : (hasArt(boost) ? boost : (state.agent.cover || {}));
   const anyArt = hasArt(shown);
   $('#preview-art').classList.toggle('has-art', anyArt);
@@ -1561,6 +1566,24 @@ const HQ_BACKGROUND = {
   'hq-sky-castle':   'sunset'
 };
 
+/* Put the HQ photograph behind an agent, if that photograph exists. The
+   image is set as a CSS background so it sits under every layer - pixels,
+   shapes, drawing and stickers - without being another element to position. */
+function setHqBackdrop(view, hqId) {
+  if (!hqId || typeof Assets === 'undefined') {
+    view.style.removeProperty('--hq-image');
+    view.classList.remove('has-hq');
+    return;
+  }
+  Assets.image(hqId).then(img => {
+    // The agent may have moved on while the picture loaded.
+    if (view.dataset.bg !== hqToBackground(hqId)) return;
+    if (!img) { view.classList.remove('has-hq'); return; }
+    view.style.setProperty('--hq-image', 'url("' + img.src + '")');
+    view.classList.add('has-hq');
+  });
+}
+
 function hqToBackground(hqId) {
   if (!hqId) return 'plain';
   return HQ_BACKGROUND[hqId] || 'plain';
@@ -1689,8 +1712,13 @@ function renderAgentView(view, data, interactive, door) {
   // MILESTONE 2: the Boost carries a background and an aura. Both are pure CSS,
   // set here as an attribute and a custom property, so the same function draws
   // a plain Cover and a glowing Boost in a space scene.
-  // v2 §6.1: the background is the agent's HQ, and the glow lives on the look.
-  view.dataset.bg = hqToBackground(agentHqId());
+  /* v2 §5.5: "The HQ becomes the agent's background on later screens and on
+     the card." Now that the twelve places are photographed, the agent stands
+     in the real one; the CSS gradient stays as the stand-in for a place with
+     no picture yet, so an empty assets/ folder still works. */
+  const hqId = agentHqId();
+  view.dataset.bg = hqToBackground(hqId);
+  setHqBackdrop(view, hqId);
   const aura = AURAS.find(a => a.id === (data.glow || data.aura));
   view.style.setProperty('--aura', aura && aura.colour ? aura.colour : 'transparent');
   view.classList.toggle('has-aura', Boolean(aura && aura.colour));
@@ -2580,25 +2608,37 @@ function setAura(id) {
    The pictures themselves are CSS gradients in style.css, so there is nothing
    to download and nothing to go missing offline.
    ------------------------------------------------------------------------ */
+/* The place picker. V4 replaces this with the full HQ mission - "where is
+   your agent strongest?", draw-your-own, the landing - but the twelve places
+   are photographed now, so they are offered here rather than sitting unseen
+   in a folder. The choice is already saved as `hq.id`, so V4 inherits it. */
 function paintBackgroundOptions() {
   const box = $('#background-options');
   box.innerHTML = '';
-  BACKGROUNDS.forEach(bg => {
-    const button = document.createElement('button');
-    const chosen = (agentHqId() || 'plain') === bg.id;
-    button.className = 'bg-option' + (chosen ? ' is-on' : '');
-    button.dataset.bg = bg.id;          // the gradient is picked by this attribute
-    button.innerHTML = '<span class="bg-icon">' + bg.icon + '</span>' +
-                       '<span class="bg-label">' + bg.label + '</span>';
-    button.setAttribute('aria-label', bg.label);
-    button.addEventListener('click', () => setBackground(bg.id));
-    box.appendChild(button);
+
+  // "Nowhere" first: an agent does not have to have a place.
+  const none = document.createElement('button');
+  none.className = 'bg-option' + (agentHqId() ? '' : ' is-on');
+  none.dataset.bg = 'plain';
+  none.innerHTML = '<span class="bg-icon">⬜</span><span class="bg-label">Plain</span>';
+  none.setAttribute('aria-label', 'No place');
+  none.addEventListener('click', () => setBackground('plain'));
+  box.appendChild(none);
+
+  Assets.list('hq').forEach(place => {
+    const card = Assets.card(place.id, { className: 'hq-pick' });
+    if (agentHqId() === place.id) card.classList.add('is-on');
+    card.addEventListener('click', () => {
+      setBackground(place.id);
+      speakLabel(place.id);          // v2 §7: a picture card says its label
+    });
+    box.appendChild(card);
   });
 }
 
 function setBackground(id) {
   state.agent.hq.id = (id === 'plain' ? null : id);
-  logEvent('background_choose', { background: id });
+  logEvent('hq_choose', { id: state.agent.hq.id });
   paintBackgroundOptions();
   refreshAgentViews();
   scheduleSave();
@@ -4053,7 +4093,7 @@ function enterRules() {
 // Pictures the card needs, loaded ahead of the Save button being pressed.
 const cardAssets = { feeling: null, rules: {}, voiceBlob: null,
                      coverDrawing: null, boostDrawing: null,
-                     coverShapes: null, boostShapes: null, stickers: {} };
+                     coverShapes: null, boostShapes: null, stickers: {}, hq: null };
 
 // Canvas versions of the Mission 2 backgrounds (CSS gradients cannot be read
 // back out, so the saved card paints its own approximation).
@@ -4148,6 +4188,8 @@ async function preloadCardAssets() {
   // draws, so the card cannot disagree with what the child made.
   const look = (agent.powerup && agent.powerup.look) || {};
   cardAssets.coverShapes = await loadImage(shapesToSvgUrl((agent.cover || {}).shapes));
+  // v2 §5.5: the HQ is the agent's background on the card as well.
+  cardAssets.hq = agent.hq && agent.hq.id ? await Assets.image(agent.hq.id) : null;
   cardAssets.boostShapes = await loadImage(shapesToSvgUrl(look.shapes));
 
   // v2 §5.3.2: every picture sticker the child has used.
@@ -4348,15 +4390,27 @@ function roundedBox(ctx, x, y, w, h, fill) {
 function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
   // background
   const bg = withExtras ? hqToBackground(agentHqId()) : 'plain';
-  const pair = BG_CANVAS[bg] || BG_CANVAS.plain;
-  const grad = ctx.createLinearGradient(x, y, x, y + size);
-  grad.addColorStop(0, pair[0]);
-  grad.addColorStop(1, pair[1]);
-  ctx.fillStyle = grad;
+
+  // The rounded box the background sits inside, clipped so a photograph does
+  // not spill past the agent's corners.
+  ctx.save();
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(x, y, size, size, 18);
   else ctx.rect(x, y, size, size);
-  ctx.fill();
+  ctx.clip();
+
+  if (withExtras && cardAssets.hq) {
+    // v2 §5.5: the real place, cropped to fill the square.
+    ctx.drawImage(cardAssets.hq, x, y, size, size);
+  } else {
+    const pair = BG_CANVAS[bg] || BG_CANVAS.plain;
+    const grad = ctx.createLinearGradient(x, y, x, y + size);
+    grad.addColorStop(0, pair[0]);
+    grad.addColorStop(1, pair[1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, size, size);
+  }
+  ctx.restore();
 
   ctx.save();
   // The aura is a glow, which on canvas is a shadow.

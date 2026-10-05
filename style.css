@@ -2392,3 +2392,20 @@ body.is-practice .practice-badge { display: block; }
   .parts-tray { grid-template-columns: repeat(8, 1fr); max-height: 200px; }
   .sticker-tray { max-height: 200px; }
 }
+
+
+/* --- The HQ photograph behind the agent (v2 §5.5) ---
+   Set as a background image by setHqBackdrop(), so it sits under every layer
+   without being another element to keep positioned. The gradient underneath
+   still shows for a place with no picture yet. */
+.agent-view.has-hq {
+  background-image: var(--hq-image);
+  background-size: cover;
+  background-position: center 60%;   /* the lower middle is kept clear for the agent */
+}
+
+/* The place picker's cards, smaller than a full picture card. */
+.bg-options .hq-pick { width: 100%; }
+.bg-options .hq-pick .pic-card-art { min-height: 0; aspect-ratio: 4 / 3; }
+.bg-options .hq-pick .pic-card-emoji { font-size: 30px; }
+.bg-options .hq-pick .pic-card-label { font-size: 13px; }

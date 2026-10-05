@@ -220,6 +220,17 @@ release** or an iPad will keep running the old JavaScript against new HTML.
     tabs, ★ Me first, 🔍 Search with requests, and picture stickers that
     appear when their files arrive.
   - **New review page `tools/parts-sheet.html`** shows all 85 in any palette.
+- **Assets, first batch (5 October 2026).** All 35 pictures are in: 12 HQ
+  places, 10 situation cards, 13 stickers. The app icon is now Filip's own
+  artwork — `icons/make-icons.py` resizes `assets/img/ui/ui-app-icon.png` when
+  it is there, and only draws its own icon when it is not.
+  - **The agent now stands in its HQ** (v2 §5.5): the chosen place is the
+    background on the stage, the preview and the card. The Power-up screen's
+    Place tab offers all twelve photographs. V4 still owns the full HQ mission
+    — "where is your agent strongest?", draw-your-own, the landing — but the
+    choice is already saved as `hq.id`, so V4 inherits it.
+  - The 10 situation cards are still unseen until **V3** builds Power-up
+    step 3, which is the first screen that uses them.
 - **Next: v2 V3 — Power-up** (v2 §5.4): invent a power, pick its effect, and
   say when the agent uses it.
 
