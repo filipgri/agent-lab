@@ -1688,6 +1688,10 @@ async function boot() {
   await step('Continue button', () => refreshContinueButton());
   await step('the gallery', () => renderGallery());       // v2 §5.2
   showScreen('start');
+
+  /* boot-guard.js watches for this. If it never arrives, the guard says so on
+     screen - which is the only way to catch a startup that simply stops. */
+  window.__agentLabReady = true;
 }
 
 // DOMContentLoaded fires once the HTML is parsed, so every element exists.
