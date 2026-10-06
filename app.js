@@ -147,6 +147,52 @@ function uuid() {
   return 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 }
 
+/* ---------------------------------------------------------------------------
+   SAYING SO WHEN SOMETHING BREAKS
+
+   boot() is about twenty awaits in a row with renderGallery() last, and it had
+   no try/catch anywhere - so one failure anywhere left the static HTML on
+   screen (logo, reels, buttons) with no gallery and no explanation. That is
+   exactly what an iPad showed in testing, and there was no way to find out
+   why without plugging it into a Mac.
+
+   So: every error now puts itself on the screen. These handlers are installed
+   at the top of the file, before anything else can throw.
+   ------------------------------------------------------------------------ */
+const bootErrors = [];
+
+function reportError(where, err) {
+  const detail = {
+    where: where,
+    message: (err && err.message) || String(err),
+    stack: (err && err.stack) ? String(err.stack).split('\n').slice(0, 4).join('\n') : '',
+    at: new Date().toISOString()
+  };
+  bootErrors.push(detail);
+  try { showBootError(); } catch (ignored) { /* never throw from the reporter */ }
+  if (window.console && console.error) console.error('[Agent Lab]', where, err);
+}
+
+function showBootError() {
+  const box = document.getElementById('boot-error');
+  const text = document.getElementById('boot-error-text');
+  if (!box || !text) return;
+  text.textContent = bootErrors.map((e, i) =>
+    (i + 1) + '. ' + e.where + '\n' + e.message + (e.stack ? '\n' + e.stack : '')
+  ).join('\n\n') +
+  '\n\n— ' + navigator.userAgent;
+  box.hidden = false;
+}
+
+window.addEventListener('error', event => {
+  reportError('script ' + (event.filename || '?') + ':' + (event.lineno || '?'),
+              event.error || new Error(event.message));
+});
+window.addEventListener('unhandledrejection', event => {
+  reportError('promise', event.reason || new Error('unknown rejection'));
+});
+
+
 // A short message that fades away. Used for placeholder buttons in Milestone 0.
 let toastTimer = null;
 function toast(message) {
@@ -1505,6 +1551,14 @@ function wireUp() {
   wireDoors();
   wirePowerup();
   wireHq();
+
+  // The error banner's own buttons, so an adult can read out or copy the fault.
+  $('#boot-error-hide').addEventListener('click',
+    () => { $('#boot-error').hidden = true; });
+  $('#boot-error-copy').addEventListener('click', () => {
+    const text = $('#boot-error-text').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+  });
   wireCardV5();
   wireMood();
   wireVoice();
@@ -1561,10 +1615,19 @@ function wireUp() {
   });
 }
 
-async function boot() {
-  wireUp();
+/* Run one boot step. If it fails, say so on screen and CARRY ON - a broken
+   setting must not cost a child the gallery and their whole agent. */
+async function step(name, fn) {
+  try { return await fn(); }
+  catch (err) { reportError('boot: ' + name, err); return undefined; }
+}
 
-  // Load saved settings.
+async function boot() {
+  await step('wiring the buttons', () => wireUp());
+
+  // Load saved settings. Wrapped, because IndexedDB can be unavailable
+  // (private browsing, a full iPad) and that must not cost the gallery.
+  await step('saved settings', async () => {
   state.muted  = await Storage.getMeta('muted', false);
   state.motion = await Storage.getMeta('motion', null);
 
@@ -1578,6 +1641,7 @@ async function boot() {
   state.narrationSpeed = await Storage.getMeta('narrationSpeed', Assets.DEFAULT_SPEED);
   state.badgePpi     = await Storage.getMeta('badgePpi', 132);      // v2 §5.11
   state.wallPalette  = await Storage.getMeta('wallPalette', 6);     // v2 §5.11
+  });
   Assets.setSpeed(state.narrationSpeed);
   paintPracticeBadge();
 
@@ -1598,7 +1662,8 @@ async function boot() {
   registerServiceWorker();
 
   // Spec §3: ask iOS to keep our data.
-  const persistence = await Storage.requestPersistence();
+  const persistence = await step('storage persistence',
+                                 () => Storage.requestPersistence()) || 'error';
   $('#storage-state').textContent =
     'Storage persistence: ' + persistence +
     (window.navigator.standalone ? ' · opened from home screen ✅'
@@ -1611,16 +1676,17 @@ async function boot() {
     const base = $('#storage-state').textContent.split('\nOffline:')[0];
     $('#storage-state').textContent = base + '\nOffline: ' + (await offlineState());
   }
-  await showOffline();
-  setTimeout(showOffline, 1500);
+  await step('offline check', showOffline);
+  setTimeout(() => step('offline check', showOffline), 1500);
 
   // v2 §5.3.2: merge the picture stickers from the asset manifest into the
   // library, so a file Filip adds this week is searchable next week.
-  if (typeof Stickers !== 'undefined') await Stickers.loadImageStickers();
+  if (typeof Stickers !== 'undefined')
+    await step('picture stickers', () => Stickers.loadImageStickers());
 
-  rollCodename({ instant: true });
-  await refreshContinueButton();
-  await renderGallery();              // v2 §5.2
+  await step('codename roller', () => rollCodename({ instant: true }));
+  await step('Continue button', () => refreshContinueButton());
+  await step('the gallery', () => renderGallery());       // v2 §5.2
   showScreen('start');
 }
 

@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=35">
+  <link rel="stylesheet" href="./style.css?v=36">
 </head>
 <body>
 
@@ -988,13 +988,13 @@
 
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
-<script src="./storage.js?v=35"></script>
-<script src="./audio.js?v=35"></script>
-<script src="./effects.js?v=35"></script>
-<script src="./assets.js?v=35"></script>
-<script src="./stickers.js?v=35"></script>
-<script src="./parts.js?v=35"></script>
-<script src="./app.js?v=35"></script>
+<script src="./storage.js?v=36"></script>
+<script src="./audio.js?v=36"></script>
+<script src="./effects.js?v=36"></script>
+<script src="./assets.js?v=36"></script>
+<script src="./stickers.js?v=36"></script>
+<script src="./parts.js?v=36"></script>
+<script src="./app.js?v=36"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->
@@ -1067,6 +1067,21 @@
       <button id="btn-seal-cancel" class="btn tool" aria-label="Not now">✕<span class="tool-word">Not now</span></button>
     </div>
   </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- BOOT ERROR BANNER                                             -->
+<!-- The app used to fail in silence: boot() is twenty awaits with  -->
+<!-- no try/catch and renderGallery() last, so ANY failure left a   -->
+<!-- half-built page and no clue. On an iPad in a classroom nobody  -->
+<!-- can open a console, so the iPad has to say it out loud.        -->
+<!-- ============================================================ -->
+<div id="boot-error" class="boot-error" hidden>
+  <strong>Agent Lab hit a problem.</strong>
+  <pre id="boot-error-text"></pre>
+  <button id="boot-error-copy" class="btn">Copy</button>
+  <button id="boot-error-hide" class="btn">Hide</button>
 </div>
 
 </body>
