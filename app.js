@@ -222,14 +222,27 @@ function scheduleSave() {
   saveTimer = setTimeout(saveNow, 500);
 }
 
+/* A storage call that never settles must not freeze the app. Safari's
+   IndexedDB can stall indefinitely rather than failing, so every wait on it
+   is raced against a timer. Losing a save is recoverable; a frozen screen in
+   front of a child is not. */
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((resolve, reject) =>
+      setTimeout(() => reject(new Error((label || 'storage') + ' timed out')), ms))
+  ]);
+}
+
 async function saveNow() {
   if (!state.agent) return;
   clearTimeout(saveTimer);
   try {
-    await Storage.saveAgent(state.agent);
-    await Storage.setMeta('lastAgentId', state.agent.id);
+    await withTimeout(Storage.saveAgent(state.agent), 4000, 'save');
+    await withTimeout(Storage.setMeta('lastAgentId', state.agent.id), 4000, 'save');
   } catch (err) {
     console.error('Save failed', err);
+    reportError('save', err);
     toast('Could not save');
   }
 }
@@ -788,7 +801,10 @@ async function renderGallery() {
 /* Open an agent where it left off (v2 §5.2). The same walk Continue uses:
    the first mission that is open this session and not yet finished. */
 async function openAgentFromGallery(id) {
-  const agent = migrateAgent(await Storage.loadAgent(id));
+  let loaded;
+  try { loaded = await withTimeout(Storage.loadAgent(id), 4000, 'read'); }
+  catch (err) { reportError('open agent', err); toast('Could not open that agent'); return; }
+  const agent = migrateAgent(loaded);
   if (!agent) return;
 
   state.agent = agent;
@@ -1037,16 +1053,37 @@ async function startNewAgent() {
   if (!pendingCodename.codename) await rollCodename({ instant: true });
   state.agent = makeAgent();
   state.onReveal = false;
-  await saveNow();
   logEvent('agent_create', { codename: state.agent.codename });
+
+  /* Go to the mission FIRST, then save.
+
+     This used to `await saveNow()` before moving. A rejected save was
+     handled, but a save that never SETTLES was not - and IndexedDB on iOS
+     Safari does stall, particularly after a page comes back from the
+     back-forward cache. The child then tapped New agent and nothing at all
+     happened, which is indistinguishable from a dead button.
+
+     Nothing is lost by reordering: the agent is in memory, the save runs
+     straight after, and the debounced auto-save catches it again on the
+     first change. */
   goToMission(0, 'mission_enter');
+  saveNow();
 }
 
 // Spec §7: Continue resumes the last UNFINISHED agent only.
 async function continueAgent() {
-  const lastId = await Storage.getMeta('lastAgentId', null);
-  if (!lastId) return;
-  const agent = await Storage.loadAgent(lastId);
+  /* These two have to finish before anything can be shown - the agent IS the
+     answer here - but they still must not hang forever (see withTimeout). */
+  let lastId, agent;
+  try {
+    lastId = await withTimeout(Storage.getMeta('lastAgentId', null), 4000, 'read');
+    if (!lastId) return;
+    agent = await withTimeout(Storage.loadAgent(lastId), 4000, 'read');
+  } catch (err) {
+    reportError('continue', err);
+    toast('Could not open that agent');
+    return;
+  }
   if (!agent) return;
 
   state.agent = migrateAgent(agent);        // v2 §6.2
@@ -1683,7 +1720,7 @@ function wireUp() {
 /* Run one boot step. If it fails, say so on screen and CARRY ON - a broken
    setting must not cost a child the gallery and their whole agent. */
 async function step(name, fn) {
-  try { return await fn(); }
+  try { return await withTimeout(Promise.resolve(fn()), 6000, name); }
   catch (err) { reportError('boot: ' + name, err); return undefined; }
 }
 
