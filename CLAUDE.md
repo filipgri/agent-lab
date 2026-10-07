@@ -525,6 +525,14 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V0)
 
+- **A drag out of a tray must not claim the gesture on `pointerdown`.** The
+  sticker tray called `preventDefault()`, captured the pointer and built the
+  ghost the instant a finger landed, and its CSS said `touch-action: none` —
+  so the browser could never scroll the tray and a finger laid on a sticker
+  stuck fast. The parts tray never did this, which is why it always felt
+  right. Wait for 8px of movement before committing, set `touch-action:
+  pan-y`, and treat `pointercancel` as "the browser took it as a scroll".
+
 - **Every drag listens on `window`, not on the element that started it**, has
   ONE clean-up function called from `pointerup`, `pointercancel` AND
   `lostpointercapture`, and anything parked on `<body>` is swept up by

@@ -2751,34 +2751,51 @@ function addSticker(sticker, x, y) {
      3. leaveCurrent() sweeps up any ghost that still somehow survived.
    ------------------------------------------------------------------------ */
 function startTrayDrag(event, emoji) {
-  event.preventDefault();
+  /* NOT preventDefault() here, and no ghost yet.
+
+     This used to claim the gesture the instant a finger touched a sticker:
+     preventDefault, pointer capture and a ghost, all on pointerdown. That
+     left the browser no way to scroll the tray, so a finger laid on a
+     sticker and swiped down stuck fast - a child had to find the gap beside
+     the stickers to scroll. The parts tray never did this, which is why that
+     one always felt right (7 October iPad test).
+
+     Now the gesture stays undecided until the finger moves far enough.
+     Within that first 8px the browser is free to take it as a scroll, in
+     which case it sends pointercancel and the drag quietly gives up. */
   const tray = event.currentTarget;
-  try { tray.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
-
   const entry = typeof emoji === 'string' ? { emoji: emoji, asset: null } : emoji;
-
-  const ghost = document.createElement('span');
-  ghost.className = 'sticker-ghost';
-  if (entry.asset) {
-    ghost.textContent = entry.fallback || '🧩';
-    Assets.image(entry.asset).then(img => {
-      if (!img || !ghost.isConnected) return;
-      ghost.textContent = '';
-      const picture = document.createElement('img');
-      picture.className = 'sticker-img';
-      picture.alt = '';
-      picture.src = img.src;
-      ghost.appendChild(picture);
-    });
-  } else {
-    ghost.textContent = entry.emoji;
-  }
-  ghost.style.left = event.clientX + 'px';
-  ghost.style.top  = event.clientY + 'px';
-  document.body.appendChild(ghost);
 
   const startX = event.clientX, startY = event.clientY;
   let finished = false;
+  let dragging = false;
+  let ghost = null;
+
+  function beginDrag(e) {
+    if (dragging) return;
+    dragging = true;
+    try { tray.setPointerCapture(e.pointerId); } catch (err) { /* harmless */ }
+
+    ghost = document.createElement('span');
+    ghost.className = 'sticker-ghost';
+    if (entry.asset) {
+      ghost.textContent = entry.fallback || '🧩';
+      Assets.image(entry.asset).then(img => {
+        if (!img || !ghost || !ghost.isConnected) return;
+        ghost.textContent = '';
+        const picture = document.createElement('img');
+        picture.className = 'sticker-img';
+        picture.alt = '';
+        picture.src = img.src;
+        ghost.appendChild(picture);
+      });
+    } else {
+      ghost.textContent = entry.emoji;
+    }
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top  = e.clientY + 'px';
+    document.body.appendChild(ghost);
+  }
 
   // The one and only clean-up. Safe to call twice.
   function cleanUp() {
@@ -2788,10 +2805,16 @@ function startTrayDrag(event, emoji) {
     window.removeEventListener('pointerup', up);
     window.removeEventListener('pointercancel', cancel);
     tray.removeEventListener('lostpointercapture', cancel);
-    ghost.remove();
+    if (ghost) ghost.remove();
   }
 
   function move(e) {
+    if (!dragging) {
+      // Still undecided: has the finger gone far enough to mean a drag?
+      if (Math.hypot(e.clientX - startX, e.clientY - startY) < 8) return;
+      beginDrag(e);
+    }
+    e.preventDefault();               // now it is ours, so stop any panning
     ghost.style.left = e.clientX + 'px';
     ghost.style.top  = e.clientY + 'px';
   }
@@ -2817,9 +2840,9 @@ function startTrayDrag(event, emoji) {
     }
   }
 
-  window.addEventListener('pointermove', move);
+  window.addEventListener('pointermove', move, { passive: false });
   window.addEventListener('pointerup', up);
-  window.addEventListener('pointercancel', cancel);
+  window.addEventListener('pointercancel', cancel);   // the browser took it: scrolling
   tray.addEventListener('lostpointercapture', cancel);
 }
 

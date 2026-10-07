@@ -788,7 +788,12 @@ body[data-motion="off"] *::after {
   background: var(--navy-3);
   font-size: 30px;
   cursor: grab;
-  touch-action: none;
+  /* pan-y, NOT none. `none` forbids the browser from panning at all, so a
+     finger laid on a sticker could not scroll the tray - a child had to find
+     the gap beside the stickers to get down the list (7 October iPad test).
+     With pan-y the browser owns vertical swipes and our drag takes over only
+     once the finger has moved 8px (see startTrayDrag). */
+  touch-action: pan-y;
   box-shadow: 0 3px 0 rgba(0,0,0,.35);
 }
 .tray-sticker:active { transform: translateY(2px) scale(.95); }
