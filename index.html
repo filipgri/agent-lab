@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=49">
+  <link rel="stylesheet" href="./style.css?v=53">
 </head>
 <body>
 
@@ -634,26 +634,42 @@
           </div>
         </figure>
 
+        <!-- THE POWER (7 October iPad test).
+             This used to be a second copy of the agent labelled BOOST, in the
+             same HQ as the Cover - two identical pictures, and no sign of the
+             power anywhere. It now shows the agent's power-up look standing in
+             the MOMENT the power is used, with the effect named underneath. -->
         <figure class="dossier-cell">
-          <figcaption class="dossier-label">BOOST</figcaption>
+          <figcaption class="dossier-label">POWER</figcaption>
           <div id="reveal-boost" class="agent-view dossier-agent">
             <canvas class="agent-pixels" width="16" height="16"></canvas>
             <img class="agent-drawing" alt="" hidden>
             <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
             <div class="sticker-layer"></div>
           </div>
+          <div id="reveal-power-note" class="dossier-note"></div>
         </figure>
 
-        <!-- The feeling code the agent is wearing today -->
-        <figure class="dossier-cell">
+        <!-- The mood code. Hidden until there is one: mood is a session-3
+             mission, so in session 2 this was always an empty box. -->
+        <figure id="reveal-feeling-cell" class="dossier-cell">
           <figcaption class="dossier-label">FEELING CODE</figcaption>
           <div id="reveal-feeling" class="dossier-feeling"></div>
         </figure>
 
-        <!-- The voice password, in the voice the child chose -->
+        <!-- The voice password. The bars move while it plays, so there is
+             something to watch; the bounce used to be put on the POWER picture
+             instead, which made pressing ▶️ look like it did something to that
+             card. -->
         <figure class="dossier-cell">
           <figcaption class="dossier-label">VOICE PASSWORD</figcaption>
-          <button id="reveal-play" class="dossier-play">▶️<span id="reveal-voice-name">Normal</span></button>
+          <button id="reveal-play" class="dossier-play">
+            <span class="dossier-play-icon">▶️</span>
+            <span id="reveal-bars" class="voice-bars" aria-hidden="true">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </span>
+            <span id="reveal-voice-name" class="dossier-play-name">Normal</span>
+          </button>
         </figure>
       </div>
 
@@ -963,14 +979,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=49"></script>
-<script src="./storage.js?v=49"></script>
-<script src="./audio.js?v=49"></script>
-<script src="./effects.js?v=49"></script>
-<script src="./assets.js?v=49"></script>
-<script src="./stickers.js?v=49"></script>
-<script src="./parts.js?v=49"></script>
-<script src="./app.js?v=49"></script>
+<script src="./boot-guard.js?v=53"></script>
+<script src="./storage.js?v=53"></script>
+<script src="./audio.js?v=53"></script>
+<script src="./effects.js?v=53"></script>
+<script src="./assets.js?v=53"></script>
+<script src="./stickers.js?v=53"></script>
+<script src="./parts.js?v=53"></script>
+<script src="./app.js?v=53"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

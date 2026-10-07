@@ -348,6 +348,18 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **A card shows what exists, not placeholders for what does not.** The
+  Reveal had an empty FEELING CODE box and three rules rows saying "none"
+  through the whole of session 2, because those are session-3 and session-4
+  missions. Both hide until there is something in them, and the voice panel
+  moves across to fill the space. A card with gaps reads as broken, not as
+  unfinished.
+- **The POWER panel is the agent in the MOMENT its power is used**, not a
+  second copy of the Cover in the same HQ. `showPowerMoment()` puts the
+  chosen situation behind it, and marks the element `data-scene="moment"` so
+  `setHqBackdrop()` leaves it alone — the HQ photograph loads a moment later
+  and would otherwise win that race every time.
+
 - **A grid item's automatic minimum is its content, so `1fr` will not shrink
   past it.** Four 64px category buttons overflowed the 224px tool rail by
   50px — and because the rail scrolls vertically, CSS let it slide sideways

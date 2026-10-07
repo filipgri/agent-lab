@@ -1752,6 +1752,12 @@ const HQ_BACKGROUND = {
    image is set as a CSS background so it sits under every layer - pixels,
    shapes, drawing and stickers - without being another element to position. */
 function setHqBackdrop(view, hqId, owner) {
+  /* A view can declare that it supplies its own scene - the card's POWER
+     panel shows the moment the power is used, not the HQ. Without this the
+     HQ photograph loads a moment later and silently overwrites it, which is
+     a race the moment always lost. */
+  if (view.dataset.scene === 'moment') return;
+
   /* v2 §5.5 (V4): a place the child DREW is an HQ like any other, so it has to
      become the background too. It is already a PNG data URL, so there is
      nothing to load and no race to guard against. */
@@ -4233,17 +4239,41 @@ async function renderReveal() {
   $('#reveal-name').textContent  = agent.codename || '';
   $('#reveal-emoji').textContent = agentEmblem(agent);
 
-  // The two agents.
-  renderAgentView($('#reveal-cover'), agent.cover || {}, false);
-  renderAgentView($('#reveal-boost'), (agent.powerup && agent.powerup.look) || {}, false);
+  // The Cover: the agent in its HQ.
+  renderAgentView($('#reveal-cover'), agent.cover || {}, false, null, agent);
 
-  // The feeling code being worn, if there is one.
+  /* The Power: the same child's power-up look, but standing in the MOMENT the
+     power is used rather than in the HQ again. Two identical pictures side by
+     side told nobody anything (7 October iPad test). */
+  const power = (agent.powerup && agent.powerup.power) || {};
+  const look  = (agent.powerup && agent.powerup.look) || {};
+  const boostEl = $('#reveal-boost');
+  const moment = ((agent.powerup && agent.powerup.when) || [])[0] ||
+                 (((agent.powerup && agent.powerup.whenOwn) || [])[0] || {}).png;
+  if (moment) boostEl.dataset.scene = 'moment';
+  else delete boostEl.dataset.scene;
+  renderAgentView(boostEl, look, false, null, agent);
+  showPowerMoment(boostEl, agent);
+
+  const effect = POWER_EFFECTS.find(e => e.id === power.effect);
+  const whenId = ((agent.powerup && agent.powerup.when) || [])[0];
+  const whenLabel = whenId && Assets.item(whenId) ? Assets.item(whenId).label : null;
+  $('#reveal-power-note').innerHTML =
+    (effect ? '<span class="dossier-note-icon">' + effect.icon + '</span>' + effect.label
+            : '') +
+    (whenLabel ? '<span class="dossier-note-when">' + whenLabel + '</span>' : '');
+
+  /* The mood code, and ONLY if there is one. Mood is a session-3 mission, so
+     through the whole of session 2 this was an empty box labelled FEELING
+     CODE, which reads as something broken rather than something not reached
+     yet. */
   const worn = (agent.moodCodes || [])[wornIndex()];
-  const feelingBox = $('#reveal-feeling');
-  feelingBox.innerHTML = worn
-    ? '<img alt="" src="' + (signPng(worn) || '') + '">' +
-      (worn.face ? '<span class="dossier-face">' + worn.face + '</span>' : '')
-    : '<span class="dossier-none">none</span>';
+  $('#reveal-feeling-cell').hidden = !worn;
+  if (worn) {
+    $('#reveal-feeling').innerHTML =
+      '<img alt="" src="' + (signPng(worn) || '') + '">' +
+      (worn.face ? '<span class="dossier-face">' + worn.face + '</span>' : '');
+  }
 
   // The voice password, in whichever voice was chosen.
   const filter = Voice.FILTERS.find(f => f.id === (agent.voice.filter || 'normal'));
@@ -4263,6 +4293,14 @@ async function renderReveal() {
 function renderRevealRules() {
   const box = $('#reveal-rules');
   box.innerHTML = '';
+
+  /* Rules are a session-4 mission. Through sessions 2 and 3 this was three
+     rows each saying "none" - which reads as a card with things missing from
+     it rather than a card for work not yet done. Same reasoning as the mood
+     code cell above. */
+  const anyRules = RULE_CARDS.some(r => (state.agent.rules[r.id] || []).length);
+  box.hidden = !anyRules;
+  if (!anyRules) return;
 
   RULE_CARDS.forEach(rule => {
     const items = state.agent.rules[rule.id] || [];
@@ -4301,6 +4339,14 @@ async function preloadCardAssets() {
   cardAssets.hq = null;
   if (agent.hq && agent.hq.id)       cardAssets.hq = await Assets.image(agent.hq.id);
   else if (agent.hq && agent.hq.png) cardAssets.hq = await loadImage(agent.hq.png);
+
+  /* The moment the power is used, for the card's POWER panel: the first
+     situation the child chose, or one they drew themselves. */
+  cardAssets.moment = null;
+  const when = (agent.powerup && agent.powerup.when) || [];
+  const ownWhen = (agent.powerup && agent.powerup.whenOwn) || [];
+  if (when.length)                     cardAssets.moment = await Assets.image(when[0]);
+  else if (ownWhen[0] && ownWhen[0].png) cardAssets.moment = await loadImage(ownWhen[0].png);
   cardAssets.boostShapes = await loadImage(shapesToSvgUrl(look.shapes));
 
   // v2 §5.3.2: every picture sticker the child has used.
@@ -4328,18 +4374,45 @@ async function preloadCardAssets() {
   }
 }
 
+/* Put the chosen situation behind the agent on the card's POWER cell. The
+   photograph is the first moment the child picked; a moment they drew
+   themselves is a PNG and goes in the same place. */
+function showPowerMoment(el, agent) {
+  const when = (agent.powerup && agent.powerup.when) || [];
+  const own  = (agent.powerup && agent.powerup.whenOwn) || [];
+
+  if (when.length) {
+    Assets.image(when[0]).then(img => {
+      if (!img) return;
+      el.style.setProperty('--hq-image', 'url("' + img.src + '")');
+      el.classList.add('has-hq');
+    });
+    return;
+  }
+  if (own.length && own[0].png) {
+    el.style.setProperty('--hq-image', 'url("' + own[0].png + '")');
+    el.classList.add('has-hq');
+  }
+}
+
 async function playRevealVoice() {
   const agent = state.agent;
   if (!agent.voice.audioId || !cardAssets.voiceBlob) return;
   Voice.unlock();
   logEvent('reveal_play', { filter: agent.voice.filter || 'normal' });
-  const art = $('#reveal-boost') || $('#reveal-cover');
+  /* The bars live on the voice button itself. This used to bounce
+     #reveal-boost, so pressing ▶️ appeared to do something to the POWER
+     card - which is what a tester reported as "it activates the Boost". */
+  const bars = $('#reveal-play');
   try {
+    bars.classList.add('is-playing');
     await Voice.play(agent.voice.audioId, cardAssets.voiceBlob,
                      agent.voice.filter || 'normal',
-                     () => stopVoiceBounce(art));
-    startVoiceBounce(art);     // spec §5a item 2
-  } catch (err) { toast('That recording would not play'); }
+                     () => bars.classList.remove('is-playing'));
+  } catch (err) {
+    bars.classList.remove('is-playing');
+    toast('That recording would not play');
+  }
 }
 
 
@@ -4391,42 +4464,65 @@ function drawCardToCanvas(canvas) {
   label(ctx, 'COVER', 60, 290);
   drawAgentToCanvas(ctx, agent.cover || {}, 60, 310, 380, false);
 
-  label(ctx, 'BOOST', 560, 290);
-  drawAgentToCanvas(ctx, (agent.powerup && agent.powerup.look) || {}, 560, 310, 380, true);
+  /* The POWER, matching the screen: the power-up look standing in the moment
+     it is used, with the effect named under it. cardAssets.moment is that
+     situation's photograph, loaded by preloadCardAssets(). */
+  label(ctx, 'POWER', 560, 290);
+  drawAgentToCanvas(ctx, (agent.powerup && agent.powerup.look) || {},
+                    560, 310, 380, true, cardAssets.moment);
 
-  // --- feeling code ---
-  label(ctx, 'FEELING CODE', 60, 760);
-  roundedBox(ctx, 60, 780, 380, 300, '#16263f');   // dark, so white ink reads
-  const worn = (agent.moodCodes || [])[wornIndex()];
-  if (cardAssets.feeling) {
-    ctx.drawImage(cardAssets.feeling, 100, 790, 280, 280);
-    if (worn && worn.face) {
-      ctx.font = '54px ' + CARD_FONT;
-      ctx.textAlign = 'right';
-      ctx.fillText(worn.face, 426, 836);
-      ctx.textAlign = 'left';
-    }
-  } else {
-    none(ctx, 250, 940);
+  const power = (agent.powerup && agent.powerup.power) || {};
+  const effect = POWER_EFFECTS.find(e => e.id === power.effect);
+  const whenId = ((agent.powerup && agent.powerup.when) || [])[0];
+  const whenEntry = whenId ? Assets.item(whenId) : null;
+  if (effect || whenEntry) {
+    ctx.fillStyle = '#1a1203';
+    ctx.font = '700 28px ' + CARD_FONT;
+    ctx.textAlign = 'center';
+    const line = [effect ? effect.icon + ' ' + effect.label : '',
+                  whenEntry ? whenEntry.label : ''].filter(Boolean).join('   ');
+    ctx.fillText(line, 750, 722);
+    ctx.textAlign = 'left';
   }
 
-  // --- voice password ---
-  label(ctx, 'VOICE PASSWORD', 560, 760);
-  roundedBox(ctx, 560, 780, 380, 300);
+  /* The mood code, only when there is one. In session 2 there never is, and
+     an empty box labelled FEELING CODE reads as a fault. */
+  const worn = (agent.moodCodes || [])[wornIndex()];
+  if (worn) {
+    label(ctx, 'FEELING CODE', 60, 760);
+    roundedBox(ctx, 60, 780, 380, 300, '#16263f');   // dark, so white ink reads
+    if (cardAssets.feeling) {
+      ctx.drawImage(cardAssets.feeling, 100, 790, 280, 280);
+      if (worn.face) {
+        ctx.font = '54px ' + CARD_FONT;
+        ctx.textAlign = 'right';
+        ctx.fillText(worn.face, 426, 836);
+        ctx.textAlign = 'left';
+      }
+    }
+  }
+
+  /* The voice password slides across to the empty half when there is no mood
+     code, rather than leaving a gap where one used to be. */
+  const voiceX = worn ? 560 : 310;
+  label(ctx, 'VOICE PASSWORD', voiceX, 760);
+  roundedBox(ctx, voiceX, 780, 380, 300);
   if (agent.voice.audioId) {
     const filter = Voice.FILTERS.find(f => f.id === (agent.voice.filter || 'normal'));
     ctx.font = '96px ' + CARD_FONT;
     ctx.textAlign = 'center';
-    ctx.fillText(filter ? filter.icon : '🙂', 750, 920);
+    ctx.fillText(filter ? filter.icon : '🙂', voiceX + 190, 920);
     ctx.fillStyle = '#1a1203';
     ctx.font = '700 34px ' + CARD_FONT;
-    ctx.fillText(filter ? filter.label : 'Normal', 750, 1000);
+    ctx.fillText(filter ? filter.label : 'Normal', voiceX + 190, 1000);
     ctx.textAlign = 'left';
   } else {
-    none(ctx, 750, 940);
+    none(ctx, voiceX + 190, 940);
   }
 
-  // --- the rules ---
+  // --- the rules, only when there are some (see renderRevealRules) ---
+  const anyRules = RULE_CARDS.some(r => (agent.rules[r.id] || []).length);
+  if (!anyRules) return;
   label(ctx, 'AGENT RULES', 60, 1130);
   let y = 1160;
   RULE_CARDS.forEach(rule => {
@@ -4498,8 +4594,10 @@ function roundedBox(ctx, x, y, w, h, fill) {
 
 /* One agent: background, then pixels, then stickers. `withExtras` adds the
    Boost's background and aura. */
-function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
-  // background
+function drawAgentToCanvas(ctx, data, x, y, size, withExtras, backdrop) {
+  /* `backdrop` overrides the HQ for one cell. The card's POWER panel uses it
+     to put the agent in the MOMENT its power is used rather than in the HQ
+     again, which is what the screen shows. */
   const bg = withExtras ? hqToBackground(agentHqId()) : 'plain';
 
   // The rounded box the background sits inside, clipped so a photograph does
@@ -4510,9 +4608,10 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras) {
   else ctx.rect(x, y, size, size);
   ctx.clip();
 
-  if (withExtras && cardAssets.hq) {
+  const scene = backdrop || (withExtras ? cardAssets.hq : null);
+  if (scene) {
     // v2 §5.5: the real place, cropped to fill the square.
-    ctx.drawImage(cardAssets.hq, x, y, size, size);
+    ctx.drawImage(scene, x, y, size, size);
   } else {
     const pair = BG_CANVAS[bg] || BG_CANVAS.plain;
     const grad = ctx.createLinearGradient(x, y, x, y + size);
