@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=48">
+  <link rel="stylesheet" href="./style.css?v=49">
 </head>
 <body>
 
@@ -318,47 +318,26 @@
             <div class="power-steps">
 
               <!-- ============ STEP 1: make up a power ============ -->
-              <section id="power-step-1" class="power-step">
-                <header class="power-head">
-                  <h2 class="power-title">1. Make up a power</h2>
-                  <button class="btn btn-icon-only" data-say="nar-power-make" aria-label="Hear this">🔊</button>
-                  <button class="btn power-skip" data-step="2" aria-label="Skip to step 2">➡️</button>
-                </header>
-
-                <!-- Blank first. The ten ideas are NOT on this screen until
-                     the child asks for them (v2 §5.4). -->
-                <div class="power-make">
-                  <div class="m3-canvas-wrap power-canvas-wrap">
-                    <canvas id="power-canvas" class="m3-canvas" width="320" height="320"></canvas>
-                  </div>
-                  <div class="power-make-tools">
-                    <div id="power-palette" class="palette"></div>
-                    <div class="tool-row">
-                      <button id="power-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
-                      <button id="power-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
-                      <button id="power-mic" class="btn tool" aria-label="Say your power">🎤<span id="power-mic-word" class="tool-word">Say it</span></button>
-                    </div>
-                    <button id="btn-power-ideas" class="btn m3-ideas">💡 Need ideas?</button>
-                  </div>
-                </div>
-
-                <div id="power-ideas" class="power-ideas" hidden></div>
-              </section>
-
-              <!-- ============ STEP 2: what does it look like? ============ -->
+              <!-- ============ 1: what does the power look like? ============
+                   "Make up a power" used to be a question of its own, with a
+                   blank canvas first and the ten ideas held back until asked
+                   (v2 §5.4). After the 7 October iPad test it became one card
+                   in this list instead — ✏️ Make my own — in the same shape as
+                   ✏️ My own in the question below. Two questions, not three. -->
               <section id="power-step-2" class="power-step">
                 <header class="power-head">
-                  <h2 class="power-title">2. What does it look like?</h2>
+                  <h2 class="power-title">1. What does your power look like?</h2>
                   <button class="btn btn-icon-only" data-say="nar-power-effect" aria-label="Hear this">🔊</button>
-                  <button class="btn power-skip" data-step="3" aria-label="Skip to step 3">➡️</button>
+                  <button class="btn power-skip" data-step="3" aria-label="Skip to the next question">➡️</button>
                 </header>
                 <div id="power-effects" class="power-effects"></div>
+                <div id="power-own" class="hq-row"></div>
               </section>
 
               <!-- ============ STEP 3: when does the agent use it? ============ -->
               <section id="power-step-3" class="power-step">
                 <header class="power-head">
-                  <h2 class="power-title">3. When does your agent use it?</h2>
+                  <h2 class="power-title">2. When does your agent use it?</h2>
                   <button class="btn btn-icon-only" data-say="nar-power-when" aria-label="Hear this">🔊</button>
                 </header>
                 <p class="power-hint">Choose as many as you like.</p>
@@ -984,14 +963,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=48"></script>
-<script src="./storage.js?v=48"></script>
-<script src="./audio.js?v=48"></script>
-<script src="./effects.js?v=48"></script>
-<script src="./assets.js?v=48"></script>
-<script src="./stickers.js?v=48"></script>
-<script src="./parts.js?v=48"></script>
-<script src="./app.js?v=48"></script>
+<script src="./boot-guard.js?v=49"></script>
+<script src="./storage.js?v=49"></script>
+<script src="./audio.js?v=49"></script>
+<script src="./effects.js?v=49"></script>
+<script src="./assets.js?v=49"></script>
+<script src="./stickers.js?v=49"></script>
+<script src="./parts.js?v=49"></script>
+<script src="./app.js?v=49"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

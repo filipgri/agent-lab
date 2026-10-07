@@ -6090,19 +6090,6 @@ function layerPart(direction) {
 
 // The ten ideas, each with the effect it brings (v2 §5.4). Note what is NOT
 // here: nothing about talking, being understood, or making yourself heard.
-const POWER_IDEAS = [
-  { id: 'idea-freeze',    icon: '⏸️', label: 'Freeze time',     effect: 'fx-freeze' },
-  { id: 'idea-invisible', icon: '👻', label: 'Turn invisible',  effect: 'fx-fade' },
-  { id: 'idea-speed',     icon: '⚡', label: 'Super speed',     effect: 'fx-speed' },
-  { id: 'idea-mind',      icon: '💭', label: 'Read minds',      effect: 'fx-thoughts' },
-  { id: 'idea-shield',    icon: '🛡️', label: 'Shield',          effect: 'fx-shield' },
-  { id: 'idea-fly',       icon: '🪽', label: 'Fly',             effect: 'fx-float' },
-  { id: 'idea-strong',    icon: '💪', label: 'Super strong',    effect: 'fx-stomp' },
-  { id: 'idea-teleport',  icon: '🌀', label: 'Teleport',        effect: 'fx-teleport' },
-  { id: 'idea-grow',      icon: '🔍', label: 'Grow and shrink', effect: 'fx-grow' },
-  { id: 'idea-animals',   icon: '🐾', label: 'Talk to animals', effect: 'fx-thoughts' }
-];
-
 // The ten effects. The sound id is the effect id with fx- swapped for sfx-.
 const POWER_EFFECTS = [
   { id: 'fx-lightning', icon: '⚡', label: 'Lightning' },
@@ -6119,7 +6106,6 @@ const POWER_EFFECTS = [
 
 // Whether the ideas have been revealed this visit. Never remembered: each
 // child meets the blank square first.
-let ideasOpen = false;
 
 
 /* ---------------------------------------------------------------------------
@@ -6128,10 +6114,9 @@ let ideasOpen = false;
 function renderPowerup() {
   if (!state.agent) return;
   renderAgentView($('#power-stage'), state.agent.powerup.look, false);
-  paintPowerIdeas();
   paintPowerEffects();
+  paintPowerOwn();
   paintPowerWhen();
-  paintPowerMic();
 }
 
 function enterPowerup() {
@@ -6146,24 +6131,8 @@ function enterPowerup() {
   const copied = copyCoverToPowerup();
   if (copied) scheduleSave();
 
-  // Back to the three steps, not wherever "Change my look" left things.
+  // Back to the questions, not wherever "Change my look" left things.
   closePowerLook();
-  ideasOpen = false;
-  $('#power-ideas').hidden = true;
-  $('#btn-power-ideas').hidden = false;
-
-  // The power drawing uses the shared brush.
-  coder.canvas = $('#power-canvas');
-  coder.undoStack = [];
-  coder.colour = CODE_COLOURS[0];
-  coder.width = 14;
-  coder.mirror = false;
-  coder.onStroke = savePowerDrawing;
-  clearCodeCanvas();
-  const existing = state.agent.powerup.power.png;
-  if (existing) drawPngToCanvas(existing);
-  paintCodePalette('#power-palette');
-
   renderPowerup();
   speakLine('nar-powerup-intro');
 
@@ -6176,93 +6145,11 @@ function enterPowerup() {
    STEP 1: MAKE UP A POWER (v2 §5.4)
    Blank first. Always.
    ------------------------------------------------------------------------ */
-function savePowerDrawing() {
-  state.agent.powerup.power.png = $('#power-canvas').toDataURL('image/png');
-  logEvent('power_draw', {});
-  scheduleSave();
-}
-
 /* The ideas are revealed only when asked for. The event log therefore shows
    whether a child drew first or reached for the list - which is the finding
    this screen exists to produce. */
-function openPowerIdeas() {
-  ideasOpen = true;
-  $('#power-ideas').hidden = false;
-  $('#btn-power-ideas').hidden = true;
-  logEvent('ideas_open', { drawnFirst: Boolean(state.agent.powerup.power.png) });
-  speakLine('nar-power-ideas');
-  paintPowerIdeas();
-}
-
-function paintPowerIdeas() {
-  const box = $('#power-ideas');
-  if (!box) return;
-  box.innerHTML = '';
-  if (!ideasOpen) return;
-
-  POWER_IDEAS.forEach(idea => {
-    const tile = document.createElement('button');
-    const chosen = state.agent.powerup.power.idea === idea.id;
-    tile.className = 'idea-tile' + (chosen ? ' is-on' : '');
-    tile.innerHTML = '<span class="idea-icon">' + idea.icon + '</span>' +
-                     '<span class="idea-label">' + idea.label + '</span>';
-    tile.setAttribute('aria-label', idea.label);
-    tile.addEventListener('click', () => chooseIdea(idea));
-    box.appendChild(tile);
-  });
-}
-
 /* An idea brings its default effect, which the child can then change
    (v2 §5.4). Choosing it also plays it, so the link is immediate. */
-function chooseIdea(idea) {
-  const power = state.agent.powerup.power;
-  power.idea = idea.id;
-  if (!power.effect) power.effect = idea.effect;
-
-  logEvent('power_idea_choose', { idea: idea.id, effect: power.effect });
-  speakLabel(idea.id);
-  paintPowerIdeas();
-  paintPowerEffects();
-  fireEffect(power.effect);
-  scheduleSave();
-}
-
-async function recordPower() {
-  Voice.unlock();
-  if (Voice.isRecording()) { Voice.stop(); return; }
-  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
-
-  const button = $('#power-mic');
-  button.classList.add('is-recording');
-  try {
-    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
-    const power = state.agent.powerup.power;
-    const oldId = power.audioId;
-
-    const id = uuid();
-    await Storage.saveAudio(id, result.blob);
-    power.audioId = id;
-    if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
-
-    logEvent('power_record', { ms: Math.round(result.ms) });
-    playSfx('sfx-pop');
-    scheduleSave();
-  } catch (err) {
-    toast('The microphone did not work');
-  }
-  button.classList.remove('is-recording');
-  paintPowerMic();
-}
-
-function paintPowerMic() {
-  const button = $('#power-mic');
-  if (!button) return;
-  const has = Boolean(state.agent.powerup.power.audioId);
-  button.classList.toggle('is-on', has);
-  $('#power-mic-word').textContent = has ? 'Saved' : 'Say it';
-}
-
-
 /* ---------------------------------------------------------------------------
    STEP 2: WHAT DOES IT LOOK LIKE? (v2 §5.4)
    Each effect plays on the agent the moment it is tapped, with its sound.
@@ -6282,6 +6169,83 @@ function paintPowerEffects() {
     tile.addEventListener('click', () => chooseEffect(effect));
     box.appendChild(tile);
   });
+}
+
+/* ✏️ MAKE MY OWN (v2 §5.4, reshaped after the 7 October iPad test)
+
+   "Make up a power" was a question of its own: a blank canvas first, with the
+   ten ideas held back until the child asked, so the log could show whether
+   they invented before being offered a list. Three questions on one screen
+   was too much on a real iPad, so inventing is now one card in this list, in
+   the same shape as ✏️ My own in the question below.
+
+   What the log can still say: whether a child took a ready-made effect or
+   made their own, and in what order. What it can no longer say: whether they
+   would have invented one unprompted. */
+function paintPowerOwn() {
+  const box = $('#power-own');
+  if (!box) return;
+  box.innerHTML = '';
+
+  const own = state.agent.powerup.power;
+
+  const make = document.createElement('button');
+  make.className = 'when-own';
+  make.setAttribute('aria-label', 'Make up your own power');
+  make.innerHTML = '<span class="when-own-icon">✏️</span>' +
+                   '<span class="when-own-label">Make my own</span>';
+  make.addEventListener('click', openPowerOwn);
+  box.appendChild(make);
+
+  if (!own.png && !own.audioId) return;
+
+  const tile = document.createElement('button');
+  tile.className = 'when-own is-on' + (powerOwnArmed ? ' is-armed' : '');
+  tile.innerHTML = (own.png
+      ? '<img class="hq-own-thumb" alt="" src="' + own.png + '">'
+      : '<span class="when-own-icon">🎤</span>') +
+    '<span class="when-own-label">' + (powerOwnArmed ? 'Remove?' : 'My power') + '</span>';
+  tile.setAttribute('aria-label', 'My own power');
+  tile.addEventListener('click', armPowerOwnRemove);
+  box.appendChild(tile);
+}
+
+function openPowerOwn() {
+  openOwnCard({
+    title: 'Make up your power',
+    say: 'nar-power-make',
+    onKeep: card => {
+      state.agent.powerup.power.png = card.png;
+      if (card.audioId) state.agent.powerup.power.audioId = card.audioId;
+      logEvent('power_draw', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
+      paintPowerOwn();
+      scheduleSave();
+    }
+  });
+}
+
+/* The same two taps as every other card a child made: one arms, one removes. */
+let powerOwnArmed = false;
+let powerOwnTimer = null;
+
+function armPowerOwnRemove() {
+  if (powerOwnArmed) {
+    clearTimeout(powerOwnTimer);
+    powerOwnArmed = false;
+    const id = state.agent.powerup.power.audioId;
+    if (id) { Voice.forget(id); Storage.deleteAudio(id); }
+    state.agent.powerup.power.png = null;
+    state.agent.powerup.power.audioId = null;
+    logEvent('power_draw_remove', {});
+    paintPowerOwn();
+    scheduleSave();
+    return;
+  }
+  clearTimeout(powerOwnTimer);
+  powerOwnArmed = true;
+  playSfx('sfx-pop');
+  powerOwnTimer = setTimeout(() => { powerOwnArmed = false; paintPowerOwn(); }, 3000);
+  paintPowerOwn();
 }
 
 function chooseEffect(effect) {
@@ -6419,9 +6383,7 @@ function openOwnCard(options) {
 function closeOwnCard() {
   $('#own-overlay').hidden = true;
   clearCodeCanvas();
-  // Hand the brush back to whatever was using it.
-  coder.canvas = $('#power-canvas');
-  coder.onStroke = savePowerDrawing;
+  coder.onStroke = null;
   coder.undoStack = [];
 }
 
@@ -6519,9 +6481,6 @@ function closePowerLook() {
   $('#m2-editor-mount').hidden = true;
   $('#m2-cover').hidden = true;
   hideEditor();
-  // The brush belongs to the power drawing again.
-  coder.canvas = $('#power-canvas');
-  coder.onStroke = savePowerDrawing;
   renderPowerup();
 }
 
@@ -6530,13 +6489,7 @@ function closePowerLook() {
    Wiring the Power-up up. Called once, from wireUp().
    ------------------------------------------------------------------------ */
 function wirePowerup() {
-  attachBrush($('#power-canvas'));
   attachBrush($('#own-canvas'));
-
-  $('#power-undo').addEventListener('click', () => { undoCode(); savePowerDrawing(); });
-  $('#power-clear').addEventListener('click', () => { clearCode(); savePowerDrawing(); });
-  $('#power-mic').addEventListener('click', recordPower);
-  $('#btn-power-ideas').addEventListener('click', openPowerIdeas);
   $('#btn-power-look').addEventListener('click', openPowerLook);
 
   // Every 🔊 on this screen says its own step's line.
