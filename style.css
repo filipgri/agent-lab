@@ -3011,3 +3011,21 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 .main-controls-sel { display: flex; flex-direction: column; gap: 8px; }
 .main-controls-sel[hidden] { display: none; }
 .main-controls .btn.tool[hidden] { display: none; }
+
+/* The parts tray scrolls on its own, so a long category cannot push anything
+   below it off the rail (7 October iPad test). */
+.parts-tray { max-height: 46dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* A wider rail in landscape, so the colours AND the parts both fit
+   (7 October iPad test).
+
+   With a 224px rail the palette was four columns of 50px swatches — 224px
+   tall for sixteen colours — which pushed the parts tray off the bottom once
+   the colours moved above it. An iPad in landscape is 1180px wide and the
+   stage had room to spare, so the rail takes a little more and the palette
+   packs into six columns. Swatches stay 40px, which a finger can still hit. */
+@media (orientation: landscape) and (min-width: 900px) {
+  .editor-rail { flex: 0 0 290px; width: 290px; }
+  .editor-rail .palette { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  .parts-tray { max-height: 38dvh; }
+}

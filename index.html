@@ -32,7 +32,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=69">
+  <link rel="stylesheet" href="./style.css?v=71">
 </head>
 <body>
 
@@ -252,11 +252,20 @@
               <!-- --- Parts: the kit from parts.js (v2 §5.3.1) --- -->
               <div id="rail-parts" class="rail-body" hidden>
                 <div id="parts-cats" class="parts-cats"></div>
-                <div id="parts-tray" class="parts-tray"></div>
 
-                <!-- The part's own palette first; everything else behind More. -->
+                <!-- COLOURS ABOVE THE TRAY (7 October iPad test).
+                     They used to sit under it, so how far down they appeared
+                     depended on how many parts the category had. On a 518px
+                     rail the palette began at 494px for an 8-part category —
+                     just visible — but at 530px for eyes, mouths and hair,
+                     which have 10, 10 and 16. Those three were off the bottom
+                     edge, and having to scroll for them read as the colours
+                     being slow to appear. Now they are always in the same
+                     place, and the tray scrolls instead. -->
                 <div id="parts-palette" class="palette"></div>
                 <button id="btn-parts-more" class="btn parts-more">+ More</button>
+
+                <div id="parts-tray" class="parts-tray"></div>
 
                 <!-- Shown only while a part is selected. Buttons, not pinch
                      gestures, exactly as spec §7 and v2 §5.3.1 ask. -->
@@ -1018,14 +1027,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=69"></script>
-<script src="./storage.js?v=69"></script>
-<script src="./audio.js?v=69"></script>
-<script src="./effects.js?v=69"></script>
-<script src="./assets.js?v=69"></script>
-<script src="./stickers.js?v=69"></script>
-<script src="./parts.js?v=69"></script>
-<script src="./app.js?v=69"></script>
+<script src="./boot-guard.js?v=71"></script>
+<script src="./storage.js?v=71"></script>
+<script src="./audio.js?v=71"></script>
+<script src="./effects.js?v=71"></script>
+<script src="./assets.js?v=71"></script>
+<script src="./stickers.js?v=71"></script>
+<script src="./parts.js?v=71"></script>
+<script src="./app.js?v=71"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

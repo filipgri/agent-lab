@@ -358,6 +358,14 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **The colours sit ABOVE the parts tray**, so where they appear never
+  depends on how many parts a category has. Underneath it, the palette began
+  at 494px down a 518px rail for an 8-part category — just visible — but at
+  530px for eyes, mouths and hair, which have 10, 10 and 16. Those three were
+  off the bottom edge, and having to scroll for them was reported as the
+  colours being slow to appear. The rail is 290px in landscape and the
+  palette packs into six columns so both it and the tray fit.
+
 - **The Power-up MIRRORS the Cover until the child changes it.** It used to
   copy once, into an empty Power-up, and never again — so a child who went
   back and recoloured their hair saw the new colour on the Cover and the old
