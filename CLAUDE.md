@@ -339,6 +339,22 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **Reachable is not the same as discoverable.** On a landscape iPad
+  (1180×734) the start screen's gallery began at y=789 — entirely below the
+  fold, with nothing on screen to hint it existed. V1 had made it scrollable
+  and called that fixed; a whole iPad test session was lost to it, because a
+  half-empty start screen looks like a broken app, not a scrollable one. On a
+  wide, short screen the gallery now sits **beside** the roller via grid
+  areas, so a child sees their own agent the moment they arrive. Check new
+  layouts at **1180×734**, not just at portrait and at desktop sizes.
+- **`boot-guard.js` loads first and is the app's black box.** It catches
+  errors, builds its own banner rather than trusting index.html, and — the
+  part that matters — watches for SUCCESS: `app.js` sets `__agentLabReady`
+  at the end of boot, and if that has not arrived in six seconds the guard
+  reports anyway. `?diag=1` shows the same report on a healthy app, which is
+  how to tell which version an iPad is really running. A reporter that lives
+  inside `app.js` cannot report `app.js` failing to load or parse.
+
 - **`renderAgentView()` takes an `owner`.** `data` is only half an agent (a
   cover or a look); the HQ and the door live on the whole agent, and the
   function used to reach for `state.agent` — which was right everywhere until

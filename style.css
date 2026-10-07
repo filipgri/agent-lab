@@ -2799,3 +2799,50 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   font-size: 13px; font-family: ui-monospace, Menlo, monospace;
 }
 .boot-error .btn { min-height: 44px; font-size: 15px; margin-right: 8px; }
+
+/* ============================================================
+   THE START SCREEN ON A SHORT LANDSCAPE IPAD (7 October 2026)
+   ============================================================
+   An iPad in landscape is about 1180x734. Stacked, the gallery began at
+   y=789 — entirely below the fold, with nothing on screen to suggest it was
+   there. V1 made it *reachable* by scrolling; it was never *discoverable*,
+   and a child coming back in week 3 has to see their own agent at once.
+
+   So on a wide, short screen the gallery moves beside the roller instead of
+   under it, using the width an iPad has plenty of. The markup is a flat
+   column, so named grid areas do the rearranging and the HTML stays as it is.
+   Portrait keeps the stacked layout, where there is height to spare. */
+@media (min-width: 900px) and (max-height: 860px) {
+  .start-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "logo    gallery"
+      "card    gallery"
+      "actions gallery";
+    align-content: center;
+    justify-items: center;
+    column-gap: 32px;
+    row-gap: 18px;
+  }
+  .start-wrap > .logo    { grid-area: logo; }
+  .start-wrap > .codename-card { grid-area: card; }
+  .start-wrap > .start-actions { grid-area: actions; }
+
+  /* The gallery gets the full height of the column and scrolls on its own,
+     so twenty agents never push anything else off the screen. */
+  .start-wrap > .gallery-block {
+    grid-area: gallery;
+    align-self: stretch;
+    justify-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .start-wrap > .gallery-block .gallery-title {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--navy-1);
+    padding: 4px 0 8px;
+  }
+}
