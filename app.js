@@ -1552,6 +1552,11 @@ function wireUp() {
   $('#btn-adult-close').addEventListener('click', async () => {
     showScreen('start');
     await refreshContinueButton();
+    /* The panel can delete agents, so the gallery behind it may now be
+       wrong. It was only ever rebuilt on boot and on Finish, which meant a
+       deleted agent kept its tile until the app was reloaded - and tapping
+       that tile would have opened nothing. */
+    await renderGallery();
   });
   $('#btn-export').addEventListener('click', exportAll);
   $$('[data-motion]').forEach(b =>
