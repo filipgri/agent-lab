@@ -489,6 +489,16 @@ hand-edit the manifest, and never edit both.
 - Minimum touch target 64×64px. Every button: an icon plus at most one or two
   words.
 - Use `100dvh`, never `100vh`.
+- **`index.html` is fetched network-first; everything else is cache-first.**
+  Every other file carries a `?v=` so a release is a new URL and a stale one
+  cannot be served — but `index.html` *carries* those numbers and has none of
+  its own, so it was the one file a browser could keep forever. A cached copy
+  means old `?v=` links, which means the whole app stays on an old version
+  however often it is reloaded. An iPad sat on v=38 through two releases
+  because of this, and it looked like three different bugs. Offline still
+  works: a page request falls back to the cached copy.
+  **To force a stuck iPad past it, add any unique query to the address**
+  (`…/agent-lab/?fresh=1`) — that misses every cache and fetches fresh.
 - **⚠️ On every release, bump BOTH `CACHE_VERSION` in `sw.js` AND the `?v=`
   on all five links in `index.html`, and keep the `?v=` in `sw.js`'s
   `APP_FILES` identical to the HTML's.** A service worker caches URLs, so

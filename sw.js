@@ -18,23 +18,23 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v40';
+const CACHE_VERSION = 'agent-lab-v41';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
-   ./app.js?v=40 are two different URLs as far as it is concerned. */
+   ./app.js?v=41 are two different URLs as far as it is concerned. */
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=40',
-  './boot-guard.js?v=40',
-  './storage.js?v=40',
-  './audio.js?v=40',
-  './effects.js?v=40',
-  './assets.js?v=40',
-  './stickers.js?v=40',
-  './parts.js?v=40',
-  './app.js?v=40',
+  './style.css?v=41',
+  './boot-guard.js?v=41',
+  './storage.js?v=41',
+  './audio.js?v=41',
+  './effects.js?v=41',
+  './assets.js?v=41',
+  './stickers.js?v=41',
+  './parts.js?v=41',
+  './app.js?v=41',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -114,6 +114,35 @@ self.addEventListener('fetch', function (event) {
   // Only ever handle plain GETs for our own files.
   if (request.method !== 'GET') return;
   if (new URL(request.url).origin !== self.location.origin) return;
+
+  /* THE PAGE ITSELF IS FETCHED FRESH WHEN ONLINE (7 October 2026).
+
+     Everything else carries a ?v= in its URL, so a new release is a new URL
+     and the cache cannot serve a stale one. index.html carries the ?v=
+     numbers but has none of its own - so it was the one file a browser could
+     keep forever, and a cached copy means old ?v= links, which means the
+     whole app stays on an old version no matter how many times it is
+     reloaded. An iPad sat on v=38 for two releases because of this.
+
+     So a page request goes to the network first and falls back to the cache,
+     which is what keeps it working offline. Everything else stays
+     cache-first, which is what keeps it fast. */
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).then(function (response) {
+        const copy = response.clone();
+        caches.open(CACHE_VERSION).then(function (cache) {
+          cache.put('./index.html', copy);
+        });
+        return response;
+      }).catch(function () {
+        return caches.match('./index.html').then(function (cached) {
+          return cached || caches.match('./');
+        });
+      })
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then(function (cached) {
