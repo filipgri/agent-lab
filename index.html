@@ -32,7 +32,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=72">
+  <link rel="stylesheet" href="./style.css?v=74">
 </head>
 <body>
 
@@ -197,14 +197,6 @@
                in was one too many, and the 16x16 grid was the one nobody
                reached for. Agents already made with it still open and
                still draw - only the door card is gone. -->
-          <div id="m1-doors" class="door-row">
-            <button class="door-card" data-door="parts">
-              <span class="door-icon">🧩</span><span>Parts</span>
-            </button>
-            <button class="door-card" data-door="draw">
-              <span class="door-icon">✏️</span><span>Draw</span>
-            </button>
-          </div>
 
           <!-- STEP 2: the editor, revealed once a door is chosen.
                The editor itself is a SHARED block: Mission 2 uses the very
@@ -218,7 +210,6 @@
                 <canvas class="agent-pixels" width="16" height="16"></canvas>
                 <!-- The live Draw-door canvas. Bigger than the 16x16 pixel one
                      because a brush stroke needs real resolution. -->
-                <canvas id="door-canvas" class="door-canvas" width="640" height="640" hidden></canvas>
                 <img class="agent-drawing" alt="" hidden>
                 <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
                 <div class="sticker-layer"></div>
@@ -231,23 +222,15 @@
                    two extra Boost tools (spec §7, Mission 2); app.js unhides
                    them only while the Boost version is being edited. -->
               <div class="rail-tabs">
-                <button class="btn seg" data-rail="paint" data-door-only="pixel">🎨 Paint</button>
-                <button class="btn seg" data-rail="parts" data-door-only="parts" hidden>🔺 Shapes</button>
-                <button class="btn seg" data-rail="draw" data-door-only="draw" hidden>✏️ Brush</button>
+                <!-- Parts and Stickers are the whole kit. Paint belonged to the
+                     Pixel door and Brush to Draw, both now dropped. -->
+                <button class="btn seg" data-rail="parts">🔺 Shapes</button>
                 <button class="btn seg" data-rail="stickers">🧩 Stickers</button>
                 <button class="btn seg" data-rail="aura" data-boost-only hidden>✨ Aura</button>
                 <button class="btn seg" data-rail="background" data-boost-only hidden>🌌 Place</button>
               </div>
 
               <!-- --- Paint --- -->
-              <div id="rail-paint" class="rail-body">
-                <div id="palette" class="palette"></div>
-                <div class="tool-row">
-                  <button class="btn tool" data-tool="paint" aria-label="Paint">🖌️<span class="tool-word">Paint</span></button>
-                  <button class="btn tool" data-tool="erase" aria-label="Eraser">🧽<span class="tool-word">Rub out</span></button>
-                  <button class="btn tool" data-tool="fill"  aria-label="Fill">🪣<span class="tool-word">Fill</span></button>
-                </div>
-              </div>
 
               <!-- --- Parts: the kit from parts.js (v2 §5.3.1) --- -->
               <div id="rail-parts" class="rail-body" hidden>
@@ -274,16 +257,6 @@
                      stickers, one for parts, and the one beside the agent. -->
               </div>
 
-              <!-- --- Draw: a thick brush in three sizes, with a mirror --- -->
-              <div id="rail-draw" class="rail-body" hidden>
-                <div id="draw-door-palette" class="palette"></div>
-                <div class="tool-row">
-                  <button class="btn tool" data-brush="8"  aria-label="Thin brush">·<span class="tool-word">Thin</span></button>
-                  <button class="btn tool" data-brush="18" aria-label="Medium brush">•<span class="tool-word">Medium</span></button>
-                  <button class="btn tool" data-brush="34" aria-label="Thick brush">⬤<span class="tool-word">Thick</span></button>
-                </div>
-                <button id="btn-mirror" class="btn tool btn-mirror" aria-label="Mirror">🪞<span class="tool-word">Mirror</span></button>
-              </div>
 
               <!-- --- Stickers --- -->
               <div id="rail-stickers" class="rail-body" hidden>
@@ -316,7 +289,6 @@
               <div class="tool-row">
                 <button id="btn-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
                 <button id="btn-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
-                <button id="btn-change-door" class="btn tool" aria-label="Change door">🚪<span class="tool-word">Door</span></button>
               </div>
             </div>
           </div>
@@ -1027,14 +999,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=72"></script>
-<script src="./storage.js?v=72"></script>
-<script src="./audio.js?v=72"></script>
-<script src="./effects.js?v=72"></script>
-<script src="./assets.js?v=72"></script>
-<script src="./stickers.js?v=72"></script>
-<script src="./parts.js?v=72"></script>
-<script src="./app.js?v=72"></script>
+<script src="./boot-guard.js?v=74"></script>
+<script src="./storage.js?v=74"></script>
+<script src="./audio.js?v=74"></script>
+<script src="./effects.js?v=74"></script>
+<script src="./assets.js?v=74"></script>
+<script src="./stickers.js?v=74"></script>
+<script src="./parts.js?v=74"></script>
+<script src="./app.js?v=74"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

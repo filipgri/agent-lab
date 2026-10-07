@@ -339,11 +339,15 @@ hand-edit the manifest, and never edit both.
   and when they were last exported, so a facilitator can see at a glance
   whether anything would be lost.
 
-- **Two doors, not three (7 October 2026, from the iPad test).** Pixel is
-  gone; only **Parts** and **Draw** are offered. This departs from v2 §5.3,
-  which lists Parts · Pixel · Draw. Three ways in was one too many, and the
-  16×16 grid was the one nobody reached for. Agents already made with Pixel
-  still open and still draw — only the door card is gone.
+- **One way in, not three (8 October 2026, from the iPad test).** Pixel went
+  first, then Draw: a blank canvas gave children less than the parts kit and
+  nobody reached for it. With a single door there is nothing to choose, so
+  **Make opens straight into the parts editor** and the door screen is gone.
+  This departs from v2 §5.3, which lists Parts · Pixel · Draw.
+  **Agents already made with Pixel or Draw keep their `door` value**, so
+  `renderAgentView()` and `drawAgentToCanvas()` still draw their work on
+  every screen and on the saved card — verified. Only the way IN was removed,
+  never anyone's work.
 - **"Say it 3 ways" is gone (7 October 2026).** It departs from v2 §5.6.
   `voice.threeWays` stays in the data model and any clips already recorded
   are untouched, but nothing shows or plays them.

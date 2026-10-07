@@ -2107,14 +2107,6 @@ function pushUndo() {
 }
 
 function undo() {
-  // The Draw door keeps whole-canvas snapshots instead, because a brush stroke
-  // is not a list of things the way pixels and shapes are.
-  if (state.agent && state.agent.door === 'draw') {
-    undoCode();
-    saveDoorDrawing();
-    return;
-  }
-
   const previous = editor.undoStack.pop();
   if (!previous) return;
   const p = ensurePixels();
@@ -2276,15 +2268,6 @@ function refreshAgentViews() {
    Each door keeps its own work, because the data model has separate places for
    pixels, shapes and a drawing. Switching back and forth loses nothing.
    ------------------------------------------------------------------------ */
-function showDoors() {
-  $('#m1-doors').hidden = false;
-  moveEditorTo('#m1-editor-mount');
-  $('#editor').hidden = true;
-  $$('#m1-doors .door-card').forEach(card => {
-    card.classList.toggle('is-chosen', state.agent && state.agent.door === card.dataset.door);
-  });
-}
-
 function chooseDoor(door) {
   const switching = state.agent.door && state.agent.door !== door;
   state.agent.door = door;
@@ -2305,7 +2288,6 @@ function openEditor(mountSelector, which) {
   editor.selected = null;
   editor.undoStack = [];        // undo never reaches back into another mission
 
-  if (mountSelector === '#m1-editor-mount') $('#m1-doors').hidden = true;
   moveEditorTo(mountSelector || '#m1-editor-mount');
 
   const main = $('#main-controls');
@@ -2314,24 +2296,16 @@ function openEditor(mountSelector, which) {
   // The Boost's two extra tabs, and the Door button, which only Mission 1 has.
   const isBoost = editor.part === 'powerup';
   $$('[data-boost-only]').forEach(el => { el.hidden = !isBoost; });
-  $('#btn-change-door').hidden = isBoost;
 
-  /* MILESTONE 7: only the chosen door's tab is offered. A child in the Draw
-     door has no use for a pixel palette, and three unusable tabs would just
-     be three more things to get wrong. */
-  const door = (state.agent.door) || 'pixel';
-  $$('[data-door-only]').forEach(el => { el.hidden = el.dataset.doorOnly !== door; });
-  $('#door-canvas').hidden = door !== 'draw';
+  /* One kit now: Parts and Stickers. An agent saved under the old Pixel or
+     Draw door keeps its door value so its work still DRAWS wherever the
+     agent does, but the editor always opens on Parts. */
+  coder.onStroke = null;
   editor.selectedShape = null;
 
-  const tabCount = 2 + (isBoost ? 2 : 0);
-  $('.rail-tabs').classList.toggle('is-four', tabCount > 2);
-
-  if (door === 'draw') openDrawDoor();
-  else { coder.onStroke = null; }
-  if (door === 'parts') { buildPartsTray(); paintPartsPalette(); }
-
-  setRail(door === 'pixel' ? 'paint' : door);
+  buildPartsTray();
+  paintPartsPalette();
+  setRail('parts');
   paintPalette();
   paintToolButtons();
   buildStickerTray();
@@ -2532,7 +2506,7 @@ function clearAll() {
    ------------------------------------------------------------------------ */
 function setRail(which) {
   // One body per tab. Milestone 2 added Aura and Place.
-  ['paint', 'parts', 'draw', 'stickers', 'aura', 'background'].forEach(name => {
+  ['parts', 'stickers', 'aura', 'background'].forEach(name => {
     $('#rail-' + name).hidden = which !== name;
   });
   $$('[data-rail]').forEach(b => b.classList.toggle('is-on', b.dataset.rail === which));
@@ -2965,10 +2939,6 @@ function wireMake() {
   watchAgentView(stage());
   watchAgentView($('#preview-view'));
 
-  $$('#m1-doors .door-card').forEach(card => {
-    card.addEventListener('click', () => chooseDoor(card.dataset.door));
-  });
-
   const stageEl = stage();
   stageEl.addEventListener('pointerdown', stageDown);
   stageEl.addEventListener('pointermove', stageMove);
@@ -2991,16 +2961,25 @@ function wireMake() {
 
   $('#main-undo').addEventListener('click', undo);
   $('#main-clear').addEventListener('click', clearAll);
-  $('#btn-change-door').addEventListener('click', showDoors);
 }
 
 // Called by goToMission whenever Mission 1 opens: show the doors, or go
 // straight back into the editor if a door was already chosen.
 function enterMake() {
   if (!state.agent) return;
+
+  /* There is one way in now, so there is nothing to choose. Draw was dropped
+     after the iPad test - a blank canvas gave children less than the parts
+     kit and nobody reached for it - and Pixel went earlier, so Make opens
+     straight into the parts editor. An agent made with one of the old doors
+     keeps its door value, so its work still draws wherever the agent does. */
+  if (!state.agent.door) {
+    state.agent.door = 'parts';
+    logEvent('door_choose', { door: 'parts', auto: true });
+    scheduleSave();
+  }
   ensurePixels();
-  if (state.agent.door) openEditor('#m1-editor-mount', 'cover');
-  else showDoors();
+  openEditor('#m1-editor-mount', 'cover');
 }
 
 
@@ -3753,8 +3732,7 @@ function codeUp() {
     // event has to say which canvas it was. Without this the research log
     // cannot tell a feeling code apart from a drawn rule.
     logEvent('draw_stroke', {
-      where: coder.canvas.id === 'm3-canvas' ? 'feeling_code'
-           : coder.canvas.id === 'door-canvas' ? 'draw_door' : 'rule',
+      where: coder.canvas.id === 'm3-canvas' ? 'feeling_code' : 'rule',
       points: coder.points.length
     });
   }
@@ -5518,87 +5496,19 @@ function shapeAction(what) {
    A big canvas with the shared brush pointed at it. The picture is kept as a
    PNG data URL (spec §8: part().drawingPng).
    ------------------------------------------------------------------------ */
-function openDrawDoor() {
-  const canvas = $('#door-canvas');
-  coder.canvas = canvas;
-  coder.undoStack = [];
-  coder.width = BRUSHES[1];
-  coder.mirror = false;
-  coder.colour = editor.colour;
-  // Every finished stroke is kept, so there is no Save button here either.
-  coder.onStroke = saveDoorDrawing;
-
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Put back whatever was drawn before.
-  const existing = part().drawingPng;
-  if (existing) {
-    const img = new Image();
-    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    img.src = existing;
-  }
-
-  paintDrawDoorPalette();
-  paintBrushButtons();
-}
-
 /* The Draw door's palette sets the brush colour (coder.colour), and keeps
    editor.colour in step so switching doors does not change colour underfoot. */
-function paintDrawDoorPalette() {
-  const box = $('#draw-door-palette');
-  box.innerHTML = '';
-  PALETTE.forEach(colour => {
-    const swatch = document.createElement('button');
-    swatch.className = 'swatch' + (colour === coder.colour ? ' is-on' : '');
-    swatch.style.background = colour;
-    swatch.setAttribute('aria-label', 'Colour ' + colour);
-    swatch.addEventListener('click', () => {
-      coder.colour = colour;
-      editor.colour = colour;
-      paintDrawDoorPalette();
-    });
-    box.appendChild(swatch);
-  });
-}
-
-function saveDoorDrawing() {
-  part().drawingPng = $('#door-canvas').toDataURL('image/png');
-  renderPreview();
-  scheduleSave();
-}
-
-function paintBrushButtons() {
-  $$('[data-brush]').forEach(b =>
-    b.classList.toggle('is-on', Number(b.dataset.brush) === coder.width));
-  $('#btn-mirror').classList.toggle('is-on', coder.mirror);
-}
-
-
 /* ---------------------------------------------------------------------------
-   Wiring the two new doors up. Called once, from wireUp().
+   Wiring the parts kit up. Called once, from wireUp().
+   The brush, its three sizes and the mirror went with the Draw door.
    ------------------------------------------------------------------------ */
 function wireDoors() {
-  attachBrush($('#door-canvas'));
-
   // v2 V2: the parts kit's palette toggle and the sticker search.
   $('#btn-parts-more').addEventListener('click', () => {
     partsUi.morePalette = !partsUi.morePalette;
     paintPartsPalette();
   });
   $('#sticker-search').addEventListener('input', onStickerSearch);
-
-  $$('[data-brush]').forEach(b => b.addEventListener('click', () => {
-    coder.width = Number(b.dataset.brush);
-    logEvent('brush_size', { width: coder.width });
-    paintBrushButtons();
-  }));
-
-  $('#btn-mirror').addEventListener('click', () => {
-    coder.mirror = !coder.mirror;
-    logEvent('mirror_toggle', { on: coder.mirror });
-    paintBrushButtons();
-  });
 }
 
 
