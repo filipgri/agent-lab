@@ -41,7 +41,7 @@
 
 // Spec §14: this PIN is visible in public code on purpose. It is a speed bump
 // to stop a curious child wandering into the adult panel, not real security.
-const ADULT_PIN = '2468';
+const ADULT_PIN = '0502';
 
 // Which milestone this build is up to. Stamped into every export so a file
 // found later can be matched to the version of the app that made it.

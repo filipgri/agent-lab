@@ -335,7 +335,7 @@ Exporting is the only copy that survives it.
 | | Check |
 |---|---|
 | ☐ | Opened from the **home-screen icon**, not Safari |
-| ☐ | Open the adult panel (hold the logo 3s, PIN `2468`) |
+| ☐ | Open the adult panel (hold the logo 3s, PIN `0502`) |
 | ☐ | **Offline** says `ready — works offline ✅` |
 | ☐ | **Asset check** lists everything as ✅ |
 | ☐ | **Session** is set to the right week, and the right missions are unlocked |
@@ -572,7 +572,7 @@ The microphone is the thing to test on a **real iPad**, over the https address
 - [ ] Tapping an earlier pip goes back to that mission.
 - [ ] After Mission 6, the Reveal unlocks. **Finish** returns to Start.
 - [ ] Close the app completely and reopen it: **Continue** appears and resumes.
-- [ ] Hold the logo 3 seconds → PIN `2468` → the agent is listed with its
+- [ ] Hold the logo 3 seconds → PIN `0502` → the agent is listed with its
       event count.
 - [ ] **Export all** produces `agent-lab-export-YYYY-MM-DD.json`.
 - [ ] Nothing scrolls or zooms by accident; every button is comfortably tappable.

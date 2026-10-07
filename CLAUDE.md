@@ -98,7 +98,7 @@ release** or an iPad will keep running the old JavaScript against new HTML.
 
 - **Milestone 0 — done.** Skeleton: all screens, navigation, Stamp it / Pass /
   progress strip / back, codename roller, IndexedDB auto-save, adult panel
-  (hold logo 3s, PIN `2468`) with agent list, export and settings.
+  (hold logo 3s, PIN `0502`) with agent list, export and settings.
 - **Milestone 1 — done.** Mission 1: three doors (Pixel built; Build and Draw
   are Milestone 7), 16×16 pixel editor with 16 colours, eraser, flood fill,
   undo, clear, line interpolation for fast strokes; sticker layer with six
