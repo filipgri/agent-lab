@@ -2351,21 +2351,30 @@ function stageDown(event) {
   // A tap on a sticker is handled by the sticker itself.
   if (event.target.classList.contains('sticker')) return;
 
-  // Only the Pixel door paints on the stage. Build has its shapes, and Draw
-  // has its own canvas on top, which takes the pointer events itself.
+  /* Only the Pixel door paints on the stage. Parts has its shapes, and Draw
+     has its own canvas on top, which takes the pointer events itself.
+
+     Tapping bare stage clears the selection - BOTH kinds. This used to clear
+     a selected part but not a selected sticker, because the line that cleared
+     stickers lived in the Pixel branch below and Pixel is gone (7 October
+     iPad test). So a sticker stayed selected however far away you tapped,
+     while a part let go, and the two behaved differently for no reason. */
   if (state.agent && state.agent.door !== 'pixel') {
-    if (editor.selectedShape !== null) {
+    if (editor.selectedShape !== null || editor.selected !== null) {
       editor.selectedShape = null;
+      editor.selected = null;
       refreshAgentViews();
       paintShapeControls();
     }
     return;
   }
 
-  // Tapping bare canvas clears the selection.
-  if (editor.selected !== null) {
+  // Tapping bare canvas clears the selection (the Pixel door's own path).
+  if (editor.selected !== null || editor.selectedShape !== null) {
     editor.selected = null;
+    editor.selectedShape = null;
     refreshAgentViews();
+    paintShapeControls();
   }
 
   const stageEl = stage();
@@ -2822,7 +2831,9 @@ function startStickerDrag(event) {
   // destroy `el` - the very element this drag is attached to - and the drag
   // would die on the first move.
   editor.selected = index;
+  editor.selectedShape = null;      // one thing selected at a time
   paintSelection();
+  paintShapeControls();             // Flip/Front/Back hide: a sticker has none
 
   try { el.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
   let moved = false;
