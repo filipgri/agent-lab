@@ -266,8 +266,8 @@ body {
 
 /* Always-visible agent thumbnail */
 .agent-preview {
-  width: 160px;
-  flex: 0 0 160px;
+  width: 184px;                 /* a little wider: it carries the question now */
+  flex: 0 0 184px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -290,8 +290,25 @@ body {
    own scroller take over, and body{overflow:hidden} clipped the rest. */
 .mission-body { flex: 1; min-width: 0; min-height: 0;
                 display: flex; flex-direction: column; gap: 14px; }
-.mission-head { display: flex; align-items: center; gap: 14px; }
-.mission-title { margin: 0; font-size: 34px; }
+/* The question now sits under the agent in the left column, so it wraps to
+   that width and is sized to suit it rather than spanning the screen. */
+.mission-head {
+  display: flex; align-items: flex-start; gap: 8px;
+  width: 100%;
+}
+.mission-title {
+  margin: 0;
+  font-size: 21px;              /* was 34px, across the full width */
+  line-height: 1.25;
+  letter-spacing: .02em;
+  flex: 1; min-width: 0;
+}
+.agent-preview .btn-speak { flex: 0 0 auto; }
+
+/* Portrait has the width to spare, so the question can be bigger again. */
+@media (orientation: portrait) {
+  .mission-title { font-size: 26px; }
+}
 
 .mission-panels { flex: 1; min-height: 0; }
 .mission-panel { display: none; }
@@ -696,8 +713,9 @@ body[data-motion="off"] *::after {
 
 /* --- The tool rail --- */
 .editor-rail {
-  flex: 0 0 208px;
-  width: 208px;
+  flex: 0 0 224px;
+  width: 224px;
+  overflow-x: hidden;          /* nothing in the rail slides sideways */
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -705,8 +723,21 @@ body[data-motion="off"] *::after {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-.rail-tabs { display: flex; gap: 8px; }
-.rail-tabs .seg { flex: 1; font-size: 15px; padding: 0 8px; min-height: 52px; }
+/* The tabs WRAP; they never scroll sideways (7 October iPad test).
+   They were a flex row on a 208px rail, so two tabs got about 100px each and
+   "🧩 Stickers" did not fit. The rail scrolls vertically, and CSS makes the
+   other axis scrollable too - so the whole rail slid under a finger and a
+   child could lose a tab off the edge. auto-fit gives each tab a floor of
+   92px and starts a new row rather than overflowing. */
+.rail-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+.rail-tabs .seg {
+  font-size: 14px; padding: 0 6px; min-height: 52px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .rail-body { display: flex; flex-direction: column; gap: 10px; }
 
 /* 16 colours, two columns of eight */
@@ -732,7 +763,7 @@ body[data-motion="off"] *::after {
 .tool .tool-word { font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .85; }
 .tool.is-on { background: var(--accent); color: #231c00; }
 
-.sticker-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sticker-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .sticker-tabs .seg { font-size: 13px; padding: 0 4px; min-height: 46px; min-width: 0; }
 .sticker-tray { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .tray-sticker {
@@ -778,7 +809,7 @@ body[data-motion="off"] *::after {
   .rail-body { flex: 1; min-width: 200px; }
   .palette { grid-template-columns: repeat(8, 1fr); }
   .sticker-tray { grid-template-columns: repeat(6, 1fr); }
-  .sticker-tabs { grid-template-columns: repeat(6, 1fr); }
+  .sticker-tabs { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
 
 body[data-motion="off"] .sticker.just-landed,
@@ -825,13 +856,8 @@ body[data-motion="calm"] .sticker.just-landed { animation: none; }
   border-radius: 18px;
 }
 
-/* --- Four rail tabs instead of two, on the Boost ---
-   grid wraps them two-by-two, so they stay finger-sized on a 208px rail. */
-.rail-tabs.is-four {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
+/* `.is-four` used to force a two-by-two grid for the Boost's extra tabs.
+   auto-fit above does that on its own now, whatever the number of tabs. */
 
 /* --- AURA: a glow around the agent ---
    drop-shadow follows the SHAPE of what it is applied to, unlike box-shadow
@@ -2292,10 +2318,30 @@ body.is-practice .practice-badge { display: block; }
 .part-group .tint.tint-stroke { fill: var(--tint, #4cc9f0); stroke: var(--tint, #4cc9f0); }
 
 /* --- The category strip --- */
+/* `1fr` refuses to shrink below its content, so four 64px buttons overflowed
+   a 224px rail by 50px - and because the rail scrolls vertically, the browser
+   let it slide sideways too. A child could push a whole category off the
+   edge. minmax(0, …) lets a column shrink, and the labels clip rather than
+   push. (7 October iPad test.) */
 .parts-cats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
+}
+/* And the same guard for EVERY grid in the rail, not just this one. A grid
+   item's automatic minimum is its content, so any `1fr` track refuses to
+   shrink past it and the row overflows. min-width:0 on the items removes
+   that minimum, so the tracks shrink and nothing can slide off the edge. */
+.editor-rail .palette > *,
+.editor-rail .parts-cats > *,
+.editor-rail .parts-tray > *,
+.editor-rail .sticker-tabs > *,
+.editor-rail .sticker-tray > *,
+.editor-rail .shape-tray > *,
+.editor-rail .rail-tabs > * { min-width: 0; }
+
+.parts-cat-label, .sticker-tab-label {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .parts-cat {
   min-height: 56px;
@@ -2402,7 +2448,7 @@ body.is-practice .practice-badge { display: block; }
   .rail-body { flex: 1 1 100%; min-width: 0; }
   .editor-rail > .tool-row { flex: 1 1 100%; }
 
-  .parts-cats, .sticker-tabs { grid-template-columns: repeat(6, 1fr); }
+  .parts-cats, .sticker-tabs { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .parts-tray { grid-template-columns: repeat(8, 1fr); max-height: 200px; }
   .sticker-tray { max-height: 200px; }
 }
@@ -2805,8 +2851,19 @@ body[data-motion="off"] .power-stage { animation: none !important; }
     align-content: center;
     justify-items: center;
     column-gap: 32px;
-    row-gap: 18px;
+    row-gap: 12px;
+
+    /* LOCKED: the home screen never scrolls (7 October iPad test). It was
+       overflowing by 11px, which is just enough to make the whole page slide
+       under a finger and feel broken. The gallery column takes any excess
+       instead, because that is the one part that grows. */
+    overflow: hidden;
+    padding: 10px var(--gap);
   }
+  /* The logo is decoration here; the screen is short, so it gives up height
+     before anything a child needs to tap does. */
+  .start-wrap > .logo { padding: 2px 24px; }
+  .start-wrap > .logo .logo-mark { font-size: 34px; }
   .start-wrap > .logo    { grid-area: logo; }
   .start-wrap > .codename-card { grid-area: card; }
   .start-wrap > .start-actions { grid-area: actions; }

@@ -348,6 +348,17 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **A grid item's automatic minimum is its content, so `1fr` will not shrink
+  past it.** Four 64px category buttons overflowed the 224px tool rail by
+  50px — and because the rail scrolls vertically, CSS let it slide sideways
+  too, so a child could push a whole category off the edge. Every grid inside
+  `.editor-rail` now gives its items `min-width: 0`. Use `minmax(0, 1fr)` or
+  that guard for any new grid in a narrow column.
+- **The mission question sits under the agent, in the left column.** A
+  full-width 34px heading cost the drawing stage and the rail the height they
+  needed on a landscape iPad. It is 21px there, and 26px in portrait where
+  there is room.
+
 - **A drag must reuse the renderer's own transform.** `startShapeDrag()`
   rebuilt the SVG transform by hand and left off the trailing
   `translate(-50,-50)` every parts-kit piece needs, plus the flip — so a part
