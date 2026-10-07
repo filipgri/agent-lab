@@ -1184,6 +1184,29 @@ function openReveal() {
   renderReveal().then(playRevealFinale);   // Milestones 6 and 8
 }
 
+/* 🏠 Back to the start, WITHOUT finishing the agent.
+
+   Replaces 🧩 "Something's missing" on the top bar (7 October iPad test). A
+   child who opened the wrong agent - easily done when two share a codename -
+   had no way out except reaching the card and tapping Finish, which marked
+   somebody else's agent as done.
+
+   The agent is saved on the way out, exactly as it stands, and keeps its
+   place in the gallery. Nothing is stamped and nothing is lost. */
+async function goHome() {
+  if (state.agent) {
+    logEvent('go_home', { from: currentMissionId() });
+    await saveNow();
+  }
+  leaveCurrent();
+  state.agent = null;
+  state.onReveal = false;
+  showScreen('start');
+  rollCodename({ instant: true });
+  await refreshContinueButton();
+  await renderGallery();
+}
+
 async function finishSession() {
   logEvent('finish', {});
   await saveNow();
@@ -1551,7 +1574,7 @@ function wireUp() {
 
   // --- global buttons (there is one of each per screen) ---
   $$('[data-mute]').forEach(b => b.addEventListener('click', toggleMute));
-  $$('[data-missing]').forEach(b => b.addEventListener('click', openMissing));
+  $$('[data-home]').forEach(b => b.addEventListener('click', goHome));
   $$('[data-speak]').forEach(b => b.addEventListener('click', speakPrompt));
   $('#btn-missing-close').addEventListener('click', closeMissing);
 
@@ -1848,6 +1871,9 @@ function moveEditorTo(mountSelector) {
 function hideEditor() {
   const el = $('#editor');
   if (el) el.hidden = true;
+  // The left column's controls belong to the editor, so they go with it.
+  const main = $('#main-controls');
+  if (main) main.hidden = true;
 }
 
 // Pixels are stored as one flat array of 256 entries: a colour, or null for
@@ -2080,6 +2106,9 @@ function openEditor(mountSelector, which) {
 
   if (mountSelector === '#m1-editor-mount') $('#m1-doors').hidden = true;
   moveEditorTo(mountSelector || '#m1-editor-mount');
+
+  const main = $('#main-controls');
+  if (main) main.hidden = false;
 
   // The Boost's two extra tabs, and the Door button, which only Mission 1 has.
   const isBoost = editor.part === 'powerup';
@@ -2722,6 +2751,9 @@ function wireMake() {
 
   $('#btn-undo').addEventListener('click', undo);
   $('#btn-clear').addEventListener('click', clearAll);
+  // The same two, in the left column where a child can actually find them.
+  $('#main-undo').addEventListener('click', undo);
+  $('#main-clear').addEventListener('click', clearAll);
   $('#btn-change-door').addEventListener('click', showDoors);
 }
 
@@ -4395,6 +4427,24 @@ function showPowerMoment(el, agent) {
   }
 }
 
+/* Tap the POWER picture and the power goes off, the same way tapping the
+   voice password plays the voice. On the card the power was the one thing a
+   child could see but not set off (7 October iPad test). */
+function fireRevealPower() {
+  const effect = state.agent && state.agent.powerup &&
+                 state.agent.powerup.power && state.agent.powerup.power.effect;
+  if (!effect) return;
+  Voice.unlock();
+
+  const stage = $('#reveal-boost');
+  POWER_EFFECTS.forEach(e => stage.classList.remove(e.id));
+  void stage.offsetWidth;                    // restart the animation
+  if (fullMotion()) stage.classList.add(effect);
+  playSfx('sfx-' + effect.replace(/^fx-/, ''));
+  logEvent('power_fire', { effect: effect, where: 'card' });
+  setTimeout(() => stage.classList.remove(effect), 1500);
+}
+
 async function playRevealVoice() {
   const agent = state.agent;
   if (!agent.voice.audioId || !cardAssets.voiceBlob) return;
@@ -4864,6 +4914,7 @@ async function saveCard() {
 function wireReveal() {
   $('#btn-save-card').addEventListener('click', saveCard);
   $('#reveal-play').addEventListener('click', playRevealVoice);
+  $('#reveal-fire').addEventListener('click', fireRevealPower);
   watchAgentView($('#reveal-cover'));
   watchAgentView($('#reveal-boost'));
 }
@@ -5137,14 +5188,25 @@ function paintShapeSelection() {
   if (!svg) return;
   Array.from(svg.children).forEach(g => {
     const on = Number(g.dataset.index) === editor.selectedShape;
-    if (on) g.setAttribute('class', 'is-selected');
-    else g.removeAttribute('class');
+    /* classList.toggle, NOT setAttribute('class', …).
+
+       Writing the whole class attribute wiped `part-group` off every group -
+       and `part-group` is what carries the child's colour
+       (.part-group .tint { fill: var(--tint) }). Without it each part fell
+       back to its raw fill, so tapping ONE part turned ALL of them black and
+       looked like the child had lost their work. */
+    g.classList.toggle('is-selected', on);
   });
 }
 
 function paintShapeControls() {
   const controls = $('#shape-controls');
   if (controls) controls.hidden = editor.selectedShape === null;
+
+  /* Bigger / Smaller / Remove live in the left column now, beside the agent,
+     and follow the same rule: shown only while something is selected. */
+  const sel = $('#main-controls-sel');
+  if (sel) sel.hidden = editor.selectedShape === null && editor.selected === null;
 }
 
 /* Spec §7: buttons rather than pinch gestures - easier to code, and far

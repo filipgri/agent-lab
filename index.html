@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=55">
+  <link rel="stylesheet" href="./style.css?v=56">
 </head>
 <body>
 
@@ -117,7 +117,10 @@
   <header class="topbar">
     <button class="btn btn-icon-only btn-mute" data-mute aria-label="Sound on or off">🔊</button>
     <nav class="progress-strip" data-strip aria-label="Missions"></nav>
-    <button class="btn btn-icon-only btn-missing" data-missing aria-label="Something's missing">🧩</button>
+    <!-- Home. This was 🧩 "Something's missing" (§7); after the 7 October
+         iPad test it is the way back to the start, because a child who
+         opened the wrong agent had no way out but finishing it. -->
+    <button class="btn btn-icon-only btn-home" data-home aria-label="Back to the start">🏠</button>
   </header>
 
   <!-- ---- Middle: the mission itself ---- -->
@@ -143,6 +146,23 @@
       <div class="mission-head">
         <h1 id="mission-title" class="mission-title">Make your agent</h1>
         <button class="btn btn-icon-only btn-speak" data-speak aria-label="Hear the instruction">🔊</button>
+      </div>
+
+      <!-- THE CONTROLS A CHILD REACHES FOR MOST (7 October iPad test).
+           Bigger, Smaller and Remove were buried in the tool rail among a dozen
+           other buttons; Undo and Clear were further down still. This column
+           was empty, so they live here, large and always in the same place.
+           Bigger/Smaller/Remove appear only while something is selected. -->
+      <div id="main-controls" class="main-controls" hidden>
+        <div id="main-controls-sel" class="main-controls-row" hidden>
+          <button class="btn tool" data-shape="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
+          <button class="btn tool" data-shape="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
+          <button class="btn tool btn-danger" data-shape="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
+        </div>
+        <div class="main-controls-row">
+          <button id="main-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
+          <button id="main-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
+        </div>
       </div>
     </aside>
 
@@ -223,14 +243,14 @@
 
                 <!-- Shown only while a part is selected. Buttons, not pinch
                      gestures, exactly as spec §7 and v2 §5.3.1 ask. -->
+                <!-- Bigger, Smaller and Remove have moved to the left column
+                     (#main-controls) where there is room and they are easy to
+                     see. Turn, Flip, Front and Back stay here. -->
                 <div id="shape-controls" class="sticker-controls" hidden>
-                  <button class="btn tool" data-shape="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
-                  <button class="btn tool" data-shape="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
                   <button class="btn tool" data-shape="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
                   <button class="btn tool" data-shape="flip"    aria-label="Flip">↔️<span class="tool-word">Flip</span></button>
                   <button class="btn tool" data-shape="front"   aria-label="Bring to front">⬆️<span class="tool-word">Front</span></button>
                   <button class="btn tool" data-shape="back"    aria-label="Send to back">⬇️<span class="tool-word">Back</span></button>
-                  <button class="btn tool btn-danger" data-shape="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
                 </div>
               </div>
 
@@ -601,7 +621,10 @@
   <header class="topbar">
     <button class="btn btn-icon-only btn-mute" data-mute aria-label="Sound on or off">🔊</button>
     <nav class="progress-strip" data-strip aria-label="Missions"></nav>
-    <button class="btn btn-icon-only btn-missing" data-missing aria-label="Something's missing">🧩</button>
+    <!-- Home. This was 🧩 "Something's missing" (§7); after the 7 October
+         iPad test it is the way back to the start, because a child who
+         opened the wrong agent had no way out but finishing it. -->
+    <button class="btn btn-icon-only btn-home" data-home aria-label="Back to the start">🏠</button>
   </header>
 
   <main class="reveal-main">
@@ -641,12 +664,14 @@
              the MOMENT the power is used, with the effect named underneath. -->
         <figure class="dossier-cell">
           <figcaption class="dossier-label">POWER</figcaption>
+          <button id="reveal-fire" class="dossier-fire" aria-label="Fire the power">
           <div id="reveal-boost" class="agent-view dossier-agent">
             <canvas class="agent-pixels" width="16" height="16"></canvas>
             <img class="agent-drawing" alt="" hidden>
             <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
             <div class="sticker-layer"></div>
           </div>
+          </button>
           <div id="reveal-power-note" class="dossier-note"></div>
         </figure>
 
@@ -979,14 +1004,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=55"></script>
-<script src="./storage.js?v=55"></script>
-<script src="./audio.js?v=55"></script>
-<script src="./effects.js?v=55"></script>
-<script src="./assets.js?v=55"></script>
-<script src="./stickers.js?v=55"></script>
-<script src="./parts.js?v=55"></script>
-<script src="./app.js?v=55"></script>
+<script src="./boot-guard.js?v=56"></script>
+<script src="./storage.js?v=56"></script>
+<script src="./audio.js?v=56"></script>
+<script src="./effects.js?v=56"></script>
+<script src="./assets.js?v=56"></script>
+<script src="./stickers.js?v=56"></script>
+<script src="./parts.js?v=56"></script>
+<script src="./app.js?v=56"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

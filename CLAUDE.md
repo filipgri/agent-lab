@@ -348,6 +348,19 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **Never write a whole `class` attribute on a part group.** `setAttribute(
+  'class', 'is-selected')` and `removeAttribute('class')` wiped `part-group`,
+  which is what carries the child's colour — so tapping ONE part turned ALL
+  of them black and looked like lost work. `classList.toggle()` only.
+- **🏠 replaces 🧩 on the top bar.** A child who opened the wrong agent had no
+  way out but reaching the card and tapping Finish, which stamped someone
+  else's agent as done. `goHome()` saves the agent as it stands, stamps
+  nothing, and returns to the start. This drops §7's "Something's missing"
+  button from the top bar.
+- **The controls a child reaches for most live beside the agent**, not in the
+  tool rail: Bigger, Smaller, Remove, Undo, Clear in `#main-controls`. The
+  rail keeps Turn, Flip, Front and Back.
+
 - **A selected outline on a full-width button must be drawn inwards.** The
   house style is `outline: 3px solid var(--accent); outline-offset: 3px`,
   which sits 6px outside the element. Mirror is `width: 100%` of a 224px
