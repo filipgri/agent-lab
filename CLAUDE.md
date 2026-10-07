@@ -329,6 +329,15 @@ hand-edit the manifest, and never edit both.
 
 ## Settled decisions
 
+- **Two doors, not three (7 October 2026, from the iPad test).** Pixel is
+  gone; only **Parts** and **Draw** are offered. This departs from v2 §5.3,
+  which lists Parts · Pixel · Draw. Three ways in was one too many, and the
+  16×16 grid was the one nobody reached for. Agents already made with Pixel
+  still open and still draw — only the door card is gone.
+- **"Say it 3 ways" is gone (7 October 2026).** It departs from v2 §5.6.
+  `voice.threeWays` stays in the data model and any clips already recorded
+  are untouched, but nothing shows or plays them.
+
 - **Grid size (2 October 2026): 16×16 stays, at ~33px cells.** Spec §7 wants at
   least 40px, but the chrome §6 requires leaves only ~526px on an iPad. The
   user chose to keep the spec's 16×16. Changing `GRID` later is a one-line
@@ -338,6 +347,18 @@ hand-edit the manifest, and never edit both.
 ## Conventions in this codebase
 
 ### v2 conventions (from V3)
+
+- **A drag must reuse the renderer's own transform.** `startShapeDrag()`
+  rebuilt the SVG transform by hand and left off the trailing
+  `translate(-50,-50)` every parts-kit piece needs, plus the flip — so a part
+  jumped half its own size the instant a finger touched it and never tracked
+  properly. It calls `shapeTransform()` now. Two places computing one
+  transform is the same trap as drawing the ID card twice.
+- **The emblem is `emblem.emoji`, not `codenameEmoji`.** v2 §5.1 moved it and
+  five places still read the v1 name, so every v2 agent showed the generic
+  🕵️ instead of its own animal — on the mission thumbnail and on the ID card.
+  Everything goes through `agentEmblem()` now, which falls back to the v1
+  field for older agents.
 
 - **Reachable is not the same as discoverable.** On a landscape iPad
   (1180×734) the start screen's gallery began at y=789 — entirely below the

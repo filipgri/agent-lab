@@ -409,11 +409,23 @@ function renderStrip() {
    emoji. From Milestone 1 it will draw the real agent.
    ========================================================================== */
 
+/* The emblem the child chose, wherever it is shown.
+
+   v2 §5.1 moved it from `codenameEmoji` to `emblem.emoji`, and eight places
+   were still reading the v1 field - so every v2 agent showed the generic 🕵️
+   instead of its own animal, on the mission thumbnail and on the ID card.
+   The v1 name is still read as a fallback for agents made before the move. */
+function agentEmblem(agent) {
+  const a = agent || state.agent;
+  if (!a) return '🕵️';
+  return (a.emblem && a.emblem.emoji) || a.codenameEmoji || '🕵️';
+}
+
 function renderPreview() {
   if (!state.agent) return;
-  $('#preview-emoji').textContent = state.agent.codenameEmoji || '🕵️';
+  $('#preview-emoji').textContent = agentEmblem();
   $('#preview-name').textContent  = state.agent.codename || '';
-  $('#reveal-emoji').textContent  = state.agent.codenameEmoji || '🕵️';
+  $('#reveal-emoji').textContent  = agentEmblem();
   $('#reveal-name').textContent   = state.agent.codename || '';
 
   // From Milestone 1 the thumbnail shows the agent itself. Until anything has
@@ -1040,7 +1052,7 @@ async function continueAgent() {
   state.agent = migrateAgent(agent);        // v2 §6.2
   noteSession(state.agent);
   state.onReveal = false;
-  pendingCodename = { codename: agent.codename, emoji: agent.codenameEmoji };
+  pendingCodename = { codename: agent.codename, emoji: agentEmblem(agent) };
 
   // Drop the child back on the first OPEN mission they have not finished.
   let index = MISSIONS.findIndex(m => missionIsOpen(m) && agent.missions[m.id] === 'todo');
@@ -1313,7 +1325,7 @@ async function renderAgentList() {
     const row = document.createElement('div');
     row.className = 'agent-row';
     row.innerHTML =
-      '<span class="agent-thumb">' + (agent.codenameEmoji || '🕵️') + '</span>' +
+      '<span class="agent-thumb">' + agentEmblem(agent) + '</span>' +
       '<span class="agent-meta">' +
         '<b>' + escapeHtml(agent.codename || '(no codename)') + '</b>' +
         '<small>' + new Date(agent.createdAt).toLocaleString() + '</small>' +
@@ -1326,7 +1338,7 @@ async function renderAgentList() {
     openButton.textContent = 'Open';
     openButton.addEventListener('click', () => {
       state.agent = agent;
-      pendingCodename = { codename: agent.codename, emoji: agent.codenameEmoji };
+      pendingCodename = { codename: agent.codename, emoji: agentEmblem(agent) };
       goToMission(0, 'mission_enter');
     });
 
@@ -2874,7 +2886,6 @@ function watchPowerupViews() {
 
 // The recording currently loaded, and the three bonus clips, as Blobs.
 let voiceClip = null;
-let yesClips = [null, null, null];
 
 // Which slot is recording right now: 'main', or 0/1/2 for a Yes slot.
 let recordingSlot = null;
@@ -2895,7 +2906,6 @@ function renderVoice() {
 
   // Steps 2 and 3 only exist once something has been recorded.
   $('#m4-after').hidden = !hasClip;
-  $('#m4-yes-block').hidden = !hasClip;
 
   const recording = recordingSlot === 'main';
   $('#m4-record-icon').textContent = recording ? '⏹️' : '🎤';
@@ -2913,7 +2923,6 @@ function renderVoice() {
   $('#m4-record').classList.toggle('is-small', hasClip && !recording);
 
   paintFilterButtons();
-  paintYesSlots();
 }
 
 function setRing(fraction) {
@@ -2939,60 +2948,6 @@ function paintFilterButtons() {
     row.appendChild(button);
   });
 }
-
-/* v2 §5.6: "Say it 3 ways". Three slots, each with a hint icon - big, small,
-   asking - because the child is saying ONE word three ways, not three words.
-   The icon is the whole instruction; §12 rules out explaining it in text. */
-const THREE_WAYS = [
-  { icon: '📢', word: 'Big' },
-  { icon: '🤫', word: 'Small' },
-  { icon: '❓', word: 'Asking' }
-];
-
-function paintYesSlots() {
-  const row = $('#m4-yes');
-  if (!row) return;
-  row.innerHTML = '';
-
-  for (let i = 0; i < 3; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'yes-slot';
-
-    const filled = Boolean(state.agent.voice.threeWays[i] && yesClips[i]);
-    const busy   = recordingSlot === i;
-
-    const way = THREE_WAYS[i];
-
-    const main = document.createElement('button');
-    main.className = 'btn tool yes-btn' + (busy ? ' is-recording' : '');
-    main.innerHTML = '<span class="filter-icon">' +
-                     (busy ? '⏹️' : filled ? '▶️' : way.icon) + '</span>' +
-                     '<span class="tool-word">' + way.word + '</span>';
-    main.setAttribute('aria-label',
-      busy ? 'Stop recording, ' + way.word.toLowerCase()
-           : filled ? 'Play it ' + way.word.toLowerCase()
-                    : 'Record it ' + way.word.toLowerCase());
-    main.addEventListener('click', () => {
-      if (busy) Voice.stop();
-      else if (filled) playYes(i);
-      else recordYes(i);
-    });
-    slot.appendChild(main);
-
-    // A filled slot also gets a small redo button under it.
-    if (filled && !busy) {
-      const redo = document.createElement('button');
-      redo.className = 'btn yes-redo';
-      redo.textContent = '🔄';
-      redo.setAttribute('aria-label', 'Record it ' + way.word.toLowerCase() + ' again');
-      redo.addEventListener('click', () => recordYes(i));
-      slot.appendChild(redo);
-    }
-
-    row.appendChild(slot);
-  }
-}
-
 
 /* ---------------------------------------------------------------------------
    RECORDING THE PASSWORD
@@ -3100,59 +3055,6 @@ async function chooseFilter(filterId) {
 
 
 /* ---------------------------------------------------------------------------
-   "SAY IT 3 WAYS" (v2 §5.6; the v1 "Yes x3" bonus)
-   The same recorder, into agent.voice.threeWays. The slot is logged by its
-   WAY - big, small, asking - not by its number, because the research question
-   is which way a child reached for, and "yes2" answers nothing.
-   ------------------------------------------------------------------------ */
-async function recordYes(index) {
-  Voice.unlock();
-  if (recordingSlot !== null) { Voice.stop(); return; }
-  if (!Voice.canRecord()) {
-    showTrouble('This iPad cannot record. Tap Pass to carry on.');
-    return;
-  }
-
-  Voice.stopPlayback();
-  recordingSlot = index;
-  renderVoice();
-  logEvent('record_start', { slot: THREE_WAYS[index].word.toLowerCase() });
-
-  try {
-    const result = await Voice.record({ onTick: () => {} });
-    const oldId = state.agent.voice.threeWays[index];
-
-    const id = uuid();
-    await Storage.saveAudio(id, result.blob);
-    state.agent.voice.threeWays[index] = id;
-    yesClips[index] = result.blob;
-
-    if (oldId) { Voice.forget(oldId); await Storage.deleteAudio(oldId); }
-
-    const way = THREE_WAYS[index].word.toLowerCase();
-    logEvent('record_stop', { slot: way, ms: Math.round(result.ms) });
-    logEvent('three_ways_record', { slot: way });     // v2 §5.6
-    scheduleSave();
-  } catch (err) {
-    micFailed(err);
-  }
-
-  recordingSlot = null;
-  renderVoice();
-}
-
-async function playYes(index) {
-  const id = state.agent.voice.threeWays[index];
-  if (!id || !yesClips[index]) return;
-  Voice.unlock();
-  try {
-    await Voice.play(id, yesClips[index], state.agent.voice.filter || 'normal');
-    logEvent('filter_play', { slot: 'yes' + (index + 1) });
-  } catch (err) { /* a clip that will not decode is not worth a popup */ }
-}
-
-
-/* ---------------------------------------------------------------------------
    WHEN THE MICROPHONE SAYS NO
    A child tapping "Don't allow", or an iPad with the microphone switched off
    in Settings, both land here. Nothing breaks: Pass is still there.
@@ -3205,7 +3107,6 @@ async function enterVoice() {
 
   hideTrouble();
   voiceClip = null;
-  yesClips = [null, null, null];
   if (!Array.isArray(voice.threeWays)) voice.threeWays = [null, null, null];
 
   if (voice.audioId) {
@@ -3217,12 +3118,9 @@ async function enterVoice() {
     $('#m4-filters-block').hidden = true;
   }
 
-  for (let i = 0; i < 3; i++) {
-    const id = voice.threeWays[i];
-    if (!id) continue;
-    const row = await Storage.loadAudio(id);
-    yesClips[i] = row ? row.blob : null;
-  }
+  /* `voice.threeWays` stays in the model (v2 §6) and any clips already
+     recorded are left untouched, but nothing loads or plays them now that
+     "Say it 3 ways" is gone from the screen. */
 
   renderVoice();
 }
@@ -4333,7 +4231,7 @@ async function renderReveal() {
   const agent = state.agent;
 
   $('#reveal-name').textContent  = agent.codename || '';
-  $('#reveal-emoji').textContent = agent.codenameEmoji || '🕵️';
+  $('#reveal-emoji').textContent = agentEmblem(agent);
 
   // The two agents.
   renderAgentView($('#reveal-cover'), agent.cover || {}, false);
@@ -4487,7 +4385,7 @@ function drawCardToCanvas(canvas) {
   ctx.font = '800 64px ' + CARD_FONT;
   ctx.fillText(agent.codename || '', 60, 152);
   ctx.font = '60px ' + CARD_FONT;
-  ctx.fillText(agent.codenameEmoji || '🕵️', 60, 230);
+  ctx.fillText(agentEmblem(agent), 60, 230);
 
   // --- the two agents ---
   label(ctx, 'COVER', 60, 290);
@@ -5104,24 +5002,34 @@ function startShapeDrag(event) {
     shape.x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width + offsetX));
     shape.y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height + offsetY));
 
-    // Move the group directly rather than rebuilding: rebuilding would destroy
-    // the element this drag is attached to.
-    group.setAttribute('transform',
-      'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
-      'rotate(' + (shape.rotation || 0) + ') scale(' + (shape.size || 1) + ')');
+    /* Move the group directly rather than rebuilding: rebuilding would destroy
+       the element this drag is attached to.
+
+       This MUST use shapeTransform(), the same function the renderer uses.
+       It used to build the transform by hand and left off the trailing
+       translate(-50,-50) that every parts-kit piece needs, plus the flip - so
+       the moment a finger touched a part it jumped half its own size sideways
+       and then would not track properly. Two places computing one transform
+       is the same trap as drawing the ID card twice. */
+    group.setAttribute('transform', shapeTransform(shape, Parts.get(shape.type)));
   }
 
   function up() {
-    group.removeEventListener('pointermove', move);
-    group.removeEventListener('pointerup', up);
-    group.removeEventListener('pointercancel', up);
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', up);
+    window.removeEventListener('lostpointercapture', up);
     if (moved) { logEvent('shape_move', {}); scheduleSave(); }
   }
 
+  /* On window, not on the group (v2 §4.1). Pointer capture usually keeps the
+     events coming, but it can throw or be lost, and then a finger that slid
+     off the shape stopped moving it. */
   try { group.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
-  group.addEventListener('pointermove', move);
-  group.addEventListener('pointerup', up);
-  group.addEventListener('pointercancel', up);
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+  window.addEventListener('lostpointercapture', up);
 }
 
 /* Move the selection outline without touching the elements themselves. */
