@@ -348,6 +348,12 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **A selected outline on a full-width button must be drawn inwards.** The
+  house style is `outline: 3px solid var(--accent); outline-offset: 3px`,
+  which sits 6px outside the element. Mirror is `width: 100%` of a 224px
+  rail, so its ring spilled past the rail and over the row beneath. Anything
+  full-width in a narrow column uses `outline-offset: -3px`.
+
 - **A card shows what exists, not placeholders for what does not.** The
   Reveal had an empty FEELING CODE box and three rules rows saying "none"
   through the whole of session 2, because those are session-3 and session-4

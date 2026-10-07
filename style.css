@@ -292,16 +292,31 @@ body {
                 display: flex; flex-direction: column; gap: 14px; }
 /* The question now sits under the agent in the left column, so it wraps to
    that width and is sized to suit it rather than spanning the screen. */
+/* The question sits under the agent and its codename, centred, with the 🔊
+   under it. It was laid out as a row - heading on the left, speaker on the
+   right - so "Make your agent" wrapped to two lines beside a button and the
+   whole corner read as something squeezed in rather than placed. */
 .mission-head {
-  display: flex; align-items: flex-start; gap: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   width: 100%;
+  /* Set apart from the codename above it, or "Royal Panda / Make your agent"
+     reads as one run of text. */
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.12);
 }
 .mission-title {
   margin: 0;
-  font-size: 21px;              /* was 34px, across the full width */
-  line-height: 1.25;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
   letter-spacing: .02em;
-  flex: 1; min-width: 0;
+  text-align: center;
+  text-wrap: balance;           /* even lines, not one word stranded */
+  max-width: 100%;
 }
 .agent-preview .btn-speak { flex: 0 0 auto; }
 
@@ -1788,9 +1803,13 @@ body[data-motion="off"] .flip-inner { transition: none; }
 
 /* --- Draw: the three brush sizes and the mirror --- */
 [data-brush] { flex: 1; font-size: 20px; }
-[data-brush].is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+/* The chosen outline is drawn INSIDE these buttons. `outline-offset: 3px`
+   puts a 3px ring 3px outside the element, and Mirror is width:100% of a
+   224px rail - so its ring spilled past the rail edge and over the row
+   underneath. Negative offset keeps it within the button. (7 October test.) */
+[data-brush].is-on { outline: 3px solid var(--accent); outline-offset: -3px; }
 .btn-mirror { width: 100%; }
-.btn-mirror.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.btn-mirror.is-on { outline: 3px solid var(--accent); outline-offset: -3px; }
 
 /* Four rail tabs wrap two-by-two; see .rail-tabs.is-four. */
 @media (orientation: portrait) {
