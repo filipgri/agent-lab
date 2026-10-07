@@ -358,6 +358,15 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **The Power-up MIRRORS the Cover until the child changes it.** It used to
+  copy once, into an empty Power-up, and never again — so a child who went
+  back and recoloured their hair saw the new colour on the Cover and the old
+  one on the Power-up, with no way to reconcile them. It re-copies on every
+  entry until `powerup.lookEdited` is set, which happens the moment the
+  editor changes anything while open on the Power-up look. After that it is
+  the child's own thing and is never overwritten. The flag is a small
+  addition to §6's model.
+
 - **A face part cannot reliably be tapped on the stage, so the category tab
   selects it.** Eyes, mouth, brows and hair all pile onto the same small
   head, and hair is a hollow crescent whose middle is empty — measured on

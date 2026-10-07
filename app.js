@@ -218,6 +218,15 @@ let saveTimer = null;
 
 function scheduleSave() {
   if (!state.agent) return;
+
+  /* If the editor is open ON the Power-up look and something changed, the
+     child has deliberately made the Power-up different from the Cover. From
+     then on it is theirs and stops mirroring (see copyCoverToPowerup). */
+  const editorEl = $('#editor');
+  if (editorEl && !editorEl.hidden && editor.part === 'powerup') {
+    state.agent.powerup.lookEdited = true;
+  }
+
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 500);
 }
@@ -1024,7 +1033,9 @@ function fillDefaults(agent) {
     cover: { pixels: [], shapes: [], drawingPng: null, stickers: [] },
     powerup: { look: { pixels: [], shapes: [], drawingPng: null, stickers: [], glow: null },
                power: { png: null, audioId: null, idea: null, effect: null },
-               when: [], whenOwn: [] },
+               when: [], whenOwn: [],
+               // false = still mirroring the Cover (see copyCoverToPowerup)
+               lookEdited: false },
     hq: { id: null, png: null },
     voice: { audioId: null, filter: 'normal', threeWays: [null, null, null] },
     field: { size: 'm', texture: 'none', colour: null,
@@ -3004,11 +3015,28 @@ function hasArt(partData) {
    slice() copies the pixel array, and the stickers are copied one by one with
    Object.assign, so that moving a sticker on the Boost cannot also move it on
    the Cover. (Without that, both halves would point at the same objects.) */
+/* The Power-up MIRRORS the Cover until the child changes it.
+
+   This used to copy once, into an empty Power-up, and never again. So a child
+   who went back and recoloured their hair saw the new colour on the Cover and
+   the old one on the Power-up, with no way to reconcile them - reported on
+   7 October as "it has left the memory from the first cycle".
+
+   It now re-copies every time the Power-up opens, UNTIL the child edits the
+   Power-up look through "Change my look". After that it is their own thing
+   and is never overwritten. */
 function copyCoverToPowerup() {
   const cover = state.agent.cover || {};
   const boost = state.agent.powerup.look;
 
-  if (hasArt(boost) || !hasArt(cover)) return false;
+  if (state.agent.powerup.lookEdited) return false;   // theirs now
+  if (!hasArt(cover)) return false;
+
+  // Nothing to do if it already matches.
+  if (JSON.stringify(boost.shapes || []) === JSON.stringify(cover.shapes || []) &&
+      JSON.stringify(boost.stickers || []) === JSON.stringify(cover.stickers || []) &&
+      JSON.stringify(boost.pixels || []) === JSON.stringify(cover.pixels || []) &&
+      (boost.drawingPng || null) === (cover.drawingPng || null)) return false;
 
   boost.pixels   = (cover.pixels || []).slice();
   boost.stickers = (cover.stickers || []).map(s => Object.assign({}, s));
