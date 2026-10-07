@@ -364,6 +364,21 @@ The backup line states the position plainly, for example:
 Amber means something would be lost if the iPad were wiped. Green means the
 export covers everything on it.
 
+### Putting an export back (after a wipe, or onto another iPad)
+
+Adult panel → **⬇️ Import from a file** → pick the exported `.json`.
+
+It restores the agents, their drawings, their chosen places and powers, every
+recording, and the full event log. Verified by exporting, deleting everything
+on the device, and importing: the recordings come back byte for byte.
+
+It **adds**; it never replaces. Importing a file whose agents are already here
+keeps both copies with new ids, rather than silently overwriting a child's
+later work — so re-importing by mistake costs you a tidy-up, not a session.
+
+This is also how a child carries on next week on a **different iPad**: export
+from the old one, import on the new one.
+
 ### Three things that lose a child's work
 
 1. **Clear History and Website Data** in Safari settings — deletes every agent

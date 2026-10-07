@@ -1541,6 +1541,94 @@ async function exportAll() {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   IMPORT (v2 §5.2)
+
+   The other half of Export, and the one that makes the export worth doing:
+   agents live in this browser's website data, so clearing it deletes them.
+   An exported file puts them back - on this iPad after a wipe, or on a
+   different one when a child does not get the same device next week.
+
+   It ADDS; it never replaces. An agent whose id is already here is given a
+   new one and kept alongside, so importing the same file twice gives you two
+   copies rather than silently overwriting a child's later work.
+   ------------------------------------------------------------------------ */
+/* Turn an exported "data:audio/mp4;base64,…" string back into a Blob.
+
+   Decoded by hand rather than with fetch(). The app's Content-Security-Policy
+   sets `connect-src 'self'`, which blocks fetching a data: URL - so the
+   recordings silently failed to restore while the agents came back fine, and
+   the only sign was a message that did not mention them. The voices are the
+   least replaceable thing in an export. */
+function dataUrlToBlob(dataUrl) {
+  const comma = String(dataUrl).indexOf(',');
+  const header = String(dataUrl).slice(0, comma);
+  const base64 = String(dataUrl).slice(comma + 1);
+  const type = (header.match(/^data:([^;]+)/) || [, 'application/octet-stream'])[1];
+
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: type });
+}
+
+async function importFromFile(file) {
+  const result = $('#export-result');
+  result.textContent = 'Reading…';
+
+  let payload;
+  try {
+    payload = JSON.parse(await file.text());
+  } catch (err) {
+    result.textContent = 'That file is not an Agent Lab export.';
+    return;
+  }
+
+  if (!payload || !Array.isArray(payload.agents)) {
+    result.textContent = 'That file has no agents in it.';
+    return;
+  }
+
+  const existing = (await Storage.listAgents()).map(a => a.id);
+  let added = 0, renamed = 0, clips = 0, alreadyHad = 0;
+
+  /* The recordings first, so an agent is never restored pointing at a clip
+     that is not there yet. */
+  const audio = payload.audio || {};
+  for (const id of Object.keys(audio)) {
+    try {
+      const already = await Storage.loadAudio(id);
+      if (already) { alreadyHad++; continue; }   // same uuid = the same clip
+      await Storage.saveAudio(id, dataUrlToBlob(audio[id]));
+      clips++;
+    } catch (err) { reportError('import audio', err); }
+  }
+
+  for (const raw of payload.agents) {
+    try {
+      const agent = migrateAgent(raw);       // an older export still opens
+      if (existing.indexOf(agent.id) !== -1) { agent.id = uuid(); renamed++; }
+      agent.imported = true;
+      await Storage.saveAgent(agent);
+      existing.push(agent.id);
+      added++;
+    } catch (err) { reportError('import agent', err); }
+  }
+
+  const expectedClips = Object.keys(audio).length;
+  const missed = expectedClips - clips - alreadyHad;
+
+  result.textContent =
+    'Imported ' + added + ' agent' + (added === 1 ? '' : 's') +
+    (clips ? ' and ' + clips + ' recording' + (clips === 1 ? '' : 's') : '') +
+    (renamed ? ' · ' + renamed + ' already here, kept as new copies' : '') +
+    (missed > 0 ? ' · ⚠️ ' + missed + ' recording(s) would not restore' : '') + '.';
+
+  await paintBackupState();
+  await renderAgentList();
+  await renderGallery();
+}
+
 /* Remember that the work left this iPad, and how much of it, so the panel can
    say whether anything has been made since. */
 async function noteExport(count) {
@@ -1690,6 +1778,12 @@ function wireUp() {
     await renderGallery();
   });
   $('#btn-export').addEventListener('click', exportAll);
+  $('#btn-import').addEventListener('click', () => $('#import-file').click());
+  $('#import-file').addEventListener('change', event => {
+    const file = event.target.files && event.target.files[0];
+    if (file) importFromFile(file);
+    event.target.value = '';        // so the same file can be picked again
+  });
   $$('[data-motion]').forEach(b =>
     b.addEventListener('click', () => setMotion(b.dataset.motion)));
   $$('[data-speed]').forEach(b =>
