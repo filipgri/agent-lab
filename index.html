@@ -29,7 +29,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=56">
+  <link rel="stylesheet" href="./style.css?v=57">
 </head>
 <body>
 
@@ -805,6 +805,10 @@
         <span>Include practice agents</span>
       </label>
       <button id="btn-export" class="btn btn-accent">⬆️ Export all</button>
+      <!-- Says plainly whether the children's work is backed up. Agents live
+           in this iPad's website data, so clearing Safari's history deletes
+           them; the export is the only copy that survives that. -->
+      <div id="backup-state" class="backup-state"></div>
       <div id="export-result" class="export-result"></div>
     </div>
 
@@ -1004,14 +1008,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=56"></script>
-<script src="./storage.js?v=56"></script>
-<script src="./audio.js?v=56"></script>
-<script src="./effects.js?v=56"></script>
-<script src="./assets.js?v=56"></script>
-<script src="./stickers.js?v=56"></script>
-<script src="./parts.js?v=56"></script>
-<script src="./app.js?v=56"></script>
+<script src="./boot-guard.js?v=57"></script>
+<script src="./storage.js?v=57"></script>
+<script src="./audio.js?v=57"></script>
+<script src="./effects.js?v=57"></script>
+<script src="./assets.js?v=57"></script>
+<script src="./stickers.js?v=57"></script>
+<script src="./parts.js?v=57"></script>
+<script src="./app.js?v=57"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

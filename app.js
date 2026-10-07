@@ -1326,6 +1326,7 @@ async function openAdultPanel() {
   paintSpeedButtons();
   paintPpiButtons();
   paintWallButtons();
+  paintBackupState();
   $('#export-result').innerHTML = '';
   $('#delete-confirm').hidden = true;
 }
@@ -1394,6 +1395,44 @@ function escapeHtml(text) {
    One JSON file holding every agent, every event, and (from Milestone 3) the
    recordings as base64. navigator.share is preferred because <a download> is
    unreliable in a home-screen app (spec §9). */
+/* HAS THIS iPAD'S WORK BEEN SAVED ANYWHERE ELSE?
+
+   Agents live in IndexedDB, which is part of Safari's website data for this
+   site - so "Clear History and Website Data" deletes every one of them. It
+   has already happened once in testing. The export is the only copy that
+   survives that, so the panel says plainly how many agents are on this iPad
+   and when they were last exported. */
+async function paintBackupState() {
+  const box = $('#backup-state');
+  if (!box) return;
+
+  const agents = await Storage.listAgents();
+  const last = await Storage.getMeta('lastExportAt', null);
+  const lastCount = await Storage.getMeta('lastExportCount', 0);
+
+  if (!agents.length) { box.textContent = 'No agents on this iPad yet.'; box.className = 'backup-state'; return; }
+
+  if (!last) {
+    box.className = 'backup-state is-warn';
+    box.textContent = '⚠️ ' + agents.length + ' agent' + (agents.length === 1 ? '' : 's') +
+      ' on this iPad, never exported. Clearing Safari\u2019s history would delete them.';
+    return;
+  }
+
+  const when = new Date(last);
+  const mins = Math.round((Date.now() - when.getTime()) / 60000);
+  const ago = mins < 1 ? 'just now'
+            : mins < 60 ? mins + ' min ago'
+            : when.toLocaleString();
+  const since = agents.length - lastCount;
+
+  box.className = 'backup-state' + (since > 0 ? ' is-warn' : ' is-ok');
+  box.textContent = (since > 0 ? '⚠️ ' : '✅ ') +
+    agents.length + ' agent' + (agents.length === 1 ? '' : 's') + ' on this iPad · ' +
+    'last export ' + ago +
+    (since > 0 ? ' · ' + since + ' added since' : '');
+}
+
 async function exportAll() {
   const result = $('#export-result');
   result.textContent = 'Building file…';
@@ -1434,6 +1473,7 @@ async function exportAll() {
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: filename });
       result.textContent = 'Shared ' + filename;
+      await noteExport(agents.length);
       return;
     }
 
@@ -1445,12 +1485,21 @@ async function exportAll() {
     link.download = filename;
     link.className = 'btn btn-accent';
     link.textContent = '⬇️ ' + filename;
+    link.addEventListener('click', () => noteExport(agents.length));
     result.appendChild(link);
 
   } catch (err) {
     console.error(err);
     result.textContent = 'Export failed: ' + err.message;
   }
+}
+
+/* Remember that the work left this iPad, and how much of it, so the panel can
+   say whether anything has been made since. */
+async function noteExport(count) {
+  await Storage.setMeta('lastExportAt', nowIso());
+  await Storage.setMeta('lastExportCount', count);
+  paintBackupState();
 }
 
 // FileReader turns a Blob into a "data:" string. It is callback-based, so we

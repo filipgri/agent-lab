@@ -329,6 +329,16 @@ hand-edit the manifest, and never edit both.
 
 ## Settled decisions
 
+- **Agents do NOT survive clearing Safari's website data (7 October 2026).**
+  They live in IndexedDB, which *is* website data — "Clear History and
+  Website Data" deletes every one of them, and it already happened once in
+  testing. There is no setting that prevents this. What protects the work:
+  **Export all** in the adult panel (the only copy that leaves the iPad), and
+  **Add to Home Screen**, which gives the app its own storage that clearing
+  Safari does not touch. The panel now states how many agents are on the iPad
+  and when they were last exported, so a facilitator can see at a glance
+  whether anything would be lost.
+
 - **Two doors, not three (7 October 2026, from the iPad test).** Pixel is
   gone; only **Parts** and **Draw** are offered. This departs from v2 §5.3,
   which lists Parts · Pixel · Draw. Three ways in was one too many, and the

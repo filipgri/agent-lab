@@ -2996,3 +2996,11 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   font-size: 20px; padding: 4px 2px;
 }
 .main-controls .tool-word { font-size: 11px; }
+
+/* Whether the children's work exists anywhere but this iPad. */
+.backup-state {
+  font-size: 14px; line-height: 1.45; letter-spacing: .02em;
+  color: var(--muted); padding: 8px 0;
+}
+.backup-state.is-warn { color: #ffd27a; font-weight: 600; }
+.backup-state.is-ok   { color: #9fe3a6; }
