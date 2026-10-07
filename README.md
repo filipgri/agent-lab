@@ -10,7 +10,20 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: v2 V2 — the parts kit
+## Current state: v2 V5 — session 2 is complete
+
+Everything a child does in **session 2** is built and has been through a real
+iPad: codename, Make your agent (Parts or Draw), Power-up, HQ, Voice password,
+and the card with its badge and wall checks and the seal.
+
+Sessions 3 and 4 are locked, as §3 intends. Still to build: **V6** exports and
+moving agents between iPads, **V7** force field and mood codes, **V8** rules,
+badge & poster and the dossier, **V9** polish and the final test.
+
+Not yet tried on real hardware: **the microphone**, and the animations — the
+browser used for development reports itself as hidden, so it paints none of
+them.
+
 
 Working now:
 
@@ -282,12 +295,110 @@ code private, see §14 of the spec for the free Netlify and Cloudflare options.
 
 ## Set it up on each iPad
 
+**Do this before any agents are made.** A home-screen app keeps its own
+storage, separate from Safari's, so anything already made in a Safari tab will
+not be in it.
+
 1. Open the address in **Safari**.
 2. Tap Share → **Add to Home Screen**.
 3. Open the app **from the home-screen icon**, not from Safari.
-   The two keep separate storage, so agents saved in one are invisible in the other.
-4. Allow the microphone once (from Milestone 3 onwards).
-5. Turn on **Guided Access** (Settings → Accessibility) to lock the iPad into the app.
+   The two keep separate storage, so agents saved in one are invisible in the
+   other. The home-screen app also runs full screen, with no address bar,
+   which gives the app back about 90px of height and keeps children in it.
+4. Allow the microphone once, when the Voice mission first asks.
+5. **Turn Wi-Fi off and open the app again.** It should work. If it does not,
+   it has not finished caching — put Wi-Fi back on, open it, wait ten seconds,
+   and try again.
+6. Turn on **Guided Access** (Settings → Accessibility) to lock the iPad into
+   the app.
+
+### Android tablets
+
+The same app works as an installed web app in Chrome: ⋮ → **Install app**.
+Two differences worth knowing:
+
+- Storage is **not** separate from the browser there, so clearing Chrome's
+  data clears the app's agents too. The separation is an iOS behaviour.
+- Emoji are Google's rather than Apple's, so they look different. The
+  photographs and the parts kit are the project's own files and are identical.
+
+
+## Before and after every session
+
+The app keeps everything on the iPad and sends nothing anywhere. That is the
+point, and it is also the risk: **agents live in the browser's website data,
+so "Clear History and Website Data" deletes them.** No setting prevents this.
+Exporting is the only copy that survives it.
+
+### Before a session, on each iPad
+
+| | Check |
+|---|---|
+| ☐ | Opened from the **home-screen icon**, not Safari |
+| ☐ | Open the adult panel (hold the logo 3s, PIN `2468`) |
+| ☐ | **Offline** says `ready — works offline ✅` |
+| ☐ | **Asset check** lists everything as ✅ |
+| ☐ | **Session** is set to the right week, and the right missions are unlocked |
+| ☐ | **Practice mode is OFF** — practice agents are left out of exports |
+| ☐ | Battery over 50%, Guided Access on |
+
+If you want to try the app yourself first, turn **Practice mode on**, do what
+you like, then turn it off. Practice agents are labelled and excluded from the
+research data.
+
+### After a session, on each iPad
+
+| | Check |
+|---|---|
+| ☐ | Adult panel → the backup line reads **✅**, not ⚠️ |
+| ☐ | **Export all** → save the JSON file somewhere off the iPad |
+| ☐ | Note which iPad it came from — the filename does not say |
+| ☐ | Write each child's **codename** on the paper register |
+
+The backup line states the position plainly, for example:
+
+```
+⚠️ 19 agents on this iPad · last export 6 min ago · 1 added since
+```
+
+Amber means something would be lost if the iPad were wiped. Green means the
+export covers everything on it.
+
+### Three things that lose a child's work
+
+1. **Clear History and Website Data** in Safari settings — deletes every agent
+   in the Safari tab. (It does not touch the home-screen app.)
+2. **Deleting the home-screen icon** — deletes that app's agents with it.
+3. **A different iPad next week.** Agents live on the iPad they were made on.
+   Until V6 adds "move an agent", a child needs the same one — so label the
+   iPads and hand them out the same way each week.
+
+### Keeping track of whose is whose
+
+The app never asks for or stores a real name, so it cannot tell you. The
+register is the only link, and it lives on paper with the school:
+
+| Child | Codename | iPad |
+|---|---|---|
+| | | |
+
+Codenames are **not unique** — 24 adjectives × 24 animals is 576
+combinations, so in a group of 20 two children share one about a quarter of
+the time. When that happens the gallery shows those two tiles as the agents
+themselves rather than the emblem, so a child can still pick theirs out. Write
+the codename down at the end of the session, when a duplicate is easy to spot
+and easy to fix by re-rolling one.
+
+### If an iPad shows an old version
+
+Add a number you have not used before to the address:
+
+```
+https://filipgri.github.io/agent-lab/?fresh=7
+```
+
+Any unused query misses every cache. To see what it is really running, use
+`?diag=1` — the first line gives the version.
 
 ## Known deviation from the spec
 
