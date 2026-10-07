@@ -572,6 +572,16 @@ hand-edit the manifest, and never edit both.
   works: a page request falls back to the cached copy.
   **To force a stuck iPad past it, add any unique query to the address**
   (`…/agent-lab/?fresh=1`) — that misses every cache and fetches fresh.
+- **⚠️ On every release also set `version.json` to the same number.** It is
+  how a stuck device finds out it is stuck: `healIfStale()` in
+  `boot-guard.js` asks the server for the current version, compares it with
+  the one the page actually loaded, and if the server is ahead it unregisters
+  the service worker, deletes every cache and reloads — once per launch,
+  guarded by `sessionStorage`. A browser tab can be forced past a stale cache
+  with a junk query; **a home-screen app cannot**, because it always launches
+  its own `start_url` and never sees what you type. Two iPads sat several
+  releases behind for most of a day before this existed. The service worker
+  never caches `version.json`.
 - **⚠️ On every release, bump BOTH `CACHE_VERSION` in `sw.js` AND the `?v=`
   on all five links in `index.html`, and keep the `?v=` in `sw.js`'s
   `APP_FILES` identical to the HTML's.** A service worker caches URLs, so

@@ -18,23 +18,23 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v58';
+const CACHE_VERSION = 'agent-lab-v60';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
-   ./app.js?v=58 are two different URLs as far as it is concerned. */
+   ./app.js?v=60 are two different URLs as far as it is concerned. */
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=58',
-  './boot-guard.js?v=58',
-  './storage.js?v=58',
-  './audio.js?v=58',
-  './effects.js?v=58',
-  './assets.js?v=58',
-  './stickers.js?v=58',
-  './parts.js?v=58',
-  './app.js?v=58',
+  './style.css?v=60',
+  './boot-guard.js?v=60',
+  './storage.js?v=60',
+  './audio.js?v=60',
+  './effects.js?v=60',
+  './assets.js?v=60',
+  './stickers.js?v=60',
+  './parts.js?v=60',
+  './app.js?v=60',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -125,6 +125,11 @@ self.addEventListener('fetch', function (event) {
   // Only ever handle plain GETs for our own files.
   if (request.method !== 'GET') return;
   if (new URL(request.url).origin !== self.location.origin) return;
+
+  /* version.json must NEVER be served from a cache. It is how a stuck device
+     finds out it is stuck (see healIfStale in boot-guard.js), so a cached
+     copy would tell it everything is fine for ever. */
+  if (request.url.indexOf('version.json') !== -1) return;
 
   /* THE PAGE ITSELF IS FETCHED FRESH WHEN ONLINE (7 October 2026).
 

@@ -32,6 +32,12 @@
   var problems = [];
   var READY_MS = 6000;
 
+  /* Our own URL, captured now. document.currentScript is only us while this
+     file is still executing, and this file loads FIRST - which is the whole
+     point of it, and also why it cannot read app.js's ?v=: that tag has not
+     been parsed yet. Ours carries the same number. */
+  var MY_SRC = (document.currentScript && document.currentScript.getAttribute('src')) || '';
+
   function el(id) { return document.getElementById(id); }
 
   function banner() {
@@ -157,6 +163,64 @@
     report(window.__agentLabReady ? 'All good — diagnostics.'
                                   : 'Agent Lab did not finish starting up.');
   }, READY_MS);
+
+  /* ---------------------------------------------------------------------
+     SELF-HEALING: notice when this device is stuck on an old version.
+
+     index.html carries the ?v= numbers but has none of its own, so a cached
+     copy pins the whole app to an old release. A browser tab can be forced
+     past it with a junk query; a HOME-SCREEN app cannot, because it always
+     launches its own start_url and never sees what you type. Two iPads sat
+     several releases behind for most of a day because of this.
+
+     So: ask the server what the current version is, compare it with the one
+     this page actually loaded, and if they differ, throw away the service
+     worker and every cache and reload once. version.json is tiny, is never
+     cached, and is the only thing that has to get through.
+
+     Guarded by sessionStorage so it can reload at most once per launch - a
+     reload loop would be far worse than a stale app.
+     ------------------------------------------------------------------- */
+  function loadedVersion() {
+    var m = MY_SRC.match(/[?&]v=(\d+)/);     // e.g. "./boot-guard.js?v=59"
+    return m ? Number(m[1]) : null;
+  }
+
+  function healIfStale() {
+    var mine = loadedVersion();
+    if (!mine) return;
+
+    var tried;
+    try { tried = sessionStorage.getItem('agentLabHealed'); } catch (e) { tried = '1'; }
+    if (tried) return;
+
+    fetch('./version.json?cb=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || typeof data.version !== 'number') return;
+        if (data.version <= mine) return;
+
+        problems.push('was running v' + mine + ', server has v' + data.version +
+                      ' — clearing and reloading');
+        try { sessionStorage.setItem('agentLabHealed', '1'); } catch (e) {}
+
+        var jobs = [];
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+          jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+            return Promise.all(rs.map(function (r) { return r.unregister(); }));
+          }));
+        }
+        if (window.caches && caches.keys) {
+          jobs.push(caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          }));
+        }
+        Promise.all(jobs)['catch'](function () {})
+          .then(function () { location.reload(); });
+      })['catch'](function () { /* offline: keep what we have, which works */ });
+  }
+
+  healIfStale();
 
   window.__agentLabGuard = { report: report, problems: problems };
 })();
