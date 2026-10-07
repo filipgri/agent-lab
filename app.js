@@ -6302,6 +6302,35 @@ function addPart(partId) {
    Non-human options come first inside each category (v2 §5.3.1); parts.js
    lists them in that order, so this only has to keep it.
    ------------------------------------------------------------------------ */
+/* Tapping a category selects the part of that category already on the agent,
+   if there is one.
+
+   A child cannot reliably tap a face part on the stage: eyes, mouth, brows
+   and hair all pile onto the same small head, and hair is a hollow crescent
+   whose middle is empty, so a tap falls through to whatever is underneath.
+   Measured on 7 October: tapping the head selected the eyes, tapping the hair
+   selected the eyes, tapping the eyes selected the hair - not one part was
+   selected by tapping its own centre. The palette then showed somebody else's
+   colours, which reads as "hair has no colour option".
+
+   Tapping the Hair tab is unambiguous, and it is what a child means anyway.
+   The most recently added one wins, since that is the one on top. */
+function selectPlacedPart(catId) {
+  if (!state.agent) return;
+  const shapes = ensurePixels().shapes || [];
+  for (let i = shapes.length - 1; i >= 0; i--) {
+    const part = Parts.get(shapes[i].type);
+    if (part && part.cat === catId) {
+      editor.selectedShape = i;
+      editor.selected = null;
+      refreshAgentViews();
+      paintShapeControls();
+      paintPartsPalette();
+      return;
+    }
+  }
+}
+
 function buildPartsTray() {
   const tabs = $('#parts-cats');
   if (!tabs) return;
@@ -6315,6 +6344,7 @@ function buildPartsTray() {
     button.setAttribute('aria-label', cat.label);
     button.addEventListener('click', () => {
       partsUi.cat = cat.id;
+      selectPlacedPart(cat.id);     // "I want to change the hair" → select it
       buildPartsTray();
     });
     tabs.appendChild(button);

@@ -358,6 +358,15 @@ hand-edit the manifest, and never edit both.
 
 ### v2 conventions (from V3)
 
+- **A face part cannot reliably be tapped on the stage, so the category tab
+  selects it.** Eyes, mouth, brows and hair all pile onto the same small
+  head, and hair is a hollow crescent whose middle is empty — measured on
+  7 October, tapping the head selected the eyes, tapping the hair selected
+  the eyes, and tapping the eyes selected the hair. Not one part was selected
+  by tapping its own centre, so the palette showed somebody else's colours
+  and it read as "hair has no colour option". `selectPlacedPart()` runs when
+  a category tab is tapped, which is unambiguous and is what a child means.
+
 - **Never write a whole `class` attribute on a part group.** `setAttribute(
   'class', 'is-selected')` and `removeAttribute('class')` wiped `part-group`,
   which is what carries the child's colour — so tapping ONE part turned ALL
