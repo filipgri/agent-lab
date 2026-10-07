@@ -354,6 +354,10 @@ hand-edit the manifest, and never edit both.
   reports anyway. `?diag=1` shows the same report on a healthy app, which is
   how to tell which version an iPad is really running. A reporter that lives
   inside `app.js` cannot report `app.js` failing to load or parse.
+  **It is silent otherwise** — faults are recorded and written to the console,
+  never shown. A red block of stack trace across a child's screen is its own
+  failure: §12 rules out text-heavy UI, and there is nothing a nine-year-old
+  can do with it except feel they broke something.
 
 - **`renderAgentView()` takes an `owner`.** `data` is only half an agent (a
   cover or a look); the HQ and the door live on the whole agent, and the

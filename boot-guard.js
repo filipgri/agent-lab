@@ -124,25 +124,33 @@
     } catch (ignored) { /* a reporter must never throw */ }
   }
 
+  /* SILENT BY DEFAULT.
+
+     Faults are recorded, and shown to an adult on request - never to a child.
+     A red block across a child's screen is its own kind of failure: §12 rules
+     out text-heavy UI, and a nine-year-old can do nothing with a stack trace
+     except feel they broke it.
+
+     To see the report, add ?diag=1 to the address. */
+  function wanted() { return location.search.indexOf('diag=1') !== -1; }
+
   window.addEventListener('error', function (event) {
     var where = (event.filename || '?') + ':' + (event.lineno || '?');
     problems.push(where + ' — ' + (event.message || 'error'));
-    report('Something went wrong.');
+    if (wanted()) report('Something went wrong.');
   }, true);
 
   window.addEventListener('unhandledrejection', function (event) {
     var reason = event.reason;
     problems.push('promise — ' + ((reason && reason.message) || String(reason)));
-    report('Something went wrong.');
+    if (wanted()) report('Something went wrong.');
   });
 
-  /* The important one: nothing threw, but startup never finished. */
+  /* Nothing threw, but startup never finished - still only shown on request. */
   window.setTimeout(function () {
-    if (window.__agentLabReady) {
-      if (location.search.indexOf('diag=1') !== -1) report('All good — diagnostics.');
-      return;
-    }
-    report('Agent Lab did not finish starting up.');
+    if (!wanted()) return;
+    report(window.__agentLabReady ? 'All good — diagnostics.'
+                                  : 'Agent Lab did not finish starting up.');
   }, READY_MS);
 
   window.__agentLabGuard = { report: report, problems: problems };

@@ -148,49 +148,21 @@ function uuid() {
 }
 
 /* ---------------------------------------------------------------------------
-   SAYING SO WHEN SOMETHING BREAKS
+   WHEN A BOOT STEP FAILS
 
-   boot() is about twenty awaits in a row with renderGallery() last, and it had
-   no try/catch anywhere - so one failure anywhere left the static HTML on
-   screen (logo, reels, buttons) with no gallery and no explanation. That is
-   exactly what an iPad showed in testing, and there was no way to find out
-   why without plugging it into a Mac.
+   The banner, the error handlers and the on-screen report all live in
+   boot-guard.js now, which loads before everything else and stays quiet
+   unless an adult adds ?diag=1 to the address. A child must never meet a red
+   block of stack trace: §12 rules out text-heavy UI, and there is nothing a
+   nine-year-old can do with it but feel they broke something.
 
-   So: every error now puts itself on the screen. These handlers are installed
-   at the top of the file, before anything else can throw.
+   All this does is hand a fault to the guard and write it to the console.
    ------------------------------------------------------------------------ */
-const bootErrors = [];
-
 function reportError(where, err) {
-  const detail = {
-    where: where,
-    message: (err && err.message) || String(err),
-    stack: (err && err.stack) ? String(err.stack).split('\n').slice(0, 4).join('\n') : '',
-    at: new Date().toISOString()
-  };
-  bootErrors.push(detail);
-  try { showBootError(); } catch (ignored) { /* never throw from the reporter */ }
+  const message = where + ' — ' + ((err && err.message) || String(err));
+  if (window.__agentLabGuard) window.__agentLabGuard.problems.push(message);
   if (window.console && console.error) console.error('[Agent Lab]', where, err);
 }
-
-function showBootError() {
-  const box = document.getElementById('boot-error');
-  const text = document.getElementById('boot-error-text');
-  if (!box || !text) return;
-  text.textContent = bootErrors.map((e, i) =>
-    (i + 1) + '. ' + e.where + '\n' + e.message + (e.stack ? '\n' + e.stack : '')
-  ).join('\n\n') +
-  '\n\n— ' + navigator.userAgent;
-  box.hidden = false;
-}
-
-window.addEventListener('error', event => {
-  reportError('script ' + (event.filename || '?') + ':' + (event.lineno || '?'),
-              event.error || new Error(event.message));
-});
-window.addEventListener('unhandledrejection', event => {
-  reportError('promise', event.reason || new Error('unknown rejection'));
-});
 
 
 // A short message that fades away. Used for placeholder buttons in Milestone 0.
@@ -1552,13 +1524,6 @@ function wireUp() {
   wirePowerup();
   wireHq();
 
-  // The error banner's own buttons, so an adult can read out or copy the fault.
-  $('#boot-error-hide').addEventListener('click',
-    () => { $('#boot-error').hidden = true; });
-  $('#boot-error-copy').addEventListener('click', () => {
-    const text = $('#boot-error-text').textContent;
-    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-  });
   wireCardV5();
   wireMood();
   wireVoice();
