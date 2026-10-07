@@ -3004,3 +3004,10 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 }
 .backup-state.is-warn { color: #ffd27a; font-weight: 600; }
 .backup-state.is-ok   { color: #9fe3a6; }
+
+/* One set of controls for whatever is selected (7 October iPad test).
+   There used to be three: stickers had their own, parts had their own, and
+   these. Flip / Front / Back hide while a sticker is selected. */
+.main-controls-sel { display: flex; flex-direction: column; gap: 8px; }
+.main-controls-sel[hidden] { display: none; }
+.main-controls .btn.tool[hidden] { display: none; }

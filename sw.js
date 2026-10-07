@@ -18,23 +18,23 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v61';
+const CACHE_VERSION = 'agent-lab-v62';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
-   ./app.js?v=61 are two different URLs as far as it is concerned. */
+   ./app.js?v=62 are two different URLs as far as it is concerned. */
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=61',
-  './boot-guard.js?v=61',
-  './storage.js?v=61',
-  './audio.js?v=61',
-  './effects.js?v=61',
-  './assets.js?v=61',
-  './stickers.js?v=61',
-  './parts.js?v=61',
-  './app.js?v=61',
+  './style.css?v=62',
+  './boot-guard.js?v=62',
+  './storage.js?v=62',
+  './audio.js?v=62',
+  './effects.js?v=62',
+  './assets.js?v=62',
+  './stickers.js?v=62',
+  './parts.js?v=62',
+  './app.js?v=62',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',

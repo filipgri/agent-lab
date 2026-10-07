@@ -2782,11 +2782,10 @@ function startStickerDrag(event) {
   el.addEventListener('pointercancel', up);
 }
 
-// The ➕ ➖ ↻ 🗑️ row, shown only while a sticker is selected.
+/* Stickers and parts share one set of controls in the left column now, so
+   this just asks that set to repaint. */
 function paintStickerControls() {
-  const controls = $('#sticker-controls');
-  if (!controls) return;
-  controls.hidden = editor.selected === null;
+  paintShapeControls();
 }
 
 /* Move the selection highlight without touching the elements themselves.
@@ -2842,12 +2841,15 @@ function wireMake() {
     editor.tool = b.dataset.tool;
     paintToolButtons();
   }));
-  $$('[data-sticker]').forEach(b =>
-    b.addEventListener('click', () => stickerAction(b.dataset.sticker)));
-
   $('#btn-undo').addEventListener('click', undo);
   $('#btn-clear').addEventListener('click', clearAll);
   // The same two, in the left column where a child can actually find them.
+  /* One set of buttons for whatever is selected. Each asks what that is and
+     calls the right handler, so there is no longer a sticker set and a parts
+     set competing for the same job. */
+  $$('[data-ctl]').forEach(b =>
+    b.addEventListener('click', () => controlAction(b.dataset.ctl)));
+
   $('#main-undo').addEventListener('click', undo);
   $('#main-clear').addEventListener('click', clearAll);
   $('#btn-change-door').addEventListener('click', showDoors);
@@ -5295,14 +5297,27 @@ function paintShapeSelection() {
   });
 }
 
-function paintShapeControls() {
-  const controls = $('#shape-controls');
-  if (controls) controls.hidden = editor.selectedShape === null;
+/* What is selected right now - a part on the stage, a sticker, or nothing. */
+function selectedKind() {
+  if (editor.selectedShape !== null && editor.selectedShape !== undefined) return 'shape';
+  if (editor.selected !== null && editor.selected !== undefined) return 'sticker';
+  return null;
+}
 
-  /* Bigger / Smaller / Remove live in the left column now, beside the agent,
-     and follow the same rule: shown only while something is selected. */
+/* One button, two possible meanings. Flip, Front and Back only apply to
+   parts, so they are hidden while a sticker is selected rather than sitting
+   there doing nothing. */
+function controlAction(what) {
+  const kind = selectedKind();
+  if (kind === 'shape') return shapeAction(what);
+  if (kind === 'sticker') return stickerAction(what);
+}
+
+function paintShapeControls() {
+  const kind = selectedKind();
   const sel = $('#main-controls-sel');
-  if (sel) sel.hidden = editor.selectedShape === null && editor.selected === null;
+  if (sel) sel.hidden = kind === null;
+  $$('[data-parts-only]').forEach(el => { el.hidden = kind !== 'shape'; });
 }
 
 /* Spec §7: buttons rather than pinch gestures - easier to code, and far
@@ -5409,9 +5424,6 @@ function paintBrushButtons() {
    ------------------------------------------------------------------------ */
 function wireDoors() {
   attachBrush($('#door-canvas'));
-
-  $$('[data-shape]').forEach(b =>
-    b.addEventListener('click', () => shapeAction(b.dataset.shape)));
 
   // v2 V2: the parts kit's palette toggle and the sticker search.
   $('#btn-parts-more').addEventListener('click', () => {
@@ -6100,6 +6112,20 @@ function wireSessionControls() {
 // Which part tray is open, and whether the full colour range is showing.
 const partsUi = { cat: 'heads', morePalette: false };
 
+/* Every colour the parts kit knows, de-duplicated, in palette order. */
+let allColoursCache = null;
+function allPartColours() {
+  if (allColoursCache) return allColoursCache;
+  const seen = {}, out = [];
+  Object.keys(Parts.PALETTES).forEach(key => {
+    Parts.PALETTES[key].forEach(colour => {
+      if (!seen[colour]) { seen[colour] = true; out.push(colour); }
+    });
+  });
+  allColoursCache = out;
+  return out;
+}
+
 /* The most recently added head, if there is one. Face parts land on it. */
 function mostRecentHead() {
   const shapes = ensurePixels().shapes;
@@ -6250,9 +6276,15 @@ function paintPartsPalette() {
   const shape = ensurePixels().shapes[editor.selectedShape];
   const part = shape ? Parts.get(shape.type) : null;
 
+  /* "+ More" offers EVERY colour in the kit, not just the `any` palette.
+
+     It used to add `any` on top of the part's own palette — but a part with
+     no palette of its own already gets `any`, so for most parts it added
+     nothing at all and the button appeared dead (7 October iPad test).
+     The part's own colours still come first (v2 §5.3.1). */
   const own = Parts.paletteFor(part);
   const colours = partsUi.morePalette
-    ? own.concat(Parts.PALETTES.any.filter(c => own.indexOf(c) === -1))
+    ? own.concat(allPartColours().filter(c => own.indexOf(c) === -1))
     : own;
 
   colours.forEach(colour => {
@@ -6264,10 +6296,13 @@ function paintPartsPalette() {
     box.appendChild(swatch);
   });
 
+  /* Hidden when there is nothing more to show, rather than sitting there
+     doing nothing. */
   const more = $('#btn-parts-more');
   if (more) {
+    const extra = allPartColours().filter(c => own.indexOf(c) === -1).length;
     more.textContent = partsUi.morePalette ? '− Fewer' : '+ More';
-    more.hidden = false;
+    more.hidden = extra === 0;
   }
 }
 

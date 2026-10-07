@@ -32,7 +32,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=61">
+  <link rel="stylesheet" href="./style.css?v=62">
 </head>
 <body>
 
@@ -157,10 +157,24 @@
            was empty, so they live here, large and always in the same place.
            Bigger/Smaller/Remove appear only while something is selected. -->
       <div id="main-controls" class="main-controls" hidden>
-        <div id="main-controls-sel" class="main-controls-row" hidden>
-          <button class="btn tool" data-shape="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
-          <button class="btn tool" data-shape="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
-          <button class="btn tool btn-danger" data-shape="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
+        <!-- ONE set of controls, for whatever is selected — a sticker or a
+             part. There were three sets before (7 October iPad test): the
+             stickers had their own, the parts had their own, and these. Each
+             button asks what is selected and does the right thing. -->
+        <div id="main-controls-sel" class="main-controls-sel" hidden>
+          <div class="main-controls-row">
+            <button class="btn tool" data-ctl="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
+            <button class="btn tool" data-ctl="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
+            <button class="btn tool" data-ctl="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
+          </div>
+          <div class="main-controls-row">
+            <button class="btn tool" data-ctl="flip"  data-parts-only aria-label="Flip">↔️<span class="tool-word">Flip</span></button>
+            <button class="btn tool" data-ctl="front" data-parts-only aria-label="Bring to front">⬆️<span class="tool-word">Front</span></button>
+            <button class="btn tool" data-ctl="back"  data-parts-only aria-label="Send to back">⬇️<span class="tool-word">Back</span></button>
+          </div>
+          <div class="main-controls-row">
+            <button class="btn tool btn-danger" data-ctl="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
+          </div>
         </div>
         <div class="main-controls-row">
           <button id="main-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
@@ -246,15 +260,9 @@
 
                 <!-- Shown only while a part is selected. Buttons, not pinch
                      gestures, exactly as spec §7 and v2 §5.3.1 ask. -->
-                <!-- Bigger, Smaller and Remove have moved to the left column
-                     (#main-controls) where there is room and they are easy to
-                     see. Turn, Flip, Front and Back stay here. -->
-                <div id="shape-controls" class="sticker-controls" hidden>
-                  <button class="btn tool" data-shape="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
-                  <button class="btn tool" data-shape="flip"    aria-label="Flip">↔️<span class="tool-word">Flip</span></button>
-                  <button class="btn tool" data-shape="front"   aria-label="Bring to front">⬆️<span class="tool-word">Front</span></button>
-                  <button class="btn tool" data-shape="back"    aria-label="Send to back">⬇️<span class="tool-word">Back</span></button>
-                </div>
+                <!-- Every control for a selected thing is in the left column
+                     now (#main-controls). There used to be three sets: one for
+                     stickers, one for parts, and the one beside the agent. -->
               </div>
 
               <!-- --- Draw: a thick brush in three sizes, with a mirror --- -->
@@ -294,13 +302,6 @@
                 <div id="background-options" class="bg-options"></div>
               </div>
 
-              <!-- Shown only while a sticker is selected. -->
-              <div id="sticker-controls" class="sticker-controls" hidden>
-                <button class="btn tool" data-sticker="bigger"  aria-label="Bigger">➕<span class="tool-word">Bigger</span></button>
-                <button class="btn tool" data-sticker="smaller" aria-label="Smaller">➖<span class="tool-word">Smaller</span></button>
-                <button class="btn tool" data-sticker="rotate"  aria-label="Turn">↻<span class="tool-word">Turn</span></button>
-                <button class="btn tool btn-danger" data-sticker="delete" aria-label="Remove">🗑️<span class="tool-word">Remove</span></button>
-              </div>
 
               <!-- Always available inside the editor (spec §6). -->
               <div class="tool-row">
@@ -1011,14 +1012,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=61"></script>
-<script src="./storage.js?v=61"></script>
-<script src="./audio.js?v=61"></script>
-<script src="./effects.js?v=61"></script>
-<script src="./assets.js?v=61"></script>
-<script src="./stickers.js?v=61"></script>
-<script src="./parts.js?v=61"></script>
-<script src="./app.js?v=61"></script>
+<script src="./boot-guard.js?v=62"></script>
+<script src="./storage.js?v=62"></script>
+<script src="./audio.js?v=62"></script>
+<script src="./effects.js?v=62"></script>
+<script src="./assets.js?v=62"></script>
+<script src="./stickers.js?v=62"></script>
+<script src="./parts.js?v=62"></script>
+<script src="./app.js?v=62"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->
