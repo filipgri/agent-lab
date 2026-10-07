@@ -2848,16 +2848,23 @@ body[data-motion="off"] .power-stage { animation: none !important; }
       "logo    gallery"
       "card    gallery"
       "actions gallery";
-    align-content: center;
     justify-items: center;
     column-gap: 32px;
     row-gap: 12px;
 
-    /* LOCKED: the home screen never scrolls (7 October iPad test). It was
-       overflowing by 11px, which is just enough to make the whole page slide
-       under a finger and feel broken. The gallery column takes any excess
-       instead, because that is the one part that grows. */
-    overflow: hidden;
+    /* The home screen is sized to FIT on a landscape iPad (7 October test):
+       logo 84 + card 462 + actions 88 + gaps and padding = 715 of 734, so
+       nothing scrolls and nothing is cut off.
+
+       It is not clipped to achieve that. `overflow: hidden` was the first
+       attempt and it was worse than the problem - the content still
+       overflowed, it was just unreachable, so New agent sat half off the
+       bottom and would not take a tap. `auto` means a shorter screen scrolls
+       rather than losing a button, and `safe` keeps the top reachable when
+       centred content is taller than its box. */
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: safe center;
     padding: 10px var(--gap);
   }
   /* The logo is decoration here; the screen is short, so it gives up height
