@@ -1402,6 +1402,16 @@ function escapeHtml(text) {
    has already happened once in testing. The export is the only copy that
    survives that, so the panel says plainly how many agents are on this iPad
    and when they were last exported. */
+/* Is this the home-screen app or a browser tab? iOS answers with
+   navigator.standalone; everywhere else it is the display-mode media query.
+   It matters because on iPad the two have SEPARATE storage - agents made in
+   a Safari tab are not in the home-screen app, and the other way round. */
+function installedToHomeScreen() {
+  if (window.navigator.standalone) return true;
+  return window.matchMedia &&
+         window.matchMedia('(display-mode: standalone)').matches;
+}
+
 async function paintBackupState() {
   const box = $('#backup-state');
   if (!box) return;
@@ -1721,8 +1731,8 @@ async function boot() {
                                  () => Storage.requestPersistence()) || 'error';
   $('#storage-state').textContent =
     'Storage persistence: ' + persistence +
-    (window.navigator.standalone ? ' · opened from home screen ✅'
-                                 : ' · opened in Safari (separate storage) ⚠️');
+    (installedToHomeScreen() ? ' · opened from the home screen ✅'
+                             : ' · opened in a browser tab (separate storage) ⚠️');
 
   // Milestone 9: say plainly whether offline actually works on this iPad.
   // Registration is asynchronous, so the first read is usually "installing".
