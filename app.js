@@ -5701,7 +5701,11 @@ let swStatus = 'not tried';
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) { swStatus = 'not supported'; return; }
 
-  navigator.serviceWorker.register('./sw.js').then(function (registration) {
+  /* updateViaCache:'none' stops the browser serving sw.js itself from its own
+     HTTP cache. Without it the file that decides which version an iPad runs
+     could be a stale copy, which is how an iPad stayed on an old release. */
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+    .then(function (registration) {
     swStatus = 'registered';
 
     // One may already be waiting from a previous visit.

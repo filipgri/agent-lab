@@ -18,23 +18,23 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v41';
+const CACHE_VERSION = 'agent-lab-v42';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
-   ./app.js?v=41 are two different URLs as far as it is concerned. */
+   ./app.js?v=42 are two different URLs as far as it is concerned. */
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=41',
-  './boot-guard.js?v=41',
-  './storage.js?v=41',
-  './audio.js?v=41',
-  './effects.js?v=41',
-  './assets.js?v=41',
-  './stickers.js?v=41',
-  './parts.js?v=41',
-  './app.js?v=41',
+  './style.css?v=42',
+  './boot-guard.js?v=42',
+  './storage.js?v=42',
+  './audio.js?v=42',
+  './effects.js?v=42',
+  './assets.js?v=42',
+  './stickers.js?v=42',
+  './parts.js?v=42',
+  './app.js?v=42',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -54,9 +54,20 @@ self.addEventListener('install', function (event) {
         return cache.addAll(APP_FILES).then(function () { return cache; });
       })
       .then(cacheAssets)
-      // Do NOT skip waiting here. A new worker waits until the child closes
-      // the app, or until they tap the "New version" banner, so the app can
-      // never change underneath someone mid-mission.
+      /* TAKE OVER AT ONCE (changed 7 October 2026).
+
+         This used to wait: a new worker sat idle until every tab closed or an
+         adult tapped the "New version" banner, so the app could never change
+         under a child mid-mission. That was the right instinct and the wrong
+         trade. On an iPad, "close the tab" means swiping it away in the tab
+         switcher - navigating away is not enough - so in practice an iPad
+         stayed on an old version indefinitely. One sat on v=38 through three
+         releases while we hunted bugs that were already fixed.
+
+         Taking over is safe here: the page that is already open keeps the
+         JavaScript and CSS it loaded, because every one of those URLs carries
+         its own ?v=. Only the NEXT page load sees the new version. */
+      .then(function () { return self.skipWaiting(); })
   );
 });
 
