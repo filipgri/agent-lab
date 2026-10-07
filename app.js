@@ -699,6 +699,7 @@ async function renderGallery() {
   if (!box) return;
 
   const agents = (await Storage.listAgents()).map(migrateAgent);
+  window.__agentLabAgents = agents.length;   // boot-guard.js reports this
   block.hidden = agents.length === 0;
   box.innerHTML = '';
   if (agents.length === 0) return;

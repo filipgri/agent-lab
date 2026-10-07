@@ -106,6 +106,11 @@
     lines.push('app.js tag : ' + versionSeen());
     lines.push('files      : ' + globalsReport());
     lines.push('boot ready : ' + (window.__agentLabReady ? 'yes' : 'NO'));
+    /* How many agents this DEVICE holds. Agents live in the browser's own
+       storage on the iPad they were made on, so a device that has been
+       cleared shows none - which looks exactly like a broken gallery. */
+    lines.push('agents here: ' +
+      (typeof window.__agentLabAgents === 'number' ? window.__agentLabAgents : '?'));
     lines.push('url        : ' + location.href);
     lines.push('secure     : ' + (window.isSecureContext ? 'yes' : 'no'));
     lines.push('standalone : ' + (window.navigator.standalone ? 'home screen' : 'browser'));
