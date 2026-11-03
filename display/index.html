@@ -10,37 +10,94 @@
   <title>Agent Lab display</title>
   <link rel="stylesheet" href="display.css">
 </head>
-<body>
+<body data-motion="full">
 
 <!-- ==========================================================================
-     THE DISPLAY (v3 §9.5) - P1's bare version.
+     THE DISPLAY (v3 §9.5, P7)
 
-     Shown on a TV or projector from Filip's laptop. For P1 it does one thing:
-     when a bottle arrives, a chime plays and the sender's codename appears
-     (or a ? for a mystery bottle). P7 builds the shore, the board, the queue
-     and the facilitator keys on top of this.
+     Shown full screen on a TV or projector from Filip's laptop. A calm shore
+     at the bottom where bottles land, a board above it, and a post shelf for
+     bottles that are for a friend or a teacher.
 
-     NO NUMBERS, EVER (v3 §17): no counts, totals or rankings.
+     KEPT PREDICTABLE for autistic children: one arrival at a time, with the
+     queue visible along the top; a chime before every arrival; nothing that
+     flashes more than three times a second; capped volume; Full / Calm / Off.
+
+     NO NUMBERS, EVER (v3 §17): no counts, totals or rankings. The only text
+     on screen is a signed agent's codename.
+
+     The facilitator drives it from the keyboard; ? shows the keys.
      ========================================================================== -->
 
-<!-- Browsers will not play a sound until someone has clicked the page, so the
-     display starts with one big button. Click it (or press any key) once. -->
+<!-- Browsers will not play a sound until someone has clicked the page. -->
 <button id="start" class="start">
   <span class="start-icon">🍾</span>
   <span>Click to start the display</span>
 </button>
 
-<main id="stage" class="stage" hidden>
-  <!-- One arrival at a time, in the middle of the screen. -->
-  <div id="arrival" class="arrival" hidden>
-    <div id="arrival-emblem" class="arrival-emblem"></div>
-    <div id="arrival-name" class="arrival-name"></div>
+<main id="scene" class="scene" hidden>
+  <div id="sky" class="sky"></div>
+
+  <!-- Bottles waiting their turn, along the top edge. -->
+  <div id="queue" class="queue" aria-hidden="true"></div>
+
+  <!-- The board: drawings stay pinned here for the rest of the session. -->
+  <div id="board" class="board"><div id="pins" class="pins"></div></div>
+
+  <!-- The post shelf: sealed bottles for a friend or a teacher. Never opened. -->
+  <div id="post" class="post"></div>
+
+  <div id="shore" class="shore"><div class="waves"></div></div>
+
+  <!-- Where an arrival plays out. -->
+  <div id="stage" class="stage">
+    <div id="landing" class="landing"></div>
+    <div id="sender" class="sender" hidden>
+      <div id="sender-pic" class="sender-pic"></div>
+      <div id="sender-name" class="sender-name"></div>
+    </div>
+    <div id="teacher" class="teacher" hidden></div>
+    <div id="show" class="show"></div>
   </div>
+
+  <!-- Whole-screen layers some powers use. -->
+  <div id="wash" class="wash" hidden></div>
+  <div id="dim" class="dim" hidden></div>
+  <div id="minute" class="minute" hidden><div class="minute-ring"></div></div>
 </main>
 
-<!-- A small dot in the corner: lit while the relay is connected. For the
-     facilitator; it has no words and no numbers. -->
+<!-- The facilitator's corner: auto/held, paused, muted - icons only. -->
+<div id="status" class="status" aria-hidden="true"></div>
 <div id="link-dot" class="link-dot" title="Relay connection"></div>
+
+<!-- ? : the keys. -->
+<div id="keys" class="panel" hidden>
+  <h2>Keys</h2>
+  <table>
+    <tr><td>Space</td><td>release the next bottle</td></tr>
+    <tr><td>A</td><td>switch between automatic and held release</td></tr>
+    <tr><td>P</td><td>pause or resume</td></tr>
+    <tr><td>H</td><td>hide the bottle on screen (safeguarding)</td></tr>
+    <tr><td>C</td><td>clear the board</td></tr>
+    <tr><td>M</td><td>mute</td></tr>
+    <tr><td>F</td><td>full screen</td></tr>
+    <tr><td>D</td><td>a demo bottle (works with no network)</td></tr>
+    <tr><td>Number keys</td><td>a demo of one door's powers, in the iPad's door order</td></tr>
+    <tr><td>S</td><td>settings: motion, and "real for a minute"</td></tr>
+    <tr><td>?</td><td>show or hide this list</td></tr>
+  </table>
+</div>
+
+<!-- S : settings. Kept in memory only - a reload starts with everything off. -->
+<div id="settings" class="panel" hidden>
+  <h2>Motion</h2>
+  <div id="motion-buttons" class="row"></div>
+  <h2>Real for a minute</h2>
+  <p>When a bottle brings one of these powers, a ring shows for a minute
+     and the adults in the room do it for real. Only switch on powers
+     agreed with staff beforehand.</p>
+  <div id="real-list" class="real-list"></div>
+</div>
 
 <script src="display.js"></script>
 </body>

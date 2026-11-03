@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P6** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P7** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -559,6 +559,14 @@ display will show — never the agent's `id`, its event log, or any other agent:
   spoken part is sent as recorded (`"normal"`).
 - A bottle over 1.9 MB drops its sounds (`audio: null, audioDropped: true`)
   rather than not arriving.
+
+**The display and the relay keep nothing** (P7). The relay holds this run's
+bottles in memory so a reloaded display can rebuild its board and post shelf;
+Ctrl-C forgets them all. The display records nothing at all — no log, no
+storage. **H** (safeguarding) takes a bottle off the screen and asks the relay
+to forget it too (`POST /hide`, which only the display page itself may call),
+so a reload cannot bring it back. Its "real for a minute" settings live in
+memory only, and a reload switches every power off again.
 
 The Display link logs no events: it is the adult's set-up, not something a
 child did.

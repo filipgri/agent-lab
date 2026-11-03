@@ -502,7 +502,39 @@ to the start. No card screen.
   - **Not built:** dragging a token into the bottle (tapping does it — §8
     asks for tap OR drag), and the short finish after the bottle (§3) —
     finishing still goes straight back to the start.
-- **Next: P7** — The display (§9.5).
+- **P7 — built (3 November 2026), on branch `v3`.** The display (§9.5),
+  `display/index.html`, `display.css`, `display.js`.
+  - The scene: shore, board, post shelf, queue along the top. Filip's
+    `disp-shore`, `disp-board`, `disp-bottle` and `disp-teacher` replace
+    the drawn stand-ins when they exist (served from `/assets/`).
+  - An everyone-bottle: chime on arrival → queue → (3 s auto, or Space when
+    held) lands, cork → agent walks on (or a dashed ?) with its handshake
+    pulsing → items one at a time → waves and leaves. Drawings and
+    "Hold my turn" tokens stay pinned. Friend/teacher bottles float to the
+    post shelf, marked with the recipient's emblem, never opened.
+  - **The arrival is one async story, and `sleep()` is pausable (P) and
+    cancellable (H)**: it waits in 100 ms steps and checks a token.
+  - ★ scenes: slow everybody (`--slow` ×2.5 on every CSS duration and
+    sleeps doubled, a tortoise for 10 s) · control teachers (the bean
+    teacher with the child's "so that" in a bubble) · control all displays
+    (emblem wash, 10 s) · control devices (blinking 💡🔊📋, under 3 a
+    second) · speak for your friends (two rising bubbles). Also pause,
+    dim, turn down (mutes 15 s), warn me (three lights go out — a
+    countdown with no digits), say it again (re-queues the previous),
+    hold my turn, see my points (⭐👁️, never a number). The rest pop.
+  - Keys: Space A P H C M F D, the number keys (one door each, iPad
+    order), S (motion; "real for a minute" — a ring that empties over a
+    minute, no digits, `sfx-timer-ring` at both ends), ?.
+  - **H also tells the relay to forget the bottle** (`POST /hide`, display
+    only), or a reload would bring it straight back. The relay's numbering
+    is a counter now, not the list's length, so forgetting cannot reuse a
+    number.
+  - Tested in the browser with the relay in `--no-tls`: ten bottles in a
+    row, one at a time; every key; D with the relay stopped; a reload
+    rebuilding the post shelf without the hidden bottle; no digit anywhere
+    in the scene.
+- **Next: P8** — Rehearsal: a full run on two iPads and the display, then
+  bump every version number. Needs v3 deployed and the room set up.
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

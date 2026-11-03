@@ -1,103 +1,217 @@
-/* The display (v3 §9.5), P1's bare version. Big, calm, dark: it is seen from
-   across a classroom, and some of the children are sound- and light-sensitive. */
+/* The display (v3 §9.5, P7). Big, calm and readable from across a room.
+   Every movement is transform and opacity only, nothing flashes more than
+   three times a second, and Calm / Off stop the movement (body[data-motion]). */
 
 :root {
   --sky-1: #0b1a33;
-  --sky-2: #12305a;
+  --sky-2: #1d4a7a;
+  --sand: #e8cf9a;
+  --sea: #2f7fa8;
   --accent: #ffd23f;
   --text: #ffffff;
   --muted: #9fb3d1;
+  /* "Slow everybody down" slows the whole scene: every duration is
+     multiplied by this. */
+  --slow: 1;
 }
 
 html, body {
   margin: 0;
   height: 100%;
-  background: linear-gradient(180deg, var(--sky-2), var(--sky-1));
+  background: var(--sky-1);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
 }
 
-/* The "click to start" button that unlocks sound. */
+/* ---- start ---- */
 .start {
-  position: fixed;
-  inset: 0;
-  margin: auto;
-  width: min(520px, 80vw);
-  height: 220px;
-  border: none;
-  border-radius: 32px;
-  background: rgba(255, 255, 255, .08);
-  color: var(--text);
-  font-size: 32px;
-  font-weight: 700;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  cursor: pointer;
+  position: fixed; inset: 0; margin: auto;
+  width: min(520px, 80vw); height: 220px;
+  border: none; border-radius: 32px;
+  background: rgba(255,255,255,.08); color: var(--text);
+  font-size: 32px; font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  cursor: pointer; z-index: 20;
 }
-.start-icon { font-size: 72px; }
-/* `display: flex` above would otherwise beat the hidden attribute. */
 .start[hidden] { display: none; }
+.start-icon { font-size: 72px; }
 
-.stage {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
+/* ---- the scene ---- */
+.scene { position: fixed; inset: 0; overflow: hidden; }
+.scene[hidden] { display: none; }
+.sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 62%, #f2b67a 74%);
 }
-.stage[hidden], .arrival[hidden] { display: none; }
+/* Filip's pictures, when they arrive, replace the drawn stand-ins. */
+.scene.has-shore .sky { background: center / cover no-repeat var(--shore-img); }
+.scene.has-shore .shore { background: none; }
+.scene.has-shore .waves { display: none; }
 
-/* One arrival: the sender's symbol and codename, large. */
-.arrival {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2vh;
-  animation: arrive 900ms ease-out both;
+.shore {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 30%;
+  background: linear-gradient(180deg, var(--sea) 0%, var(--sea) 18%, var(--sand) 22%, #d9b97e 100%);
 }
-.arrival.is-leaving { animation: leave 700ms ease-in both; }
-.arrival-emblem { font-size: 22vh; line-height: 1; }
-.arrival-name {
-  font-size: 9vh;
-  font-weight: 700;
-  letter-spacing: .06em;
+.waves {
+  position: absolute; left: -10%; right: -10%; top: 12%; height: 10%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.55) 0 30%, transparent 31%) 0 0 / 120px 40px repeat-x;
 }
-/* A mystery bottle: a ? in a dashed outline, and no name. */
-.arrival.is-mystery .arrival-emblem {
-  width: 26vh;
-  height: 26vh;
-  border: .8vh dashed rgba(255, 255, 255, .6);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 16vh;
-  color: var(--muted);
+body[data-motion="full"] .waves { animation: waves calc(6s * var(--slow)) ease-in-out infinite alternate; }
+@keyframes waves { from { transform: translateX(0); } to { transform: translateX(60px); } }
+
+/* The board: a wide noticeboard on posts. */
+.board {
+  position: absolute; left: 22%; right: 22%; top: 13%; height: 40%;
+  border-radius: 18px;
+  background: #b98a55;
+  box-shadow: inset 0 0 0 12px #8a6238, 0 14px 30px rgba(0,0,0,.35);
+}
+.board.has-img { background: center / 100% 100% no-repeat var(--board-img); box-shadow: none; }
+.pins { position: absolute; inset: 7% 5%; display: flex; flex-wrap: wrap; gap: 2%; align-content: flex-start; }
+.pin {
+  width: 15%; aspect-ratio: 1;
+  background: #fff; border-radius: 8px; padding: 1%;
+  box-shadow: 0 6px 12px rgba(0,0,0,.3);
+  position: relative;
+}
+.pin img { width: 100%; height: 100%; object-fit: contain; }
+.pin .pin-emoji { font-size: 5vh; display: grid; place-items: center; height: 100%; }
+.pin::before {
+  content: ''; position: absolute; left: 50%; top: -6px; width: 12px; height: 12px;
+  margin-left: -6px; border-radius: 50%; background: #e63946;
+}
+body[data-motion="full"] .pin.is-new { animation: pin-in calc(.6s * var(--slow)) ease-out both; }
+@keyframes pin-in { from { transform: scale(.4) rotate(-10deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* The post shelf, on the right: sealed bottles for a friend or teacher. */
+.post {
+  position: absolute; right: 2%; top: 14%; width: 15%; bottom: 34%;
+  display: flex; flex-direction: column; gap: 1vh; align-items: center;
+  border-left: 6px solid rgba(255,255,255,.25);
+  padding-left: 1%;
+}
+.post-bottle { font-size: 5vh; line-height: 1; position: relative; }
+.post-bottle .post-to { font-size: 3vh; position: absolute; right: -2.4vh; bottom: -.6vh; }
+body[data-motion="full"] .post-bottle.is-new { animation: float-in calc(2.4s * var(--slow)) ease-in-out both; }
+@keyframes float-in { from { transform: translate(-40vw, 30vh); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* The queue: bottles waiting, along the top. The next one glows. */
+.queue { position: absolute; left: 0; right: 0; top: 1.5vh; display: flex; justify-content: center; gap: 2vw; }
+.queue-bottle { font-size: 5vh; line-height: 1; opacity: .7; }
+.queue-bottle img { height: 6vh; }
+.queue-bottle.is-next { opacity: 1; filter: drop-shadow(0 0 10px var(--accent)); }
+body[data-motion="full"] .queue-bottle.is-new { animation: drop-in calc(.7s * var(--slow)) cubic-bezier(.34,1.3,.64,1) both; }
+@keyframes drop-in { from { transform: translateY(-12vh); } to { transform: none; } }
+
+/* ---- an arrival, on the shore ---- */
+.stage { position: absolute; left: 0; right: 0; bottom: 4%; height: 40%; }
+.landing { position: absolute; left: 50%; bottom: 8%; font-size: 9vh; line-height: 1; transform: translateX(-50%); }
+.landing img { height: 14vh; }
+body[data-motion="full"] .landing.is-landing { animation: land calc(1.1s * var(--slow)) cubic-bezier(.4,0,.6,1) both; }
+@keyframes land { from { transform: translate(-50%, -70vh) rotate(-20deg); } to { transform: translateX(-50%); } }
+
+.sender {
+  position: absolute; left: 22%; bottom: 6%;
+  display: flex; flex-direction: column; align-items: center; gap: 1vh;
+}
+.sender[hidden] { display: none; }
+.sender-pic { width: 22vh; height: 22vh; display: grid; place-items: center; font-size: 14vh; border-radius: 3vh; overflow: hidden; }
+.sender-pic img { width: 100%; height: 100%; object-fit: cover; }
+/* A mystery: a ? in a dashed outline, and no name. */
+.sender.is-mystery .sender-pic { border: .8vh dashed rgba(255,255,255,.7); color: var(--muted); font-size: 12vh; }
+.sender-name { font-size: 5vh; font-weight: 700; letter-spacing: .06em; text-shadow: 0 2px 8px rgba(0,0,0,.6); }
+/* Its handshake pulses as light. */
+.sender-pic.is-pulse { box-shadow: 0 0 0 1vh var(--accent), 0 0 6vh var(--accent); }
+body[data-motion="full"] .sender.is-walking-on { animation: walk-on calc(1.4s * var(--slow)) ease-out both; }
+body[data-motion="full"] .sender.is-leaving { animation: walk-off calc(1.4s * var(--slow)) ease-in both; }
+.sender.is-leaving { opacity: 0; transition: opacity calc(.8s * var(--slow)); }
+body[data-motion="full"] .sender.is-waving .sender-pic { animation: wave calc(.5s * var(--slow)) ease-in-out 3; }
+@keyframes walk-on { from { transform: translateX(-40vw); } to { transform: none; } }
+@keyframes walk-off { to { transform: translateX(70vw); opacity: 0; } }
+@keyframes wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(8deg); } }
+
+/* The teacher figure: a taller bean with a lanyard (disp-teacher). */
+.teacher { position: absolute; right: 22%; bottom: 6%; font-size: 18vh; line-height: 1; text-align: center; }
+.teacher[hidden] { display: none; }
+.teacher img { height: 26vh; }
+.teacher .bubble { position: absolute; left: -16vh; top: -16vh; }
+body[data-motion="full"] .teacher.is-hop { animation: hop calc(.6s * var(--slow)) ease-in-out 3; }
+@keyframes hop { 0%, 100% { transform: none; } 50% { transform: translateY(-5vh); } }
+
+/* What is being shown right now: a card, a power, a voice. */
+.show { position: absolute; left: 50%; bottom: 30%; transform: translateX(-50%); display: flex; gap: 2vw; align-items: center; }
+.card {
+  background: #fff; color: #10233f; border-radius: 2vh; padding: 1.5vh;
+  min-width: 18vh; min-height: 18vh; display: grid; place-items: center;
+  font-size: 12vh; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.card img { max-width: 30vh; max-height: 30vh; }
+.bubble { background: #fff; color: #10233f; border-radius: 3vh; padding: 1vh 2vh; font-size: 8vh; line-height: 1; box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+.bubble img { max-height: 18vh; display: block; }
+body[data-motion="full"] .pop { animation: pop calc(.6s * var(--slow)) cubic-bezier(.34,1.56,.64,1) both; }
+body[data-motion="full"] .rise { animation: rise calc(2s * var(--slow)) ease-out both; }
+body[data-motion="full"] .gift { animation: gift calc(1.4s * var(--slow)) ease-in-out both; }
+@keyframes pop { from { transform: scale(.3); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rise { from { transform: translateY(6vh); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-8vh); opacity: 1; } }
+@keyframes gift { from { transform: translateX(-30vw) scale(.6); } to { transform: none; } }
+
+/* Props round the edges (control devices…). */
+.prop { position: absolute; font-size: 9vh; line-height: 1; }
+body[data-motion="full"] .blink { animation: blink calc(.8s * var(--slow)) steps(2, jump-none) 4; }
+@keyframes blink { from { opacity: 1; } to { opacity: .15; } }
+
+/* Whole-screen layers. */
+.wash, .dim, .minute { position: absolute; inset: 0; pointer-events: none; }
+.wash[hidden], .dim[hidden], .minute[hidden] { display: none; }
+.wash {
+  display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 4vw;
+  font-size: 14vh; mix-blend-mode: screen; background: var(--wash, rgba(255, 210, 63, .25));
+}
+body[data-motion="full"] .wash { animation: wash calc(10s * var(--slow)) ease-in-out both; }
+@keyframes wash { 0% { opacity: 0; } 15%, 85% { opacity: 1; } 100% { opacity: 0; } }
+.dim { background: rgba(0, 0, 0, .55); transition: opacity 1.5s; }
+/* "Pause the world" and a quiet bubble: everything that moves, stops. */
+.scene.is-frozen *, .scene.is-frozen { animation-play-state: paused !important; }
+.scene.is-soft { filter: saturate(.5) brightness(.9); transition: filter 1.5s; }
+
+/* Real for a minute: a ring that empties over sixty seconds. No digits. */
+.minute { display: grid; place-items: end end; padding: 3vh; }
+.minute-ring {
+  width: 16vh; height: 16vh; border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--left, 1) * 360deg), rgba(255,255,255,.15) 0);
+  -webkit-mask: radial-gradient(circle, transparent 55%, #000 56%);
+          mask: radial-gradient(circle, transparent 55%, #000 56%);
 }
 
-@keyframes arrive {
-  from { opacity: 0; transform: translateY(6vh); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes leave {
-  to { opacity: 0; transform: translateY(-4vh); }
-}
-/* The display's own motion setting arrives in P7; until then it follows the
-   laptop's Reduce Motion. */
-@media (prefers-reduced-motion: reduce) {
-  .arrival, .arrival.is-leaving { animation-duration: 1ms; }
-}
+/* "Warn me first": three lights that go out one by one before the next
+   arrival - a countdown without a single digit. */
+.warn { position: absolute; left: 50%; top: 10vh; transform: translateX(-50%); display: flex; gap: 2vw; }
+.warn span { width: 4vh; height: 4vh; border-radius: 50%; background: var(--accent); transition: opacity .3s; }
+.warn span.is-out { opacity: .15; }
 
-/* The connection dot. */
-.link-dot {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #5a6a85;
-}
+/* ---- the facilitator's bits ---- */
+.status { position: fixed; left: 18px; bottom: 14px; font-size: 22px; opacity: .7; z-index: 10; }
+.link-dot { position: fixed; right: 18px; bottom: 18px; width: 14px; height: 14px; border-radius: 50%; background: #5a6a85; z-index: 10; }
 .link-dot.is-on { background: #49d17d; }
+.panel {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: rgba(8, 18, 36, .95); border-radius: 20px; padding: 24px 32px;
+  max-width: 640px; max-height: 80vh; overflow: auto; z-index: 30;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6); font-size: 18px;
+}
+.panel[hidden] { display: none; }
+.panel h2 { margin: 6px 0 12px; font-size: 22px; }
+.panel td { padding: 4px 18px 4px 0; }
+.panel td:first-child { font-weight: 700; white-space: nowrap; }
+.panel p { color: var(--muted); margin: 0 0 10px; }
+.row, .real-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel button {
+  font: inherit; font-size: 16px; border: none; border-radius: 10px;
+  padding: 8px 12px; background: #1d3a63; color: #fff; cursor: pointer;
+}
+.panel button.is-on { background: var(--accent); color: #231c00; }
+
+@media (prefers-reduced-motion: reduce) {
+  body:not([data-motion-set]) .waves { animation: none; }
+}

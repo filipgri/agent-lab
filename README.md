@@ -39,6 +39,10 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
   or a mystery, then the cork and a swipe (or hold 🚀). A bottle that cannot
   reach the display waits and goes later — adult panel → Display link shows
   how many are waiting.
+- **P7 — built.** The display: the shore, the board and the post shelf. Press
+  **?** on the display for the keys. **D** plays a demo bottle even with no
+  network — if the room's Wi-Fi fails, you become the relay: press D as each
+  child sends.
 
 The rest of this section describes session 2.
 
@@ -435,8 +439,28 @@ python3 display/relay.py
 
 It prints the display's address. Open `https://localhost:8443/` on the laptop,
 click **Click to start the display** once (browsers only allow sound after a
-click), and press **F** for full screen. **M** mutes. A small dot in the
-corner is green while the display is connected to the relay.
+click), and press **F** for full screen. A small dot in the corner is green
+while the display is connected to the relay.
+
+**The display's keys** (press **?** to see them on screen):
+
+| Key | Does |
+|---|---|
+| Space | release the next bottle |
+| A | switch between automatic (3 seconds) and held release — the corner shows ▶️ or ✋ |
+| P | pause or resume |
+| **H** | **hide the bottle on screen (safeguarding)** — it also leaves the relay, so a reload cannot bring it back. With nothing playing, H takes down the last thing pinned |
+| C | clear the board |
+| M | mute |
+| F | full screen |
+| **D** | a demo bottle — works with no network at all |
+| number keys | a demo of one door's powers, in the iPad's door order |
+| S | settings: motion (Full / Calm / Off), and "real for a minute" |
+
+**Real for a minute** (S): every power is off until you switch it on, and
+the settings are forgotten when the display is reloaded. Only switch on
+powers agreed with staff beforehand. When one arrives, a ring empties over a
+minute, with a soft bell at the start and the end.
 
 On each iPad: adult panel → **Display link** → **📡 Test** (✅ expected) →
 switch it **On** → **🍾 Send test bottle**, which should appear on the display

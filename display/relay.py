@@ -20,6 +20,7 @@ the kinds of thing inside, and its size. Never its contents, never a codename.
 ROUTES
     GET  /status    the iPad's link test (adult panel -> Display link -> Test)
     POST /bottle    a bottle from an iPad. At most 2 MB.
+    POST /hide      the display's H key: forget one bottle (display only)
     GET  /events    Server-Sent Events: the display's live feed of bottles
     GET  /assets/…  the app's own pictures and sounds, for the display
     GET  /…         everything else comes from the display/ folder
@@ -74,14 +75,24 @@ class Bottles:
 
     def __init__(self):
         self.items = []                      # [(number, bottle), ...]
+        self.count = 0                       # only ever goes up, even after H
         self.lock = threading.Condition()    # a lock that can also wake waiters
 
     def add(self, bottle):
         with self.lock:
-            number = len(self.items) + 1
+            self.count += 1
+            number = self.count
             self.items.append((number, bottle))
             self.lock.notify_all()           # wake every display that is waiting
             return number
+
+    def forget(self, bottle_id):
+        """H on the display (safeguarding): this bottle is taken out of the
+        relay's memory too, so reloading the display cannot bring it back."""
+        with self.lock:
+            before = len(self.items)
+            self.items = [(n, b) for n, b in self.items if b.get("bottleId") != bottle_id]
+            return before != len(self.items)
 
     def after(self, number):
         with self.lock:
@@ -191,7 +202,10 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()            # a file from display/ or assets/
 
     def do_POST(self):
-        if urlsplit(self.path).path != "/bottle":
+        path = urlsplit(self.path).path
+        if path == "/hide":
+            return self.hide_bottle()
+        if path != "/bottle":
             return self.send_json(404, {"ok": False})
         if not self.origin_allowed():
             return self.send_json(403, {"ok": False})
@@ -216,6 +230,22 @@ class Handler(SimpleHTTPRequestHandler):
 
         BOTTLES.add(bottle)
         print(describe(bottle, size), flush=True)
+        return self.send_json(200, {"ok": True})
+
+    def hide_bottle(self):
+        """Only the display page itself may ask: an iPad cannot hide bottles."""
+        origin = self.headers.get("Origin")
+        if origin is not None and origin != self.own_origin():
+            return self.send_json(403, {"ok": False})
+        try:
+            size = min(int(self.headers.get("Content-Length", "0")), 4096)
+            bottle_id = json.loads(self.rfile.read(size).decode("utf-8")).get("bottleId")
+        except (ValueError, UnicodeDecodeError, AttributeError):
+            return self.send_json(400, {"ok": False})
+        forgotten = BOTTLES.forget(bottle_id)
+        print("%s  hidden on the display%s" % (
+            datetime.datetime.now().strftime("%H:%M:%S"),
+            "" if forgotten else " (already gone)"), flush=True)
         return self.send_json(200, {"ok": True})
 
     def stream_events(self):
