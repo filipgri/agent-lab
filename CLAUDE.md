@@ -428,7 +428,25 @@ to the start. No card screen.
     drumming past the 8th would otherwise start a new handshake at once
     and replace the one just made. `leaveCurrent()` keeps a rhythm still
     being tapped (`stopHandshake()`).
-- **Next: P4** — Safe place (§6), reusing the HQ screen.
+- **P4 — built (3 November 2026), on branch `v3`.** 📍 Safe place (§6).
+  - **Section 27 is now Safe place**, built on the v2 HQ screen and panel
+    (the panel's `data-mission` is `safe`; the element ids stay `hq-…`).
+    Two questions, one at a time, switched by ➡️ or the 💬 ⛔ buttons:
+    `safe.talk` and `safe.stops`. Nowhere is a card the same size as the
+    places. ✏️ Draw my own uses the shared sheet; a place that is only SAID
+    keeps its `audioId` (a small addition to §10's `{ id, png }`).
+  - **It never writes to `hq`.** The v2 `chooseHq`, `clearHq`, `openHqDraw`
+    and their tiles are gone; `hq_choose` and `hq_draw` are v2-only events.
+  - **`agentPlace(agent)`** decides where an agent stands: `safe.talk` if it
+    is a real place, otherwise `hq`. `renderAgentView`, `setHqBackdrop`,
+    `preloadCardAssets` and `drawAgentToCanvas` all go through it, so the
+    gallery, the thumbnail and (P6) the bottle picture agree.
+  - The stage is `data-scene="moment"` and `showPlaceOn()` draws the place
+    for the question on screen, with a token so a slow photograph from an
+    earlier tap cannot land after a newer choice.
+  - `modeCard()` and the like-me cards now use `Assets.card()`, which already
+    built a picture card with its emoji stand-in.
+- **Next: P5** — Powers (§7).
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

@@ -27,6 +27,9 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
   eight in `tools/parts-sheet.html` → **Ready agents**.
 - **P3 — built.** 🗣️ How my agent talks: how the agent likes to talk, how
   school wants it to, and a secret handshake tapped on a big pad.
+- **P4 — built.** 📍 Safe place: where the agent feels safe to talk, and where
+  its power stops working. **Off in the session-3 preset**: switch it on in
+  the adult panel under Missions this rotation.
 
 The rest of this section describes session 2.
 

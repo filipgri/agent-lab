@@ -1194,6 +1194,7 @@ function goToMission(index, reasonAction) {
      milestone builds it (suit P3, safe P4, powers P5, bottle P6). */
   if (mission.id === 'make') enterMake();
   else if (mission.id === 'suit') enterSuit();
+  else if (mission.id === 'safe') enterSafe();
   else hideEditor();
 }
 
@@ -1792,7 +1793,7 @@ function wireUp() {
   // --- missions ---
   wireMake();
   wireDoors();
-  wireHq();
+  wireSafe();
 
   wireOwnCard();
   wireSeal();
@@ -2020,7 +2021,8 @@ function setHqBackdrop(view, hqId, owner) {
      become the background too. It is already a PNG data URL, so there is
      nothing to load and no race to guard against. */
   const agent = owner || state.agent;
-  const drawn = agent && agent.hq && agent.hq.png;
+  // v3 §6: the safe-to-talk place if there is one, else the HQ.
+  const drawn = agentPlace(agent).png;
   if (!hqId && drawn) {
     view.style.setProperty('--hq-image', 'url("' + drawn + '")');
     view.classList.add('has-hq');
@@ -2083,9 +2085,6 @@ function part() {
 }
 
 // The v2 background lives on the agent's HQ, not on the look (v2 §6.1).
-function agentHqId() {
-  return (state.agent && state.agent.hq && state.agent.hq.id) || null;
-}
 
 // The one editable stage. A function rather than a saved reference, because
 // the element moves between missions.
@@ -2173,7 +2172,8 @@ function renderAgentView(view, data, interactive, door, owner) {
      the card." Now that the twelve places are photographed, the agent stands
      in the real one; the CSS gradient stays as the stand-in for a place with
      no picture yet, so an empty assets/ folder still works. */
-  const hqId = (agent && agent.hq && agent.hq.id) || null;
+  // v3 §6: the agent stands in its safe-to-talk place, or its HQ.
+  const hqId = agentPlace(agent).id;
   view.dataset.bg = hqToBackground(hqId);
   setHqBackdrop(view, hqId, agent);
   const aura = AURAS.find(a => a.id === (data.glow || data.aura));
@@ -3474,8 +3474,9 @@ async function preloadCardAssets(agentArg) {
   cardAssets.boostShapes  = await loadImage(shapesToSvgUrl(look.shapes));
 
   cardAssets.hq = null;
-  if (agent.hq && agent.hq.id)       cardAssets.hq = await Assets.image(agent.hq.id);
-  else if (agent.hq && agent.hq.png) cardAssets.hq = await loadImage(agent.hq.png);
+  const place = agentPlace(agent);     // v3 §6: safe place first, then HQ
+  if (place.id)       cardAssets.hq = await Assets.image(place.id);
+  else if (place.png) cardAssets.hq = await loadImage(place.png);
 
   cardAssets.stickers = {};
   const used = [].concat((agent.cover || {}).stickers || [], look.stickers || []);
@@ -3512,7 +3513,7 @@ function drawAgentToCanvas(ctx, data, x, y, size, withExtras, backdrop) {
   /* `backdrop` overrides the HQ for one cell. The card's POWER panel uses it
      to put the agent in the MOMENT its power is used rather than in the HQ
      again, which is what the screen shows. */
-  const bg = withExtras ? hqToBackground(agentHqId()) : 'plain';
+  const bg = withExtras ? hqToBackground(agentPlace(state.agent).id) : 'plain';
 
   // The rounded box the background sits inside, clipped so a photograph does
   // not spill past the agent's corners.
@@ -4980,22 +4981,27 @@ function wireOwnCard() {
 }
 
 /* ===========================================================================
-   27. HQ (v2 V4, spec §5.5)
+   27. SAFE PLACE (v3 §6, P4), built on the v2 HQ screen (v2 V4, §5.5)
 
-   "Where is your agent strongest?"
+   Two questions, one at a time, on the screen that asked "Where is your
+   agent strongest?" in session 2:
+     💬 "Where does your agent feel safe to talk?"     -> agent.safe.talk
+     ⛔ "Where does your agent's power stop working?" -> agent.safe.stops
 
-   Twelve photographs in two groups - six real places, six make-believe ones -
-   and a thirteenth option the child draws. Tapping one drops the agent into
-   that place with a small landing.
+   Each answer is one of the twelve places, Nowhere, or a place the child
+   draws or says on the shared ✏️ sheet. Tapping a place drops the agent into
+   it with the same small landing as v2.
 
-   The choice is just `hq.id`, which V2 already wired into every agent view
-   (`setHqBackdrop`), so choosing here changes the Power-up stage, the preview
-   thumbnail and the saved card at the same time. A drawn place is `hq.png`,
-   which nothing used until now.
-
-   There is no "right" place, and the app never says anything about the one a
-   child picks (v2 §12). The quiet room and the jungle are the same size on
-   screen and read out the same way.
+   - IT NEVER WRITES TO `hq` (v3 §6). Session 2's "strongest" answer stays
+     exactly as it was, so the two sessions can be compared.
+   - Nowhere is an equal choice - a card the same size as the places - not a
+     way of clearing a mistake.
+   - On every other screen the agent now stands in its safe-to-talk place,
+     or in its HQ if it has none (agentPlace()).
+   - The app says nothing about the place a child picks (v2 §12). The quiet
+     room and the jungle are the same size and read out the same way.
+   - Off in the session-3 preset (MISSIONS: defaultOn false); an adult
+     switches it on in the panel.
    ======================================================================== */
 
 /* The two groups, in the spec's order. The ids are the manifest's, so each
@@ -5005,75 +5011,147 @@ const HQ_REAL    = ['hq-classroom', 'hq-playground', 'hq-library',
 const HQ_FANTASY = ['hq-space', 'hq-underwater', 'hq-jungle',
                     'hq-city-rooftop', 'hq-sky-castle', 'hq-secret-lab'];
 
-function enterHq() {
-  if (!state.agent) return;
-  renderHq();
-  speakLine('nar-hq-intro');
+const SAFE_NOWHERE = 'safe-nowhere';
+
+const SAFE_STEPS = {
+  talk:  { title: 'Where does your agent feel safe to talk?',
+           say: 'nar-safe-talk', next: 'stops' },
+  stops: { title: "Where does your agent's power stop working?",
+           say: 'nar-safe-stops', next: null }
+};
+
+const safeUi = { step: 'talk' };
+
+/* Where an agent stands on every screen (v3 §6): its safe-to-talk place if
+   it has a real one, otherwise its HQ from session 2. Returns { id, png }
+   in the same shape as `hq`, so the code that draws backgrounds does not
+   need to know which it got. */
+function agentPlace(agent) {
+  if (!agent) return { id: null, png: null };
+  const talk = agent.safe && agent.safe.talk;
+  if (talk && (talk.png || (talk.id && talk.id !== SAFE_NOWHERE))) {
+    return { id: talk.png ? null : talk.id, png: talk.png || null };
+  }
+  return { id: (agent.hq && agent.hq.id) || null, png: (agent.hq && agent.hq.png) || null };
 }
 
-function renderHq() {
+function enterSafe() {
   if (!state.agent) return;
+  hideEditor();
+  safeUi.step = 'talk';
+  renderSafe();
+}
+
+/* The answer for the step on screen, or null. */
+function safeAnswer() {
+  return (state.agent && state.agent.safe && state.agent.safe[safeUi.step]) || null;
+}
+
+function renderSafe() {
+  if (!state.agent) return;
+  const step = SAFE_STEPS[safeUi.step];
+  $('#safe-title').textContent = step.title;
+  $('#safe-next').hidden = !step.next;
+  $$('[data-safe-step]').forEach(b =>
+    b.classList.toggle('is-on', b.dataset.safeStep === safeUi.step));
+
   renderAgentView($('#hq-stage'), state.agent.cover, false);
-  paintHqRow('#hq-real', HQ_REAL);
-  paintHqRow('#hq-fantasy', HQ_FANTASY);
-  paintHqOwn();
-  paintHqWhere();
+  showPlaceOn($('#hq-stage'), safeAnswer());
+
+  paintPlaceRow('#hq-real', HQ_REAL);
+  paintPlaceRow('#hq-fantasy', HQ_FANTASY);
+  paintNowhere();
+  paintSafeOwn();
+  paintSafeWhere();
+}
+
+/* Put a place behind the agent on one view: a photograph, a drawing, or
+   none. The stage is marked data-scene="moment", so setHqBackdrop() will not
+   swap in the HQ a moment later. `placeToken` stops a slow photograph from
+   an earlier tap landing after a newer choice. */
+let placeToken = 0;
+function showPlaceOn(view, answer) {
+  const token = ++placeToken;
+  const clear = () => {
+    view.style.removeProperty('--hq-image');
+    view.classList.remove('has-hq');
+  };
+  if (!answer) { clear(); return; }
+  if (answer.png) {
+    view.style.setProperty('--hq-image', 'url("' + answer.png + '")');
+    view.classList.add('has-hq');
+    return;
+  }
+  if (!answer.id || answer.id === SAFE_NOWHERE) { clear(); return; }
+  Assets.image(answer.id).then(img => {
+    if (token !== placeToken) return;
+    if (!img) { clear(); return; }
+    view.style.setProperty('--hq-image', 'url("' + img.src + '")');
+    view.classList.add('has-hq');
+  });
 }
 
 /* One row of picture cards. `Assets.card()` gives the photograph with its
    emoji stand-in underneath, so an empty assets/ folder still works. */
-function paintHqRow(selector, ids) {
+function paintPlaceRow(selector, ids) {
   const box = $(selector);
   if (!box) return;
   box.innerHTML = '';
-
+  const answer = safeAnswer();
   ids.forEach(id => {
     const card = Assets.card(id);
-    if (agentHqId() === id) card.classList.add('is-on');
-    card.addEventListener('click', () => chooseHq(id));
+    if (answer && answer.id === id) card.classList.add('is-on');
+    card.addEventListener('click', () => chooseSafe(id));
     box.appendChild(card);
   });
 }
 
-/* The line under the agent: where it is right now, in words. */
-function paintHqWhere() {
-  const where = $('#hq-where');
-  if (!where) return;
-  const id = agentHqId();
-  if (state.agent.hq && state.agent.hq.png && !id) {
-    where.textContent = 'My own place';
-    return;
+function paintNowhere() {
+  const box = $('#safe-nowhere');
+  box.innerHTML = '';
+  const card = Assets.card(SAFE_NOWHERE, { fallback: '🚫', label: 'Nowhere' });
+  const answer = safeAnswer();
+  if (answer && answer.id === SAFE_NOWHERE) card.classList.add('is-on');
+  card.addEventListener('click', () => chooseSafe(SAFE_NOWHERE));
+  box.appendChild(card);
+}
+
+/* The line under the agent: where it is for this question, in words. */
+function paintSafeWhere() {
+  const answer = safeAnswer();
+  let text = 'Not chosen yet';
+  if (answer && (answer.png || answer.audioId)) text = 'My own place';
+  else if (answer && answer.id === SAFE_NOWHERE) text = 'Nowhere';
+  else if (answer && answer.id) {
+    const entry = Assets.item(answer.id);
+    text = entry ? entry.label : answer.id;
   }
-  const entry = id ? Assets.item(id) : null;
-  where.textContent = entry ? entry.label : 'Nowhere yet';
+  $('#hq-where').textContent = text;
 }
 
-function chooseHq(id) {
-  const changing = agentHqId() && agentHqId() !== id;
-  state.agent.hq.id = id;
-  state.agent.hq.png = null;           // a photograph replaces a drawn place
-
-  logEvent('hq_choose', { id: id, changed: Boolean(changing) });
-  speakLabel(id);                      // v2 §7: the card says its label
-  /* No pop here: landAgent() makes the sound for this action. Two at once
-     just muddles, and §4.6 has no separate landing sound. */
-
-  renderHq();
-  refreshAgentViews();                 // the preview and every other stage
-  landAgent();
+function chooseSafe(id) {
+  const step = safeUi.step;
+  const before = safeAnswer();
+  state.agent.safe[step] = { id: id, png: null };
+  logEvent('safe_choose', {
+    step: step,
+    id: id,
+    changed: Boolean(before && (before.id || before.png || before.audioId))
+  });
+  speakLabel(id);                 // the card says its label: "Library", "Nowhere"…
+  renderSafe();
+  refreshAgentViews();            // the thumbnail stands in the new place too
+  if (id !== SAFE_NOWHERE) landAgent();
+  else playSfx('sfx-pop');
   scheduleSave();
 }
 
-/* "Nowhere" is an equal choice, not a way of clearing a mistake: an agent
-   does not have to have a place. */
-function clearHq() {
-  state.agent.hq.id = null;
-  state.agent.hq.png = null;
-  logEvent('hq_choose', { id: null });
-  playSfx('sfx-pop');
-  renderHq();
-  refreshAgentViews();
-  scheduleSave();
+/* Move between the two questions: ➡️, or the 💬 ⛔ buttons. */
+function goSafeStep(step, how) {
+  if (!SAFE_STEPS[step] || step === safeUi.step) return;
+  logEvent('safe_step', { to: step, how: how });
+  safeUi.step = step;
+  renderSafe();
 }
 
 /* The landing (v2 §5.5). The class is removed first so that choosing the same
@@ -5103,71 +5181,63 @@ function landAgent() {
 
 /* ---------------------------------------------------------------------------
    ✏️ DRAW MY OWN PLACE
-   Reuses the shared ✏️ sheet from V3 rather than adding another one: it
-   already has the brush, the palette, the mic and the keep/cancel buttons.
+   The shared ✏️ sheet: draw it, say it, or both. A drawn place replaces a
+   photograph and the other way round, as in v2. A place that is only SAID
+   keeps its recording as `audioId` - there is nothing to draw behind the
+   agent, but the child's words are not thrown away.
    ------------------------------------------------------------------------ */
-function openHqDraw() {
+function openSafeDraw() {
+  const step = safeUi.step;
   openOwnCard({
     title: 'Draw your own place',
-    say: 'nar-hq-draw',
+    say: SAFE_STEPS[step].say,
     onKeep: card => {
-      state.agent.hq.png = card.png;
-      state.agent.hq.id = null;        // a drawn place replaces a photograph
-      logEvent('hq_draw', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
-      if (card.audioId) state.agent.hq.audioId = card.audioId;
-      renderHq();
+      state.agent.safe[step] = { id: null, png: card.png, audioId: card.audioId || null };
+      logEvent('safe_draw', { step: step, drawn: Boolean(card.png), said: Boolean(card.audioId) });
+      renderSafe();
       refreshAgentViews();
-      landAgent();
+      if (card.png) landAgent();
       scheduleSave();
     }
   });
 }
 
-/* The drawn place, shown beside the ✏️ button once it exists. Tapping it asks
-   before removing, the same two-tap rule as the Power-up's own cards. */
-let hqOwnArmed = false;
-let hqOwnTimer = null;
-
-function paintHqOwn() {
+/* The child's own place, beside the ✏️ button once it exists, with the
+   two-tap remove every kept card has (ownCardTile). */
+function paintSafeOwn() {
   const box = $('#hq-own');
-  if (!box) return;
   box.innerHTML = '';
-  if (!state.agent.hq || !state.agent.hq.png) return;
-
-  const tile = document.createElement('button');
-  tile.className = 'when-own is-on' + (hqOwnArmed ? ' is-armed' : '');
-  tile.innerHTML =
-    '<img class="hq-own-thumb" alt="" src="' + state.agent.hq.png + '">' +
-    '<span class="when-own-label">' + (hqOwnArmed ? 'Remove?' : 'My place') + '</span>';
-  tile.setAttribute('aria-label', 'My own place');
-  tile.addEventListener('click', armHqOwnRemove);
-  box.appendChild(tile);
+  const answer = safeAnswer();
+  if (!answer || !(answer.png || answer.audioId)) return;
+  const step = safeUi.step;
+  box.appendChild(ownCardTile(answer, 'safe-' + step,
+    () => removeSafeOwn(step),
+    () => paintSafeOwn()));
 }
 
-function armHqOwnRemove() {
-  if (hqOwnArmed) {
-    clearTimeout(hqOwnTimer);
-    hqOwnArmed = false;
-    state.agent.hq.png = null;
-    logEvent('hq_draw_remove', {});
-    renderHq();
-    refreshAgentViews();
-    scheduleSave();
-    return;
-  }
-  clearTimeout(hqOwnTimer);
-  hqOwnArmed = true;
-  playSfx('sfx-pop');
-  hqOwnTimer = setTimeout(() => { hqOwnArmed = false; paintHqOwn(); }, 3000);
-  paintHqOwn();
+async function removeSafeOwn(step) {
+  const answer = state.agent.safe[step];
+  if (!answer) return;
+  if (answer.audioId) { Voice.forget(answer.audioId); await Storage.deleteAudio(answer.audioId); }
+  state.agent.safe[step] = null;
+  logEvent('safe_draw_remove', { step: step });
+  renderSafe();
+  refreshAgentViews();
+  scheduleSave();
 }
 
 
-/* Wiring the HQ up. Called once, from wireUp(). */
-function wireHq() {
-  $('#btn-hq-draw').addEventListener('click', openHqDraw);
-  $('#btn-hq-none').addEventListener('click', clearHq);
+/* Wiring Safe place up. Called once, from wireUp(). */
+function wireSafe() {
+  $('#btn-hq-draw').addEventListener('click', openSafeDraw);
   $('#btn-hq-again').addEventListener('click', landAgent);
+  $('#safe-next').addEventListener('click', () => {
+    const next = SAFE_STEPS[safeUi.step].next;
+    if (next) goSafeStep(next, 'next');
+  });
+  $$('[data-safe-step]').forEach(b =>
+    b.addEventListener('click', () => goSafeStep(b.dataset.safeStep, 'tab')));
+  $('#safe-say').addEventListener('click', () => speakLine(SAFE_STEPS[safeUi.step].say));
 }
 
 
@@ -5708,24 +5778,9 @@ function paintLikeMe() {
   const box = $('#likeme-cards');
   box.innerHTML = '';
   LIKE_ME.forEach(card => {
-    const button = document.createElement('button');
-    button.className = 'pic-card' + (state.agent.likeMe === card.id ? ' is-on' : '');
-    button.setAttribute('aria-pressed', state.agent.likeMe === card.id ? 'true' : 'false');
-    button.innerHTML =
-      '<span class="pic-card-art"><span class="pic-card-emoji">' + card.emoji + '</span></span>' +
-      '<span class="pic-card-label">' + card.label + '</span>';
-    // Filip's picture covers the emoji once it has arrived (asset guide §3.9).
-    Assets.image(card.id).then(img => {
-      if (!img) return;
-      const pic = document.createElement('img');
-      pic.className = 'pic-card-img';
-      pic.alt = '';
-      pic.src = img.src;
-      button.querySelector('.pic-card-art').appendChild(pic);
-      button.classList.add('has-image');
-    });
-    button.addEventListener('click', () => chooseLikeMe(card.id));
-    box.appendChild(button);
+    // modeCard() is defined with "How my agent talks" (section 31).
+    box.appendChild(modeCard(card, state.agent.likeMe === card.id,
+                             () => chooseLikeMe(card.id)));
   });
 }
 
@@ -5817,24 +5872,13 @@ function enterSuit() {
 
 /* ---- cards ---- */
 
-/* A picture card: Filip's picture if it has arrived, the emoji until then
-   (the emoji stays underneath, so a slow picture never flickers). */
+/* A picture card that can be on or off. Assets.card() draws it: Filip's
+   picture if it has arrived, the emoji until then (v2 §5.0). The emoji and
+   label passed in are only used if the id is missing from the manifest. */
 function modeCard(mode, on, onTap) {
-  const button = document.createElement('button');
-  button.className = 'pic-card' + (on ? ' is-on' : '');
+  const button = Assets.card(mode.id, { fallback: mode.emoji, label: mode.label });
+  if (on) button.classList.add('is-on');
   button.setAttribute('aria-pressed', on ? 'true' : 'false');
-  button.innerHTML =
-    '<span class="pic-card-art"><span class="pic-card-emoji">' + mode.emoji + '</span></span>' +
-    '<span class="pic-card-label">' + mode.label + '</span>';
-  Assets.image(mode.id).then(img => {
-    if (!img) return;
-    const pic = document.createElement('img');
-    pic.className = 'pic-card-img';
-    pic.alt = '';
-    pic.src = img.src;
-    button.querySelector('.pic-card-art').appendChild(pic);
-    button.classList.add('has-image');
-  });
   button.addEventListener('click', onTap);
   return button;
 }

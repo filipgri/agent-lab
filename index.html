@@ -333,32 +333,43 @@
         <!-- v2 §3: HQ and Force field arrive at V4 and V7. Until then they are
              honest placeholders rather than missing pips - a child can still
              Stamp it or Pass, so the run-through is never blocked. -->
-        <!-- ============ MISSION: HQ (v2 §5.5) ============
-             "Where is your agent strongest?" The agent stands in the chosen
-             place on the left; the twelve photographs are two rows on the
-             right, real places first, then make-believe ones. Tapping a card
-             drops the agent in with a small landing. -->
-        <article class="mission-panel" data-mission="hq">
+        <!-- 📍 SAFE PLACE (v3 §6, P4), built on the v2 HQ screen: the agent on
+             the left, the twelve places on the right - real places first,
+             then make-believe - plus Nowhere and ✏️ Draw my own. Two steps,
+             one at a time, each with 🔊 and ➡️:
+               💬 Where does your agent feel safe to talk?      -> safe.talk
+               ⛔ Where does your agent's power stop working?  -> safe.stops
+             It NEVER writes to `hq`: the session-2 answer ("strongest")
+             stays as it was, so the two sessions can be compared.
+             Off in the session-3 preset; an adult can switch it on. -->
+        <article class="mission-panel" data-mission="safe">
           <div class="hq-wrap">
 
             <aside class="hq-stage-col">
-              <div id="hq-stage" class="agent-view hq-stage">
+              <!-- data-scene="moment": this stage shows the place for the
+                   step on screen, so setHqBackdrop() leaves it alone. -->
+              <div id="hq-stage" class="agent-view hq-stage" data-scene="moment">
                 <canvas class="agent-pixels" width="16" height="16"></canvas>
                 <img class="agent-drawing" alt="" hidden>
                 <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
                 <div class="sticker-layer"></div>
               </div>
-              <p id="hq-where" class="hq-where">Nowhere yet</p>
+              <p id="hq-where" class="hq-where">Not chosen yet</p>
               <div class="hq-stage-tools">
                 <button id="btn-hq-again" class="btn tool" aria-label="Land again">✨<span class="tool-word">Again</span></button>
-                <button id="btn-hq-none" class="btn tool" aria-label="No place">⬜<span class="tool-word">Nowhere</span></button>
               </div>
             </aside>
 
             <div class="hq-picker">
               <header class="power-head">
-                <h2 class="power-title">Where is your agent strongest?</h2>
-                <button class="btn btn-icon-only" data-say="nar-hq-intro" aria-label="Hear this">🔊</button>
+                <!-- Which question is showing. Icons, not numbers. -->
+                <div class="safe-steps seg-group">
+                  <button class="btn seg" data-safe-step="talk" aria-label="Safe to talk">💬</button>
+                  <button class="btn seg" data-safe-step="stops" aria-label="Where the power stops">⛔</button>
+                </div>
+                <h2 id="safe-title" class="power-title">Where does your agent feel safe to talk?</h2>
+                <button id="safe-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+                <button id="safe-next" class="btn power-skip" aria-label="Next question">➡️</button>
               </header>
 
               <h3 class="hq-group-title">Real places</h3>
@@ -367,7 +378,9 @@
               <h3 class="hq-group-title">Make-believe places</h3>
               <div id="hq-fantasy" class="hq-row"></div>
 
+              <!-- Nowhere is an equal choice, the same size as a place. -->
               <div class="hq-own-row">
+                <div id="safe-nowhere" class="hq-row"></div>
                 <button id="btn-hq-draw" class="when-own" aria-label="Draw my own place">
                   <span class="when-own-icon">✏️</span>
                   <span class="when-own-label">Draw my own</span>
@@ -433,14 +446,6 @@
               </div>
             </section>
 
-          </div>
-        </article>
-
-        <article class="mission-panel" data-mission="safe">
-          <div class="soon-wrap">
-            <span class="soon-icon">📍</span>
-            <p class="soon-text">Your agent's safe place is being built.</p>
-            <p class="soon-note">Coming soon</p>
           </div>
         </article>
 

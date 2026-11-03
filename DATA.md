@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P3** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P4** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -120,7 +120,7 @@ These were the session-2 screens. **v3 removed the screens, not the data.**
 | `powerup.power` | `{ png, audioId, idea, effect }`. `png` / `audioId`: the child's own power, drawn and/or said, on the ✏️ sheet. `effect`: the effect chosen (`fx-…`). `idea`: an idea tile; the idea step was removed before session 2, so this is `null` there. |
 | `powerup.when` | Situation ids the child picked (`sit-…`): when the agent uses its power. |
 | `powerup.whenOwn` | The child's own situation cards: each `{ png, audioId }`. |
-| `hq` | `{ id, png }`. `id` is an HQ place (`hq-…`); `png` is a drawn place instead. Only one of the two is set. Shown behind the agent everywhere. Both `null` means either "never chosen" or "Nowhere" — the event log tells them apart (`hq_choose { id: null }` is Nowhere). |
+| `hq` | `{ id, png }` — "Where is your agent strongest?" (session 2). `id` is an HQ place (`hq-…`); `png` is a drawn place instead (and `audioId` if it was also said). Only one of `id`/`png` is set. Both `null` means either "never chosen" or "Nowhere" — the event log tells them apart (`hq_choose { id: null }` is Nowhere). **v3 never writes to it.** The agent stands in its HQ on every screen unless it has a safe-to-talk place (`safe.talk`), which comes first. |
 | `voice` | `{ audioId, filter, threeWays }`. The voice password: the recording, and the spy voice chosen to play it (`Voice.FILTERS` in `audio.js`; `"normal"` = unchanged). `threeWays` is three `audioId`s or `null`s from "Say it 3 ways", removed on 7 October 2026 — nothing shows them. |
 
 ### 3.5 Fields for v2 missions that never opened
@@ -161,7 +161,7 @@ milestone first writes each one; until then it keeps its default.
 | `base` | `null` | `"base-1"` … `"base-8"` (a ready agent from `Parts.BASES` in `parts.js`), or `"blank"`. Which one the child started from. The cover's `shapes` start as a copy of that base and change from there. `null` on agents made before v3. | P2 ✅ |
 | `suit` | `{ likes: [], likesOwn: [], school: [], schoolOwn: [] }` | 🗣️ How my agent talks. `likes`: how the agent likes to talk; `school`: how school wants it to talk. Each a list of card ids, **in the order they were turned on** (a card turned off is taken out). Cards: `mode-talk`, `mode-hands`, `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures`, `mode-write`, `mode-device`, and — on `school` only — `mode-hand-up`, `mode-quiet`. `likesOwn` / `schoolOwn`: the child's ✏️ My own cards, each `{ png, audioId }`. The app never compares the two lists. | P3 ✅ |
 | `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). | P3 ✅ |
-| `safe` | `{ talk: null, stops: null }` | Each `{ id, png }`: an HQ place id or `"safe-nowhere"`, or a drawn place. | P4 |
+| `safe` | `{ talk: null, stops: null }` | 📍 Safe place. `talk`: "Where does your agent feel safe to talk?" `stops`: "Where does your agent's power stop working?" Each is `null` (not answered) or `{ id, png }`: `id` is one of the twelve HQ place ids or `"safe-nowhere"` (Nowhere, an equal choice); or `id: null` with `png` (a drawn place) and/or `audioId` (a place the child said) from the ✏️ sheet. The agent stands in `safe.talk` on every screen when it is a real place. Off in the session-3 preset. | P4 ✅ |
 | `powers` | `[]` | Up to 3 powers. Shape below. | P5 |
 | `bottles` | `[]` | Up to 3 bottles. Shape below. | P6 |
 
@@ -308,14 +308,25 @@ The "v3" column says whether the current app can still log the event.
 Every card tap is also a `label_speak` (the card says its label). Turning a
 card ON also makes the agent act it out on the thumbnail; that is not logged.
 
+### 4.3c Safe place (v3 P4)
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `safe_choose` | A place, or Nowhere, was tapped. | `{ step: "talk"/"stops", id, changed }` — `id` is an HQ place id or `"safe-nowhere"`; `changed` is true if that question already had an answer | ✅ |
+| `safe_step` | The other question was opened. | `{ to: "talk"/"stops", how: "next"/"tab" }` — `next` is ➡️, `tab` is the 💬 / ⛔ buttons | ✅ |
+| `safe_draw` | A place from the ✏️ sheet was kept. | `{ step, drawn, said }` | ✅ |
+| `safe_draw_remove` | That place was removed (second tap of two). | `{ step }` | ✅ |
+
+Every place tapped is also a `label_speak`.
+
 ### 4.4 Drawing and the ✏️ My own sheet
 
 | Action | When | `detail` | v3 |
 |---|---|---|---|
 | `draw_stroke` | One stroke on a drawing canvas. | `{ where, points }` | ✅ |
-| `hq_choose` | An HQ place chosen. `{ id: null }` is Nowhere. | `{ id, changed }`, `{ id: null }`, or `{ id, from: "place-tab" }` | hidden (P4) |
-| `hq_draw` | A drawn HQ kept. | `{ drawn, said }` | hidden (P4) |
-| `hq_draw_remove` | A drawn HQ removed. | `{}` | hidden (P4) |
+| `hq_choose` | Session 2: an HQ place chosen. `{ id: null }` is Nowhere. | `{ id, changed }`, `{ id: null }`, or `{ id, from: "place-tab" }` | — (v2 only) |
+| `hq_draw` | Session 2: a drawn HQ kept. | `{ drawn, said }` | — (v2 only) |
+| `hq_draw_remove` | Session 2: a drawn HQ removed. | `{}` | — (v2 only) |
 | `power_when_own` | An own situation card kept. | `{ drawn, said }` | hidden |
 
 > ⚠️ **`draw_stroke` `where` in session-2 data.** Up to session 2, `where` was
