@@ -75,26 +75,40 @@ const MISSIONS = [
 // Which session is running. The adult panel sets it; every event carries it.
 const DEFAULT_SESSION = 3;         // v3 is for session 3 onwards
 
-// Codename word lists (spec §7). Adjective + animal, with the animal's emoji.
+// Codename word lists (spec §7). A describing word + a spy word.
 const ADJECTIVES = [
   'Silent', 'Swift', 'Brave', 'Clever', 'Hidden', 'Golden', 'Midnight', 'Lucky',
   'Shadow', 'Bright', 'Sneaky', 'Mighty', 'Quiet', 'Wild', 'Cosmic', 'Electric',
   'Frosty', 'Turbo', 'Secret', 'Jazzy', 'Rapid', 'Steady', 'Neon', 'Royal'
 ];
 
-const ANIMALS = [
-  { name: 'Falcon',   emoji: '🦅' }, { name: 'Fox',     emoji: '🦊' },
-  { name: 'Tiger',    emoji: '🐯' }, { name: 'Owl',     emoji: '🦉' },
-  { name: 'Wolf',     emoji: '🐺' }, { name: 'Shark',   emoji: '🦈' },
-  { name: 'Panda',    emoji: '🐼' }, { name: 'Dragon',  emoji: '🐉' },
-  { name: 'Otter',    emoji: '🦦' }, { name: 'Cat',     emoji: '🐱' },
-  { name: 'Bear',     emoji: '🐻' }, { name: 'Rabbit',  emoji: '🐰' },
-  { name: 'Octopus',  emoji: '🐙' }, { name: 'Penguin', emoji: '🐧' },
-  { name: 'Lion',     emoji: '🦁' }, { name: 'Frog',    emoji: '🐸' },
-  { name: 'Hedgehog', emoji: '🦔' }, { name: 'Parrot',  emoji: '🦜' },
-  { name: 'Dolphin',  emoji: '🐬' }, { name: 'Bee',     emoji: '🐝' },
-  { name: 'Crab',     emoji: '🦀' }, { name: 'Koala',   emoji: '🐨' },
-  { name: 'Monkey',   emoji: '🐵' }, { name: 'Moth',    emoji: '🦋' }
+/* SPY WORDS, NOT ANIMALS (decided 3 November 2026).
+   Up to session 2 the second reel was an animal, shown as a huge emoji. A big
+   dolphin promises the child they will be working with a dolphin - and then
+   nothing in the app ever mentions it again. So the second reel is now a spy
+   word that is not a creature or a character, and its symbol is only a small
+   badge on the agent's chest (see the Start screen in index.html).
+
+   The research data still calls this reel `animal` (codenameParts.animal,
+   the codename_spin and codename_lock events), so session-2 and session-3
+   logs line up; DATA.md says what it holds now. Agents named in session 2
+   keep their animal names - that is the child's work. Words already on the
+   first reel (Shadow, Frosty…) are left out so no name repeats itself, and
+   so are emoji that are little dark pictures (🌌 🌠) - they turn into a
+   black square at badge size. */
+const SPY_WORDS = [
+  { name: 'Comet',   emoji: '☄️' }, { name: 'Storm',   emoji: '⛈️' },
+  { name: 'Spark',   emoji: '✨' }, { name: 'Rocket',  emoji: '🚀' },
+  { name: 'Arrow',   emoji: '🏹' }, { name: 'Thunder', emoji: '⚡' },
+  { name: 'Blaze',   emoji: '🔥' }, { name: 'Wave',    emoji: '🌊' },
+  { name: 'Star',    emoji: '⭐' }, { name: 'Moon',    emoji: '🌙' },
+  { name: 'Cloud',   emoji: '☁️' }, { name: 'Breeze',  emoji: '🍃' },
+  { name: 'Compass', emoji: '🧭' }, { name: 'Lantern', emoji: '🏮' },
+  { name: 'Key',     emoji: '🔑' }, { name: 'Diamond', emoji: '💎' },
+  { name: 'Riddle',  emoji: '🧩' }, { name: 'Orbit',   emoji: '🪐' },
+  { name: 'Rainbow', emoji: '🌈' }, { name: 'Signal',  emoji: '📡' },
+  { name: 'Shield',  emoji: '🛡️' }, { name: 'Magnet',  emoji: '🧲' },
+  { name: 'Torch',   emoji: '🔦' }, { name: 'Crystal', emoji: '🔮' }
 ];
 
 
@@ -489,21 +503,22 @@ async function rollCodename(options) {
     // Flick through names while it spins, so the reel really is moving.
     const flicker = setInterval(() => {
       if (!reelLocks.word) wordEl.textContent = pick(ADJECTIVES);
-      if (!reelLocks.animal) animalEl.textContent = pick(ANIMALS).name;
+      if (!reelLocks.animal) animalEl.textContent = pick(SPY_WORDS).name;
     }, 70);
 
     await wait(420);
     clearInterval(flicker);
   }
 
-  // Settle the word reel, then the animal reel a beat later.
+  // Settle the first reel, then the spy word a beat later. (The second reel
+  // is still called `animal` in the code and the data - see SPY_WORDS.)
   if (!reelLocks.word) {
     pendingCodename.word = pick(ADJECTIVES);
   }
   if (!reelLocks.animal) {
-    const animal = pick(ANIMALS);
-    pendingCodename.animal = animal.name;
-    pendingCodename.emoji  = animal.emoji;
+    const spyWord = pick(SPY_WORDS);
+    pendingCodename.animal = spyWord.name;
+    pendingCodename.emoji  = spyWord.emoji;
   }
 
   if (animate) {
@@ -561,7 +576,7 @@ function paintCodename() {
     button.setAttribute('aria-checked', on ? 'true' : 'false');
   });
 
-  // A typed name has no animal reel, so the second reel is hidden for it.
+  // A typed name has no second reel, so it is hidden for one.
   $('#reel-animal').parentElement.hidden = !pendingCodename.animal;
 }
 
@@ -573,8 +588,8 @@ function applyCodenameToAgent(source) {
   state.agent.codename = pendingCodename.codename;
   state.agent.codenameParts = { word: pendingCodename.word, animal: pendingCodename.animal };
   state.agent.codenameSource = source;
-  // A rolled name brings the animal's emoji with it; a typed one has already
-  // set its own emblem above, so only fill in a missing one here.
+  // A rolled name brings its spy word's symbol with it; a typed one has
+  // already set its own emblem above, so only fill in a missing one here.
   if (source === 'roll' || !state.agent.emblem || !state.agent.emblem.emoji) {
     if (!state.agent.emblem || !state.agent.emblem.asset) {
       state.agent.emblem = { emoji: pendingCodename.emoji || '🕵️', asset: null };
@@ -583,8 +598,10 @@ function applyCodenameToAgent(source) {
   scheduleSave();
 }
 
-/* THE EMOJI IS THE HERO (v2 §5.1). Tapping it bounces it and says the name.
-   There is no recorded audio for a name, so this is always speechSynthesis. */
+/* THE HERO (v2 §5.1, changed in v3). It used to be the animal's emoji; it
+   is now an empty agent with the emblem as a badge on its chest - the agent
+   the child is about to make. Tapping it bounces it and says the name. There
+   is no recorded audio for a name, so this is always speechSynthesis. */
 function tapEmblem() {
   const hero = $('#emblem-hero');
   if (hero && fullMotion()) {

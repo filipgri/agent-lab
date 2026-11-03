@@ -83,10 +83,10 @@ ever deleted:** retired missions' fields stay in every record and every export
 
 | Field | Type | Meaning |
 |---|---|---|
-| `codename` | string | The spy name, e.g. `"Electric Bear"`. **Never a real name.** Not unique: two agents can share one. |
-| `codenameParts` | `{ word, animal }` | The two reels. A typed name has `animal: ""`. |
+| `codename` | string | The spy name, e.g. `"Electric Bear"` (session 2) or `"Clever Blaze"` (v3). **Never a real name.** Not unique: two agents can share one. |
+| `codenameParts` | `{ word, animal }` | The two reels. `word` is the describing word. **`animal` is the second reel: an animal up to session 2, a spy word from v3** (Comet, Storm, Key…; the key keeps its old name so the logs line up). A typed name has `animal: ""`. |
 | `codenameSource` | `"roll"` / `"type"` | Whether the child rolled the name or typed their own. |
-| `emblem` | `{ emoji, asset }` | The agent's symbol. `emoji` is the animal for a rolled name; for a typed name it is the sticker the child picked (`asset` is set instead if it was a picture sticker). `🕵️` if none. |
+| `emblem` | `{ emoji, asset }` | The agent's symbol. For a rolled name it is the second reel's emoji — the animal up to session 2, the spy word's symbol from v3 (☄️ for Comet). For a typed name it is the sticker the child picked (`asset` is set instead if it was a picture sticker). `🕵️` if none. |
 | `codenameEmoji` | string | **v1 only.** The old name for `emblem.emoji`; read only by `agentEmblem()` as a fallback. |
 | `seal` | string / null | Three seal symbols joined, e.g. `"🦊⚡🔑"`, or `null`. A sealed agent asks for them before it opens. The symbols are 🦊 🌙 ⚡ 🍕 🎈 🌵 🐙 🎲 🔑. In v3 a child can open a sealed agent but cannot seal a new one yet. |
 | `requests` | object[] | Words a child wanted and found no sticker for: `{ word, where, t }`. `where` is `"codename-type"` or `"sticker-search"`. Shown as "📡 Request sent to HQ"; nothing is sent anywhere. |
@@ -231,9 +231,9 @@ The "v3" column says whether the current app can still log the event.
 
 | Action | When | `detail` | v3 |
 |---|---|---|---|
-| `codename_spin` | The reels are rolled. | `{ word, animal, locks: { word, animal } }` | ✅ |
+| `codename_spin` | The reels are rolled. | `{ word, animal, locks: { word, animal } }` — `animal` is the second reel (a spy word from v3) | ✅ |
 | `codename_lock` | A 🔒 under a reel is tapped. | `{ reel: "word"/"animal", on }` | ✅ |
-| `codename_speak` | The big emblem is tapped (it says the name). | `{ codename }` | ✅ |
+| `codename_speak` | The hero is tapped (it says the name): the big animal up to session 2, the empty agent from v3. | `{ codename }` | ✅ |
 | `codename_type` | A typed name is used. | `{ text }` | ✅ |
 | `emblem_choose` | A sticker is picked as the emblem for a typed name. | `{ value }` (emoji or asset id) | ✅ |
 | `agent_create` | New agent. The first event on every agent. | `{ codename }` | ✅ |

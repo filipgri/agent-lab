@@ -398,6 +398,19 @@ hand-edit the manifest, and never edit both.
 
 ## Settled decisions
 
+- **Spy words, not animals (3 November 2026).** A big dolphin on the Start
+  screen promised children they would be working with a dolphin, and nothing
+  in the app ever mentioned it again. The second reel is now a spy word that
+  is not a creature or a character (`SPY_WORDS`), and the hero is an empty
+  dashed agent with the word's symbol as a badge on its chest — the agent
+  the child is about to make. The empty agent thumbnail uses the same
+  outline. This departs from v3 §4 ("the existing reels, unchanged").
+  **The data still calls the reel `animal`** (`codenameParts.animal`,
+  `codename_spin`, `codename_lock`) so session-2 and session-3 logs line up;
+  DATA.md says what it holds. Agents named in session 2 keep their animals.
+  Leave out emoji that are little dark pictures (🌌 🌠): at badge size they
+  are a black square.
+
 - **Agents do NOT survive clearing Safari's website data (7 October 2026).**
   They live in IndexedDB, which *is* website data — "Clear History and
   Website Data" deletes every one of them, and it already happened once in

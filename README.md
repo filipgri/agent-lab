@@ -28,7 +28,8 @@ them.
 Working now:
 
 - All screens exist; one is visible at a time.
-- Start screen with the 🎲 codename roller (adjective + animal + emoji), ⌨️ typing.
+- Start screen with the 🎲 codename roller (a describing word + a spy word, whose
+  symbol is a badge on an empty agent; animals until session 2), ⌨️ typing.
 - Navigation: **Stamp it ✓**, **Pass**, the progress strip (stamped / grey stamp /
   glowing / padlock), and tapping a finished mission to go back.
 - Auto-save to IndexedDB after every change, debounced to 500ms. No Save button.
@@ -397,10 +398,10 @@ register is the only link, and it lives on paper with the school:
 |---|---|---|
 | | | |
 
-Codenames are **not unique** — 24 adjectives × 24 animals is 576
+Codenames are **not unique** — 24 describing words × 24 spy words is 576
 combinations, so in a group of 20 two children share one about a quarter of
-the time. When that happens the gallery shows those two tiles as the agents
-themselves rather than the emblem, so a child can still pick theirs out. Write
+the time. The gallery shows every agent as itself (v3), so a child can still
+pick theirs out. Write
 the codename down at the end of the session, when a duplicate is easy to spot
 and easy to fix by re-rolling one.
 
@@ -564,7 +565,7 @@ The microphone is the thing to test on a **real iPad**, over the https address
 
 ## Test checklist for Milestone 0
 
-- [ ] Roll a codename a few times; the emoji changes with the animal.
+- [ ] Roll a codename a few times; the badge on the empty agent changes with the spy word.
 - [ ] **New agent** → lands on Mission 1 with the strip showing one glowing pip
       and the rest as padlocks with question marks.
 - [ ] **Stamp it** advances and leaves a stamp; **Pass** advances and leaves a

@@ -32,7 +32,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=75">
+  <link rel="stylesheet" href="./style.css?v=76">
 </head>
 <body>
 
@@ -57,23 +57,33 @@
     <!-- THE CODENAME (v2 §5.1). Children never type their real name (§3).
 
          Two reels side by side, each with a lock underneath, so a child who
-         likes "Bear" can keep it and re-roll only the word. The emoji is the
-         hero: big, tappable, and it says the name out loud. -->
+         likes "Comet" can keep it and re-roll only the first word.
+
+         The hero is an EMPTY AGENT - a dashed outline, the agent the child is
+         about to make - with the name's symbol as a small badge on its chest.
+         Until v3 it was a huge animal, which promised the child a dolphin
+         that never appeared again. Tapping it says the name out loud. -->
     <div class="codename-card">
       <button id="emblem-hero" class="emblem-hero" aria-label="Hear your spy name">
-        <span id="codename-emoji" class="codename-emoji">🦅</span>
+        <svg class="hero-outline" viewBox="0 0 100 120" aria-hidden="true">
+          <circle cx="50" cy="32" r="24"/>
+          <path d="M12 117 C12 84 29 64 50 64 C71 64 88 84 88 117 Z"/>
+        </svg>
+        <span class="hero-badge"><span id="codename-emoji" class="hero-emblem">☄️</span></span>
       </button>
 
       <div class="reels">
         <div class="reel-col">
           <div id="reel-word" class="reel" aria-live="polite">Silent</div>
           <button id="lock-word" class="reel-lock" role="switch" aria-checked="false"
-                  aria-label="Keep this word">🔓</button>
+                  aria-label="Keep the first word">🔓</button>
         </div>
         <div class="reel-col">
-          <div id="reel-animal" class="reel" aria-live="polite">Falcon</div>
+          <!-- The second reel: a spy word. Its id still says "animal",
+               like the data does (see SPY_WORDS in app.js). -->
+          <div id="reel-animal" class="reel" aria-live="polite">Comet</div>
           <button id="lock-animal" class="reel-lock" role="switch" aria-checked="false"
-                  aria-label="Keep this animal">🔓</button>
+                  aria-label="Keep the second word">🔓</button>
         </div>
       </div>
 
@@ -142,7 +152,16 @@
           <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
           <div class="sticker-layer"></div>
         </div>
-        <span id="preview-emoji" class="preview-emoji">🦅</span>
+        <!-- Before anything is drawn: the same empty agent as the Start
+             screen, with the emblem as a badge. (Until v3 a big emblem stood
+             here - a big animal where the child's agent should be.) -->
+        <span class="preview-empty" aria-hidden="true">
+          <svg class="hero-outline" viewBox="0 0 100 120">
+            <circle cx="50" cy="32" r="24"/>
+            <path d="M12 117 C12 84 29 64 50 64 C71 64 88 84 88 117 Z"/>
+          </svg>
+          <span class="hero-badge"><span id="preview-emoji" class="hero-emblem">☄️</span></span>
+        </span>
       </div>
       <div id="preview-name" class="preview-name">Silent Falcon</div>
 
@@ -655,14 +674,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=75"></script>
-<script src="./storage.js?v=75"></script>
-<script src="./audio.js?v=75"></script>
-<script src="./effects.js?v=75"></script>
-<script src="./assets.js?v=75"></script>
-<script src="./stickers.js?v=75"></script>
-<script src="./parts.js?v=75"></script>
-<script src="./app.js?v=75"></script>
+<script src="./boot-guard.js?v=76"></script>
+<script src="./storage.js?v=76"></script>
+<script src="./audio.js?v=76"></script>
+<script src="./effects.js?v=76"></script>
+<script src="./assets.js?v=76"></script>
+<script src="./stickers.js?v=76"></script>
+<script src="./parts.js?v=76"></script>
+<script src="./app.js?v=76"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->
