@@ -43,6 +43,16 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
   **?** on the display for the keys. **D** plays a demo bottle even with no
   network — if the room's Wi-Fi fails, you become the relay: press D as each
   child sends.
+- **P9 — built.** After a session, at home:
+
+  ```bash
+  python3 tools/analyse.py ~/Desktop/exports/*.json
+  ```
+
+  It writes `agents.csv`, `powers.csv`, `bottles.csv` and `events.csv`, the
+  drawings and recordings, and a card per agent (open `cards/index.html`)
+  into `agent-lab-analysis`, next to the agent-lab folder — outside the repo.
+  It is research data: move it to KCL storage. Every column is in `DATA.md`.
 
 The rest of this section describes session 2.
 

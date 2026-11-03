@@ -102,7 +102,7 @@ chose; any promise of total secrecy.
 | `display/index.html` | **v3.** The big-screen display, with `display.js` and `display.css`. Bare at P1; P7 builds the shore |
 | `display/relay.py` | **v3 P1.** The laptop relay. Python standard library only |
 | `display/certs/` | **v3 P1.** The relay's https certificate. **Gitignored** |
-| `tools/analyse.py` | **v3 P9.** The analysis script, run at home after a session |
+| `tools/analyse.py` | **v3 P9.** Exports → CSVs, drawings, recordings and agent cards. Run at home after a session |
 
 v2 §1 also allows `parts.js` (V2) and `stickers.js` (V2) when those milestones
 arrive. **Authoring tools live in `tools/`**: they run on Filip's computer, may
@@ -536,8 +536,17 @@ to the start. No card screen.
     row, one at a time; every key; D with the relay stopped; a reload
     rebuilding the post shelf without the hidden bottle; no digit anywhere
     in the scene.
+- **P9 — built (3 November 2026), ahead of P8.** `tools/analyse.py`,
+  standard library only: four CSVs (utf-8 with BOM, so Excel shows emoji),
+  `drawings/`, `audio/` and an agent card per agent. Merges exports by id,
+  keeping the copy with the most events; output is sorted and carries no
+  run date, so two runs are byte-identical (tested with `diff -r`). Writes
+  to `../agent-lab-analysis` by default and warns if pointed inside the
+  repo. The cards inline `parts.js` so agents are drawn by the app's own
+  code. Every column is in DATA.md §8.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
-  bump every version number. Needs v3 deployed and the room set up.
+  bump every version number. Needs v3 deployed and the room set up — it is
+  Filip's, with the iPads.
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

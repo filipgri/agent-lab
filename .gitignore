@@ -23,3 +23,8 @@ display/certs/
 
 # Python's compiled leftovers.
 __pycache__/
+
+# v3 P9: tools/analyse.py's output is research data. It goes OUTSIDE the
+# repo by default; these catch it if it is ever pointed inside.
+agent-lab-analysis/
+analysis/

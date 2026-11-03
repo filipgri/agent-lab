@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P7** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P9** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -570,3 +570,60 @@ memory only, and a reload switches every power off again.
 
 The Display link logs no events: it is the adult's set-up, not something a
 child did.
+
+---
+
+## 8. The analysis tables (`tools/analyse.py`, P9)
+
+`python3 tools/analyse.py <exports…> [--out FOLDER]` reads every iPad's export
+and writes to a folder OUTSIDE the repo (default `../agent-lab-analysis`).
+Agents are merged by `id`, keeping the copy with the most events. Rows never
+contain a child's name. `agent_ref` = the first 8 characters of the agent's
+id; `power_ref` and `bottle_ref` likewise. Lists are space-separated. 1/0
+for yes/no. Running it twice on the same files gives the same output.
+
+**`agents.csv`** — one row per agent
+
+| Column | From |
+|---|---|
+| `agent_ref`, `codename`, `codename_source`, `created_at` | §3.1–3.2 |
+| `sessions` | the sessions it was opened in |
+| `practice`, `imported`, `sealed` | 1/0 |
+| `door`, `base`, `like_me` | §3.3, §3.7 |
+| `event_count` | how many events in its log |
+| `status_make` … `status_bottle` | the v3 missions: `todo` / `done` / `passed` |
+| `status_powerup`, `status_hq`, `status_voice` | the session-2 missions |
+| `suit_likes`, `suit_likes_unsure`, `suit_likes_not` | the 👍 🤷 👎 piles of "My agent likes…" |
+| `suit_likes_own`, `suit_school_own` | own cards: `drawn`, `said` or `drawn+said`, one per card |
+| `suit_school`, `suit_school_unsure`, `suit_school_not` | the piles of "School wants…" |
+| `suit_best` | ⭐ the best one |
+| `secret_word`, `secret_word_voice` | 1/0, and its spy voice |
+| `handshake_taps` | the rhythm, ms from the first tap |
+| `safe_talk`, `safe_stops` | a place id, `safe-nowhere`, or `own:drawn` etc. |
+| `hq_v2` | session 2's HQ, the same way |
+| `v2_power_effect`, `v2_power_when` | session 2's power |
+| `power_count`, `bottle_count` | how many |
+
+**`powers.csv`** — one row per power: `agent_ref`, `codename`, `power_index`,
+`power_ref`, `power` (a card id, `own` or `v2`), `family` (the door, from §4
+of this file; empty for own/v2), `invented_first` (1/0), `own_drawn`,
+`own_said`, `when`, `when_own`, `who`, `who_own`, `how`, `how_own`, `so_that`
+(`drawn`/`said`/both), `skipped`, `order`, `times_fired` (its `powers_fire`
+events).
+
+**`bottles.csv`** — one row per bottle: `agent_ref`, `codename`,
+`bottle_index`, `bottle_ref`, `created_at`, `state`, `to`, `to_agent_ref`
+(the friend's agent, if one was tapped), `signed` (1/0, empty for "me"),
+`items` (the types), `powers_given` (the power each ⚡ gave — `removed` if
+that power was later removed), `voice_filter`, `sent_at`, `delivered_at`.
+
+**`events.csv`** — one row per event: `agent_ref`, `codename`, `seq` (its
+place in that agent's log), `t`, `session`, `practice`, `mission`, `action`,
+`detail` (the detail object as JSON). Section 4 says what each action means.
+
+**`drawings/`** and **`audio/`**: every drawing and recording, named
+`<agent_ref>_<what>` — e.g. `f3d36b62_power0.png`, `b2719579_secret-word.m4a`.
+A recording is the RAW voice as recorded; its spy voice is in the tables.
+
+**`cards/`**: one page per agent (`<agent_ref>.html`) and an `index.html`.
+Each card draws the agent with a copy of the app's own `parts.js`.
