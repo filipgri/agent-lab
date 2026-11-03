@@ -1,0 +1,103 @@
+/* The display (v3 §9.5), P1's bare version. Big, calm, dark: it is seen from
+   across a classroom, and some of the children are sound- and light-sensitive. */
+
+:root {
+  --sky-1: #0b1a33;
+  --sky-2: #12305a;
+  --accent: #ffd23f;
+  --text: #ffffff;
+  --muted: #9fb3d1;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: linear-gradient(180deg, var(--sky-2), var(--sky-1));
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* The "click to start" button that unlocks sound. */
+.start {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(520px, 80vw);
+  height: 220px;
+  border: none;
+  border-radius: 32px;
+  background: rgba(255, 255, 255, .08);
+  color: var(--text);
+  font-size: 32px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  cursor: pointer;
+}
+.start-icon { font-size: 72px; }
+/* `display: flex` above would otherwise beat the hidden attribute. */
+.start[hidden] { display: none; }
+
+.stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.stage[hidden], .arrival[hidden] { display: none; }
+
+/* One arrival: the sender's symbol and codename, large. */
+.arrival {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2vh;
+  animation: arrive 900ms ease-out both;
+}
+.arrival.is-leaving { animation: leave 700ms ease-in both; }
+.arrival-emblem { font-size: 22vh; line-height: 1; }
+.arrival-name {
+  font-size: 9vh;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+/* A mystery bottle: a ? in a dashed outline, and no name. */
+.arrival.is-mystery .arrival-emblem {
+  width: 26vh;
+  height: 26vh;
+  border: .8vh dashed rgba(255, 255, 255, .6);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16vh;
+  color: var(--muted);
+}
+
+@keyframes arrive {
+  from { opacity: 0; transform: translateY(6vh); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes leave {
+  to { opacity: 0; transform: translateY(-4vh); }
+}
+/* The display's own motion setting arrives in P7; until then it follows the
+   laptop's Reduce Motion. */
+@media (prefers-reduced-motion: reduce) {
+  .arrival, .arrival.is-leaving { animation-duration: 1ms; }
+}
+
+/* The connection dot. */
+.link-dot {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #5a6a85;
+}
+.link-dot.is-on { background: #49d17d; }

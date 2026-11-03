@@ -99,7 +99,7 @@ chose; any promise of total secrecy.
 | `DATA.md` | **v3.** Every saved field and every logged event. Must match the code |
 | `boot-guard.js` | Loads first: catches errors, heals a stale cache (see Conventions) |
 | `version.json` | The release number `boot-guard.js` checks against |
-| `display/index.html` | **v3 P7.** The big-screen display (plus any `display/*.js`, `display/*.css`) |
+| `display/index.html` | **v3.** The big-screen display, with `display.js` and `display.css`. Bare at P1; P7 builds the shore |
 | `display/relay.py` | **v3 P1.** The laptop relay. Python standard library only |
 | `display/certs/` | **v3 P1.** The relay's https certificate. **Gitignored** |
 | `tools/analyse.py` | **v3 P9.** The analysis script, run at home after a session |
@@ -310,11 +310,10 @@ Session 3 onwards. Five missions: 🎨 `make` · 🗣️ `suit` · 📍 `safe` (
 the session-3 preset) · ⚡ `powers` · 🍾 `bottle`, then a short finish and back
 to the start. No card screen.
 
-- **P0 — done (3 November 2026), on branch `v3`, not pushed.** Clearing the
-  ground.
-  - ⚠️ **The `session-2` tag did not exist on GitHub**, which §14 says should
-    stop the build. P0 was built on a local `v3` branch and nothing was pushed,
-    so the iPads stay on the session-2 version until Filip has tagged it.
+- **P0 — done (3 November 2026), on branch `v3`.** Clearing the ground.
+  - The `session-2` tag (commit `b0ba4c1`) was missing when P0 started, so P0
+    was built on a local branch. Tagged and pushed the same day, at Filip's
+    go-ahead.
   - **Retired the v2 screens** (Power-up, HQ as a mission, Voice, Force field,
     Mood codes, Rules, Badge, the Reveal card, the 🧩 popup, badge and wall
     checks) from `MISSIONS`, `index.html` and `app.js`. **Their data stays** in
@@ -349,7 +348,44 @@ to the start. No card screen.
   - **`DATA.md`** written: every field and event, including the ones only in
     session-2 and older data.
   - **The seal can be opened but not set** until a v3 screen offers it again.
-- **Next: P1** — the relay and the iPad side of sending (§9).
+- **P1 — built (3 November 2026), on branch `v3`; waiting for the real
+  iPad test** §14 asks for (home-screen app from GitHub Pages, pocket
+  router). That needs v3 deployed to `main`, which is Filip's call.
+  - **`display/relay.py`**, standard library only. Routes `/status`,
+    `/bottle` (2 MB), `/events` (Server-Sent Events) and the `display/`
+    folder; it also serves the app's own `assets/` under `/assets/` (never
+    `incoming/` or `reference/`), so the display uses the same pictures and
+    sounds without copies. CORS only for `https://filipgri.github.io` and
+    `http://localhost:8000`, with the Private Network Access header Chrome
+    wants. Listens on IPv6 and IPv4 at once, because an iPad may resolve
+    `.local` to either. `--host` is the name the iPads use, not what it
+    binds to — binding to the LAN address would break `localhost` for the
+    display. `--no-tls` serves plain http for trying the display on the
+    laptop.
+  - **Event ids carry a random run id** (`3fa9c2d1-5`). Numbers restart at 1
+    when the relay restarts, and a display reconnecting with "seen up to 5"
+    would otherwise skip the new run's first five bottles.
+  - **The bare display** (`display/index.html`, `display.js`,
+    `display.css`): one click to allow sound, then each arrival's emblem and
+    codename (or a dashed `?` for a mystery) with a chime, one at a time.
+    Replayed bottles (a reloaded display catching up) get no chime. F and M
+    only; P7 adds the rest.
+  - **iPad side: section 29 of `app.js`**, the adult panel's Display link
+    card, and the CSP's `connect-src` gaining `https://*.local:8443
+    https://localhost:8443`. `relayOrigin()` refuses any address that is not
+    `*.local` or `localhost` on 8443 — the same rule as the CSP, so the
+    adult sees why rather than a silent block. Every request gives up after
+    4 s. **`sendToRelay(payload)` is P6's way in:** it answers true/false
+    and never throws.
+  - Tested in the browser: every route with curl (CORS, 403 for strangers,
+    413 over 2 MB, 404 for `..`, the certs and `relay.py`), the display
+    showing bottles in order and catching up after a relay restart, and the
+    adult panel's ⚠️ paths. **The ✅ path needs a certificate the device
+    trusts,** which only `mkcert -install` gives; that is Filip's README
+    step and was not done on this Mac.
+  - This Mac's local hostname is `KCLYM40H56Y9W`, not `tact-display`. The
+    README gives both routes: rename it, or use `kclym40h56y9w.local`.
+- **Next: P2** — quick agent: the 8 bases and "Is your agent like you?" (§4).
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

@@ -138,6 +138,10 @@ const state = {
   practice: false,
   // v2 §5.3.2: 💩 and friends only appear when an adult turns this on.
   silly: false,
+  // v3 §9.3: the display link, read from storage at boot. (The default
+  // address is filled in by the code in section 29, which knows it.)
+  displayOn: false,
+  displayAddress: '',
   // v2 §7: how fast the narrator speaks. 0.8 / 0.9 / 1.0, default 0.9.
   narrationSpeed: 0.9
 };
@@ -1364,6 +1368,7 @@ async function openAdultPanel() {
   paintMotionButtons();
   paintSpeedButtons();
   paintBackupState();
+  paintDisplayLink('');
   $('#export-result').innerHTML = '';
   $('#delete-confirm').hidden = true;
 }
@@ -1866,6 +1871,9 @@ async function boot() {
   state.practice  = await Storage.getMeta('practice', false);
   state.silly     = await Storage.getMeta('silly', false);
   state.narrationSpeed = await Storage.getMeta('narrationSpeed', Assets.DEFAULT_SPEED);
+  // v3 §9.3: the display link. Off until an adult switches it on.
+  state.displayOn      = await Storage.getMeta('displayOn', false);
+  state.displayAddress = await Storage.getMeta('displayAddress', DISPLAY_DEFAULT_ADDRESS);
   });
   Assets.setSpeed(state.narrationSpeed);
   paintPracticeBadge();
@@ -4508,6 +4516,7 @@ function wireSessionControls() {
 
   $('#btn-practice').addEventListener('click', () => setPractice(!state.practice));
   $('#btn-asset-check').addEventListener('click', runAssetCheck);
+  wireDisplayLink();
 }
 
 
@@ -5354,3 +5363,189 @@ function wireSeal() {
   // line it says at the moment of the tap. A second listener said it twice.
 }
 
+
+
+/* ===========================================================================
+   29. THE DISPLAY LINK (v3 §9.3, P1)
+
+   The ONE way anything leaves this iPad (v3 §1): when a child sends a
+   bottle, that bottle goes to the relay on Filip's laptop, over the room's
+   own Wi-Fi, and the relay shows it on the big screen.
+
+   What an adult sees, in the adult panel:
+     - an on/off switch, OFF until an adult turns it on;
+     - the relay's address, tact-display.local:8443 unless changed;
+     - 📡 Test, which asks the relay "are you there?" (✅ / ⚠️);
+     - 🍾 Send test bottle, a made-up bottle with no child's data in it.
+
+   Rules from §9.3 that the code below keeps:
+     - Only https, only port 8443, only a *.local name or localhost. The
+       Content-Security-Policy in index.html enforces the same thing, so even
+       a mistake here could not reach anywhere else.
+     - Every request gives up after 4 seconds.
+     - A child never sees an error. sendToRelay() just answers false, and P6
+       keeps that bottle as `waiting` until the link comes back.
+     - The service worker ignores these requests (they are not to this app's
+       own address), so nothing sent or received here is ever cached.
+
+   SYNTAX NOTES FOR A BEGINNER
+   - `fetch()` asks another computer for something and waits for the answer.
+   - An AbortController is a "cancel button" for a fetch: a timer presses it
+     after 4 seconds, so a missing relay cannot leave the app waiting.
+   - `try { … } finally { … }` runs the `finally` part whether the `try` part
+     worked or failed - here, to stop the timer either way.
+   ======================================================================== */
+const DISPLAY_DEFAULT_ADDRESS = 'tact-display.local:8443';
+const RELAY_PORT = 8443;
+const RELAY_TIMEOUT_MS = 4000;
+
+/* Turn what the adult typed into the relay's web address - or null if it is
+   an address the app is not allowed to reach. Forgiving about what is typed
+   ("https://", a missing port, capitals); strict about where it can point. */
+function relayOrigin(address) {
+  let text = String(address || '').trim().toLowerCase();
+  text = text.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  const match = text.match(/^([a-z0-9-]+(?:\.[a-z0-9-]+)*)(?::(\d+))?$/);
+  if (!match) return null;
+  const host = match[1];
+  const port = match[2] ? Number(match[2]) : RELAY_PORT;
+  if (port !== RELAY_PORT) return null;
+  if (host !== 'localhost' && !/\.local$/.test(host)) return null;
+  return 'https://' + host + ':' + port;
+}
+
+/* Ask the relay for something, giving up after 4 seconds. Throws if it
+   cannot be reached; the callers below turn that into ⚠️ or `false`. */
+async function relayFetch(path, options) {
+  const origin = relayOrigin(state.displayAddress || DISPLAY_DEFAULT_ADDRESS);
+  if (!origin) throw new Error('address not allowed');
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RELAY_TIMEOUT_MS);
+  try {
+    return await fetch(origin + path, Object.assign({
+      signal: controller.signal,
+      cache: 'no-store',
+      credentials: 'omit'        // no cookies, nothing about this iPad
+    }, options));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* Send one bottle. Answers true if the relay took it, false if not - it
+   never throws, because a failure must never reach a child (§9.3). P6 builds
+   the payload (§9.1: no agent id, no event log, and for a friend or teacher
+   only the envelope) and keeps an unsent bottle as `waiting`. */
+async function sendToRelay(payload) {
+  if (!state.displayOn) return false;
+  try {
+    const response = await relayFetch('/bottle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return response.ok;
+  } catch (err) {
+    return false;
+  }
+}
+
+/* ---- the adult panel's Display link card ---- */
+
+function paintDisplayLink(message) {
+  const button = $('#btn-display-on');
+  if (!button) return;
+  button.textContent = state.displayOn ? '📡 On' : 'Off';
+  button.classList.toggle('is-on', state.displayOn);
+  button.setAttribute('aria-checked', state.displayOn ? 'true' : 'false');
+  const input = $('#display-address');
+  if (document.activeElement !== input) {
+    input.value = state.displayAddress || DISPLAY_DEFAULT_ADDRESS;
+  }
+  if (message !== undefined) $('#display-result').textContent = message;
+}
+
+async function setDisplayOn(on) {
+  state.displayOn = Boolean(on);
+  await Storage.setMeta('displayOn', state.displayOn);
+  paintDisplayLink(state.displayOn
+    ? 'On. A bottle a child sends will go to the display.'
+    : 'Off. Bottles stay on this iPad until the link is on.');
+}
+
+async function setDisplayAddress(text) {
+  if (!relayOrigin(text)) {
+    paintDisplayLink('⚠️ That address will not work. It must end in .local:8443 ' +
+                     '(for example tact-display.local:8443). See the README.');
+    return;
+  }
+  // Saved tidied up - "https://Tact-Display.local/" becomes
+  // "tact-display.local:8443" - so the field always shows one clear form.
+  state.displayAddress = relayOrigin(text).replace('https://', '');
+  await Storage.setMeta('displayAddress', state.displayAddress);
+  paintDisplayLink('Address saved. Tap 📡 Test.');
+}
+
+/* The words for a failed request. An adult reads these, so they can say
+   what to check - but they are never shown to a child. */
+function relayTrouble(err) {
+  if (err && err.message === 'address not allowed') {
+    return '⚠️ The address must end in .local:8443.';
+  }
+  if (err && err.name === 'AbortError') {
+    return '⚠️ No answer within 4 seconds. Is the relay running on the laptop, ' +
+           'and is this iPad on the same Wi-Fi?';
+  }
+  return '⚠️ Could not reach the display. Check the relay is running, the iPad ' +
+         'is on the same Wi-Fi, and the certificate is trusted on this iPad (README).';
+}
+
+async function testDisplayLink() {
+  paintDisplayLink('Testing…');
+  try {
+    const response = await relayFetch('/status', { method: 'GET' });
+    const answer = await response.json().catch(() => ({}));
+    paintDisplayLink(response.ok && answer.ok
+      ? '✅ The display answered.' + (state.displayOn ? '' : ' Switch the link on to use it.')
+      : '⚠️ Something answered, but not the Agent Lab relay.');
+  } catch (err) {
+    paintDisplayLink(relayTrouble(err));
+  }
+}
+
+/* A made-up bottle, so the whole path can be tried before the children
+   arrive. It carries NOTHING from any agent on this iPad. */
+async function sendTestBottle() {
+  paintDisplayLink('Sending…');
+  const payload = {
+    type: 'bottle',
+    test: true,
+    bottleId: uuid(),
+    sentAt: nowIso(),
+    to: 'who-everyone',
+    toEmblem: null,
+    signed: true,
+    from: { codename: 'Test bottle', emblem: '📡', picture: null, handshake: null },
+    items: []
+  };
+  try {
+    const response = await relayFetch('/bottle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    paintDisplayLink(response.ok
+      ? '✅ Sent. It should be on the display now.'
+      : '⚠️ The relay turned it away.');
+  } catch (err) {
+    paintDisplayLink(relayTrouble(err));
+  }
+}
+
+function wireDisplayLink() {
+  $('#btn-display-on').addEventListener('click', () => setDisplayOn(!state.displayOn));
+  $('#display-address').addEventListener('change', event => setDisplayAddress(event.target.value));
+  $('#btn-display-test').addEventListener('click', testDisplayLink);
+  $('#btn-display-send').addEventListener('click', sendTestBottle);
+}

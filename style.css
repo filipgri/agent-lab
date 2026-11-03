@@ -2261,6 +2261,20 @@ body.is-practice .practice-badge { display: block; }
 }
 .type-input::placeholder { color: #7d8ea6; font-weight: 400; }
 
+/* v3 §9.3: the relay's address in the adult panel. */
+.display-address {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 56px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  color: #10233f;
+  font-family: var(--font);
+  font-size: 18px;
+}
+
 .emblem-pick { display: flex; flex-direction: column; gap: 8px; }
 .emblem-pick-title { margin: 0; font-size: 18px; letter-spacing: .03em; }
 .emblem-options { display: flex; gap: 10px; flex-wrap: wrap; }

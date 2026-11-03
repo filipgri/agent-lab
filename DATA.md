@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P0** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P1** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -24,8 +24,10 @@ Everything is stored on the iPad, in the browser's IndexedDB database
 
 **What leaves the iPad:**
 - **The export file**, when an adult taps Export in the adult panel (section 2).
-- **From v3 P1, a bottle the child chooses to send** goes to the relay on
-  Filip's laptop. Nothing else is ever sent. (Not built yet.)
+- **A bottle**, sent to the relay on Filip's laptop, only when the Display
+  link is on: a child's bottle when the child sends it (from P6), or an
+  adult's test bottle (section 7). Nothing else is ever sent — never the
+  event log, the agent record, its id, or any other agent.
 
 **Clearing Safari's website data deletes all of it.** See CLAUDE.md, "Settled
 decisions". Export first.
@@ -382,3 +384,39 @@ About the iPad, not about any child. Not exported.
 | `lastAgentId` | The agent Continue opens. |
 | `lastExportAt` / `lastExportCount` | When this iPad was last exported, and how many agents went. |
 | `badgePpi` / `wallPalette` | v2 badge and wall check settings. No longer read. |
+| `displayOn` | v3: the Display link is on. Default `false`. |
+| `displayAddress` | v3: where the relay is, e.g. `"tact-display.local:8443"`. Only a `.local` name or `localhost`, only port 8443 (the app's security policy allows nothing else). |
+
+---
+
+## 7. What goes to the display (v3 §9)
+
+The iPad sends a bottle to the relay as JSON over https (`POST /bottle`). The
+relay keeps bottles **in memory only**, for that run, and passes them to the
+display. Neither writes anything to disk. The relay prints one line per
+bottle — time, `to`, signed or mystery, the item types, the size — and never
+its contents or a codename.
+
+**The test bottle** (adult panel → Display link → 🍾 Send test bottle). It
+carries nothing from any agent:
+
+```json
+{
+  "type": "bottle",
+  "test": true,
+  "bottleId": "random uuid",
+  "sentAt": "ISO date",
+  "to": "who-everyone",
+  "toEmblem": null,
+  "signed": true,
+  "from": { "codename": "Test bottle", "emblem": "📡", "picture": null, "handshake": null },
+  "items": []
+}
+```
+
+**A child's bottle** follows v3 §9.1 and is built at P6, which will document
+it here — including how a voice message is made to sound on the display
+exactly as the child heard it.
+
+The Display link logs no events: it is the adult's set-up, not something a
+child did.

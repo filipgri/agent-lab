@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The display only ever talks to the relay that served it ('self').
+       No outside fonts, scripts or services, the same as the app. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'">
+  <title>Agent Lab display</title>
+  <link rel="stylesheet" href="display.css">
+</head>
+<body>
+
+<!-- ==========================================================================
+     THE DISPLAY (v3 §9.5) - P1's bare version.
+
+     Shown on a TV or projector from Filip's laptop. For P1 it does one thing:
+     when a bottle arrives, a chime plays and the sender's codename appears
+     (or a ? for a mystery bottle). P7 builds the shore, the board, the queue
+     and the facilitator keys on top of this.
+
+     NO NUMBERS, EVER (v3 §17): no counts, totals or rankings.
+     ========================================================================== -->
+
+<!-- Browsers will not play a sound until someone has clicked the page, so the
+     display starts with one big button. Click it (or press any key) once. -->
+<button id="start" class="start">
+  <span class="start-icon">🍾</span>
+  <span>Click to start the display</span>
+</button>
+
+<main id="stage" class="stage" hidden>
+  <!-- One arrival at a time, in the middle of the screen. -->
+  <div id="arrival" class="arrival" hidden>
+    <div id="arrival-emblem" class="arrival-emblem"></div>
+    <div id="arrival-name" class="arrival-name"></div>
+  </div>
+</main>
+
+<!-- A small dot in the corner: lit while the relay is connected. For the
+     facilitator; it has no words and no numbers. -->
+<div id="link-dot" class="link-dot" title="Relay connection"></div>
+
+<script src="display.js"></script>
+</body>
+</html>

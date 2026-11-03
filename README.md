@@ -10,7 +10,22 @@ The full brief lives in [`agent-lab-build-spec.md`](agent-lab-build-spec.md).
 - No camera, ever. Microphone only in the Voice mission (from Milestone 3).
 - Codenames only — never real names.
 
-## Current state: v2 V5 — session 2 is complete
+## Current state: v3, for session 3 (`agent-lab-v3-spec.md`)
+
+Session 2 ran on the version tagged **`session-2`** on GitHub (commit
+`b0ba4c1`). v3 is being built one milestone at a time on the `v3` branch:
+
+- **P0 — done.** The v2 screens are retired (their data is kept), the strip is
+  🎨 🗣️ 📍 ⚡ 🍾, the gallery shows each agent as itself, import takes several
+  files and skips agents it already has. `DATA.md` lists every saved field
+  and event.
+- **Spy words** replace the animals on the Start screen.
+- **P1 — built, waiting for a real iPad test.** The relay, a bare display, and
+  the adult panel's Display link. See "The display and the relay" below.
+
+The rest of this section describes session 2.
+
+## Session 2 (v2 V5)
 
 Everything a child does in **session 2** is built and has been through a real
 iPad: codename, Make your agent (Parts or Draw), Power-up, HQ, Voice password,
@@ -223,6 +238,9 @@ so for now the app needs to be open online once, and is not yet installable.
 | `storage.js` | A small, friendly wrapper around IndexedDB |
 | `audio.js` | The microphone, the 10-second recorder, the six playback filters |
 | `agent-lab-build-spec.md` | The brief this is built from |
+| `DATA.md` | Every saved field and every logged event |
+| `display/relay.py` | **v3.** Runs on the laptop: takes bottles from the iPads, feeds the display |
+| `display/index.html` | **v3.** The big-screen display (with `display.js` and `display.css`) |
 
 Scripts load in order: `storage.js`, `audio.js`, then `app.js`. `effects.js`
 joins that list at Milestone 8.
@@ -324,10 +342,105 @@ Two differences worth knowing:
   photographs and the parts kit are the project's own files and are identical.
 
 
+## The display and the relay (v3)
+
+From session 3 a child can send a **bottle** to the big screen. That bottle,
+and nothing else, goes from the iPad to your laptop over the room's own Wi-Fi.
+Everything else still stays on the iPad.
+
+Three pieces:
+
+- **`display/relay.py`** runs on your laptop. The iPads send bottles to it.
+  It keeps them in memory only. Nothing is written to disk, and Ctrl-C
+  forgets them all. It prints one line per bottle (time, who it is for,
+  signed or mystery, the kinds of thing inside, size), never what is in it.
+- **The display** is a web page the relay serves. Open it full screen on the
+  laptop and show it on the TV or projector. For now (P1) it shows each
+  arrival's codename with a chime; P7 makes it the shore and the board.
+- **Adult panel → Display link** on each iPad: the relay's address, 📡 Test,
+  an on/off switch (off until you turn it on) and 🍾 Send test bottle.
+
+### Setting up the room (once)
+
+**1. A pocket Wi-Fi router** (no internet needed), or a phone hotspot. The
+laptop and every iPad join it. School Wi-Fi often stops devices talking to
+each other, which is why the room brings its own.
+
+**2. Give the laptop a name the iPads can find.** The app looks for
+`tact-display.local`. Either:
+
+- **rename the laptop:** System Settings → General → Sharing → Local hostname
+  → `tact-display`. (On a KCL-managed laptop this may need IT.) Or
+- **keep its own name.** This Mac is currently `KCLYM40H56Y9W`, so it is
+  `kclym40h56y9w.local`. Use that wherever these steps say
+  `tact-display.local`, start the relay with
+  `python3 display/relay.py --host kclym40h56y9w.local`, and type
+  `kclym40h56y9w.local:8443` into each iPad's Display link address. Any name
+  ending in `.local` works; port 8443 is the only one allowed.
+
+If macOS asks whether Python may accept incoming connections, say **Allow**.
+
+**3. Make a certificate,** so the iPads can talk to the laptop over https
+(the app is not allowed to use anything else). In Terminal, in the agent-lab
+folder:
+
+```bash
+brew install mkcert
+```
+```bash
+mkcert -install
+```
+```bash
+mkcert -cert-file display/certs/cert.pem -key-file display/certs/key.pem tact-display.local localhost 127.0.0.1
+```
+```bash
+mkcert -CAROOT
+```
+
+The last command prints a folder. `rootCA.pem` in that folder is what each
+iPad needs. `display/certs/` is git-ignored: **never commit a certificate or
+key.**
+
+**4. On each iPad, once:**
+
+1. AirDrop `rootCA.pem` to the iPad.
+2. Settings → Profile Downloaded → Install.
+3. Settings → General → About → Certificate Trust Settings → switch it on.
+
+**5. Before the session,** open the app once on each iPad *with* internet, so
+the latest version is cached and works offline on the router.
+
+### Running it in a session
+
+```bash
+python3 display/relay.py
+```
+
+It prints the display's address. Open `https://localhost:8443/` on the laptop,
+click **Click to start the display** once (browsers only allow sound after a
+click), and press **F** for full screen. **M** mutes. A small dot in the
+corner is green while the display is connected to the relay.
+
+On each iPad: adult panel → **Display link** → **📡 Test** (✅ expected) →
+switch it **On** → **🍾 Send test bottle**, which should appear on the display
+within a second.
+
+**To try the display on the laptop without a certificate:**
+`python3 display/relay.py --no-tls`, then open `http://localhost:8443/`. The
+iPads cannot reach it in this mode, because the app only talks https.
+
+**If an iPad cannot find the laptop** (📡 Test keeps saying ⚠️ while the relay
+is running and the laptop's own display works), check the iPad and the
+laptop are on the same router, and that the certificate is trusted on the
+iPad (step 4). If it still fails, stop there: the fix (a fixed address in the
+certificate and in the app's security settings) changes how the link works,
+and needs a decision first. The display can still run its demo bottles alone.
+
 ## Before and after every session
 
-The app keeps everything on the iPad and sends nothing anywhere. That is the
-point, and it is also the risk: **agents live in the browser's website data,
+The app keeps everything on the iPad. From v3 the one exception is a bottle a
+child chooses to send to the display. That is the point, and it is also the
+risk: **agents live in the browser's website data,
 so "Clear History and Website Data" deletes them.** No setting prevents this.
 Exporting is the only copy that survives it.
 
@@ -341,6 +454,7 @@ Exporting is the only copy that survives it.
 | ☐ | **Asset check** lists everything as ✅ |
 | ☐ | **Session** is set to the right week, and the right missions are unlocked |
 | ☐ | **Practice mode is OFF** — practice agents are left out of exports |
+| ☐ | **Display link**: 📡 Test shows ✅, and the link is **On** (v3) |
 | ☐ | Battery over 50%, Guided Access on |
 
 If you want to try the app yourself first, turn **Practice mode on**, do what

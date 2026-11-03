@@ -20,3 +20,6 @@ assets/reference/
 
 # v3 §13: the relay's https certificate and key never go near the repo.
 display/certs/
+
+# Python's compiled leftovers.
+__pycache__/
