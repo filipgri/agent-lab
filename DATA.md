@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P5** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P6** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -166,7 +166,7 @@ milestone first writes each one; until then it keeps its default.
 | `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). Made on the handshake sheet, which Powers opens when a child turns on 🤝 "My secret handshake" in the 🔌 slot. | P5 ✅ |
 | `safe` | `{ talk: null, stops: null }` | 📍 Safe place. `talk`: "Where does your agent feel safe to talk?" `stops`: "Where does your agent's power stop working?" Each is `null` (not answered) or `{ id, png }`: `id` is one of the twelve HQ place ids or `"safe-nowhere"` (Nowhere, an equal choice); or `id: null` with `png` (a drawn place) and/or `audioId` (a place the child said) from the ✏️ sheet. The agent stands in `safe.talk` on every screen when it is a real place. Off in the session-3 preset. | P4 ✅ |
 | `powers` | `[]` | ⚡ Up to 3 powers, in the order they were made. Shape below. A power is saved the moment it is chosen, so a half-finished sentence is kept. | P5 ✅ |
-| `bottles` | `[]` | Up to 3 bottles. Shape below. | P6 |
+| `bottles` | `[]` | 🍾 Up to 3 bottles, in the order they were made. Shape below. A bottle is saved the moment its first item goes in. | P6 ✅ |
 
 **One power** (v3 §10):
 
@@ -202,14 +202,24 @@ see the plain labels.
 
 | Field | Meaning |
 |---|---|
-| `id` | Random id. |
-| `createdAt` | ISO date. |
-| `items` | What is in it, e.g. `{ type: "item-power", power: 0 }`. An `item-power` points at one of the agent's `powers` by index, or at `"v2"`. |
-| `to` | A who-card id, e.g. `"who-everyone"`. |
-| `toAgentId` | Another agent's `id`, if sent to an agent; else `null`. |
-| `signed` | `true` = signed with the codename; `false` = a mystery bottle. |
-| `state` | `"kept"`, `"waiting"`, `"sent"` or `"delivered"`. |
+| `id` | Random uuid. Also the `bottleId` the display sees — it has nothing to do with the agent's id. |
+| `createdAt` | ISO date: when its first item went in. |
+| `items` | Up to 4, ONE of each kind, in the order they went in. See "Items" below. |
+| `to` | `"who-me"` (kept on this iPad), `"who-friend"`, `"who-teacher"` or `"who-everyone"` (the big screen); `null` while being filled. |
+| `toAgentId` | The friend's agent `id`, if the child tapped one on this iPad; else `null` ("a friend" on its own is fine). |
+| `signed` | `true` ✍️ with my agent; `false` 🎭 a mystery; `null` for `"who-me"` (not asked) or not yet chosen. |
+| `state` | `"open"` while being filled (an addition to §10: it is saved at once so nothing is lost if the iPad is closed); `"kept"` (for me); `"sent"` (the moment the child sent it); `"waiting"` (the display link was off or failed — it goes by itself when the link works); `"delivered"` (the relay took it). **The child sees the same "🚀 Sent" for sent, waiting and delivered.** |
 | `sentAt` / `deliveredAt` | ISO dates, or `null`. |
+
+**Items** (§8). Colours on screen belong to the item TYPE, not to feelings.
+
+| `type` | Fields |
+|---|---|
+| `item-power` | `power` (the power's place in `powers`, or `"v2"`), `powerId` (that power's `id` — an addition, so the item still knows which power if an earlier one is removed; if the power itself is removed, `power` becomes `null`) |
+| `item-handshake` | `taps` — a copy of the rhythm when it went in |
+| `item-drawing`, `item-game`, `item-cant-live` | `png` and/or `audioId`, from the ✏️ sheet |
+| `item-voice` | `audioId`, `filter` — one of the six spy voices. A mystery bottle cannot keep `"normal"`. |
+| `item-safe` | `place: { id, png }` — a copy of `safe.talk` (only offered once Safe place has a real place) |
 
 ### 3.8 `legacy`
 
@@ -364,6 +374,25 @@ Every place tapped is also a `label_speak`.
 | `powers_new` | ➕ Another power. | `{}` | ✅ |
 | `powers_remove` | 🗑️ A power was removed (two taps). | `{ index }` | ✅ |
 
+### 4.3e The bottle (v3 P6)
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `bottle_item_add` | An item went into the bottle. | `{ type }` | ✅ |
+| `bottle_item_remove` | An item was taken out (two taps on its chip). | `{ type }` | ✅ |
+| `bottle_voice_record` | 🎤 for a voice message. | `{ ms }` | ✅ |
+| `bottle_voice_filter` | A spy voice was picked for it. | `{ filter }`, plus `mystery: true` when the mystery step asked for it | ✅ |
+| `bottle_phase` | Another step opened (🍾 👥 ✍️ 🚀 🗂️). | `{ to, how: "next"/"tab" }` | ✅ |
+| `bottle_to` | Who it is for. | `{ who }` | ✅ |
+| `bottle_friend_pick` | A friend's agent was tapped (or tapped again to un-pick). | `{ toAgentId }` | ✅ |
+| `bottle_sign` | ✍️ or 🎭. | `{ signed }` | ✅ |
+| `bottle_cork` | The cork went in. | `{}` | ✅ |
+| `bottle_send` | Sent: swiped up, or 🚀 held. | `{ to, signed, items }` — `items` are the types | ✅ |
+| `bottle_keep` | 🔒 Kept (for me). | `{}` | ✅ |
+| `bottle_queued` | It could not go yet: it waits. | `{}` | ✅ |
+| `bottle_delivered` | The relay took it — at once, or later. | `{ ms }` — from sending to arriving | ✅ |
+| `bottle_new` | ➕ Another bottle. | `{}` | ✅ |
+
 ### 4.4 Drawing and the ✏️ My own sheet
 
 | Action | When | `detail` | v3 |
@@ -494,9 +523,42 @@ carries nothing from any agent:
 }
 ```
 
-**A child's bottle** follows v3 §9.1 and is built at P6, which will document
-it here — including how a voice message is made to sound on the display
-exactly as the child heard it.
+**A child's bottle** (P6, v3 §9.1), built by `buildBottlePayload()`. Sent only
+when the child sends it (🙋 "me" bottles are never sent), and only what the
+display will show — never the agent's `id`, its event log, or any other agent:
+
+```json
+{
+  "type": "bottle",
+  "bottleId": "the bottle's own random id",
+  "sentAt": "ISO date",
+  "to": "who-everyone",
+  "toEmblem": null,
+  "signed": true,
+  "from": { "codename": "Clever Blaze", "emblem": "🔥", "picture": "data:image/png… (256 px)", "handshake": [0, 310, 620] },
+  "items": [
+    { "type": "item-power", "power": "pow-control-teachers", "picture": null, "soThat": null },
+    { "type": "item-voice", "audio": "data:audio/wav…", "filter": "robot" },
+    { "type": "item-drawing", "picture": "data:image/png… (≤512 px)", "audio": null },
+    { "type": "item-handshake", "taps": [0, 250, 500] },
+    { "type": "item-safe", "place": "hq-space", "picture": null }
+  ]
+}
+```
+
+- `from` is `null` for a mystery; `picture` is the agent drawn by
+  `drawAgentToCanvas` in its place, 256 px. `toEmblem` is the friend agent's
+  emblem if one was tapped.
+- **For a friend or a teacher, `items` is empty**: the envelope only; the
+  contents stay on the iPad (§9.1).
+- `soThat` is only sent with "Control teachers" (the display shows it).
+- **Voices are disguised ON THE iPAD** (the §9.1 choice): `Voice.render()` runs
+  the same filter through an OfflineAudioContext and sends a WAV (mono,
+  16 kHz), so the display plays exactly what the child heard — and a
+  mystery bottle's real voice never leaves the iPad. A drawing's or game's
+  spoken part is sent as recorded (`"normal"`).
+- A bottle over 1.9 MB drops its sounds (`audio: null, audioDropped: true`)
+  rather than not arriving.
 
 The Display link logs no events: it is the adult's set-up, not something a
 child did.

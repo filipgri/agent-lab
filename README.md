@@ -35,6 +35,10 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
   ideas behind six doors; then the sentence — when, who, how it switches on,
   so that — and ⚡ Power on!, where the agent does it, big, and the sentence
   reads itself back. Up to three powers.
+- **P6 — built.** 🍾 The bottle: up to four things in it, who it is for, signed
+  or a mystery, then the cork and a swipe (or hold 🚀). A bottle that cannot
+  reach the display waits and goes later — adult panel → Display link shows
+  how many are waiting.
 
 The rest of this section describes session 2.
 

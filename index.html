@@ -560,11 +560,77 @@
           </div>
         </article>
 
+        <!-- 🍾 THE BOTTLE (v3 §8, P6). "What will your agent hand over?"
+             The bottle is the hero here: it sits big on the left, and each
+             item dropped in adds a band of colour. The colours belong to
+             the item TYPES, not to feelings.
+               🍾 Fill        up to 4 items
+               👥 Who for     me (kept) · a friend · my teacher · everyone
+               ✍️ Sign        my agent, or a mystery (not asked for "me")
+               🚀 Send        cork it, then swipe the bottle up or hold 🚀
+             Only a bottle the child sends ever leaves this iPad (v3 §9.1). -->
         <article class="mission-panel" data-mission="bottle">
-          <div class="soon-wrap">
-            <span class="soon-icon">🍾</span>
-            <p class="soon-text">Your agent's bottle is being built.</p>
-            <p class="soon-note">Coming soon</p>
+          <div class="suit-wrap">
+
+            <header class="power-head suit-head">
+              <div id="bottle-phases" class="suit-phases seg-group">
+                <button class="btn seg" data-bottle-phase="fill" aria-label="Fill the bottle">🍾</button>
+                <button class="btn seg" data-bottle-phase="to" aria-label="Who is it for" hidden>👥</button>
+                <button class="btn seg" data-bottle-phase="sign" aria-label="Show your agent or a mystery" hidden>✍️</button>
+                <button class="btn seg" data-bottle-phase="send" aria-label="Send it" hidden>🚀</button>
+                <button class="btn seg" data-bottle-phase="shelf" aria-label="My bottles" hidden>🗂️</button>
+              </div>
+              <h2 id="bottle-title" class="power-title">What goes in?</h2>
+              <button id="bottle-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+            </header>
+
+            <div class="suit-main">
+              <!-- The bottle: drawn by app.js as SVG, so its bands and cork
+                   can change. Swipe it up to send. -->
+              <div class="suit-stage-wrap bottle-wrap">
+                <div id="bottle-art" class="bottle-art" aria-hidden="true"></div>
+                <div id="bottle-items" class="bottle-items"></div>
+              </div>
+
+              <!-- 🍾 FILL: the item tokens, or one item being made. -->
+              <div id="bottle-fill" class="suit-side">
+                <div id="bottle-tokens" class="bottle-tokens"></div>
+                <div id="bottle-sub" class="bottle-sub" hidden></div>
+                <button id="bottle-fill-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+              </div>
+
+              <!-- 👥 WHO IS IT FOR? -->
+              <div id="bottle-to" class="suit-side" hidden>
+                <div id="bottle-to-cards" class="power-when powers-cards"></div>
+                <div id="bottle-friends" class="bottle-friends" hidden></div>
+                <button id="bottle-to-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+              </div>
+
+              <!-- ✍️ SHOW YOUR AGENT, OR A MYSTERY? -->
+              <div id="bottle-sign" class="suit-side" hidden>
+                <div id="bottle-sign-cards" class="power-when powers-cards"></div>
+                <!-- A mystery voice message must be disguised (§8). -->
+                <div id="bottle-disguise" class="bottle-disguise" hidden></div>
+                <button id="bottle-sign-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+              </div>
+
+              <!-- 🚀 CORK IT, THEN SEND (or keep). -->
+              <div id="bottle-send" class="suit-side" hidden>
+                <button id="bottle-cork" class="btn btn-big">🍾 <span class="btn-label">Push the cork in</span></button>
+                <!-- Every gesture has a tap alternative: hold 🚀 to send. -->
+                <button id="bottle-rocket" class="btn btn-accent btn-big bottle-rocket" hidden>
+                  <span class="rocket-fill"></span><span class="rocket-face">🚀 <span class="btn-label">Hold to send</span></span>
+                </button>
+                <button id="bottle-keep" class="btn btn-accent btn-big" hidden>🔒 <span class="btn-label">Keep it</span></button>
+              </div>
+
+              <!-- 🗂️ MY BOTTLES: up to three. -->
+              <div id="bottle-shelf" class="suit-side" hidden>
+                <div id="bottle-shelf-list" class="powers-shelf"></div>
+                <button id="bottle-new" class="btn btn-big">➕ <span class="btn-label">Another bottle</span></button>
+              </div>
+            </div>
+
           </div>
         </article>
 
@@ -678,6 +744,12 @@
       <div class="setting-row">
         <button id="btn-display-test" class="btn">📡 Test</button>
         <button id="btn-display-send" class="btn">🍾 Send test bottle</button>
+      </div>
+      <!-- v3 §8: bottles sent while the link was off or failing wait here,
+           and go by themselves when the link works again. -->
+      <div class="setting-row">
+        <span id="bottles-waiting">No bottles waiting</span>
+        <button id="btn-send-waiting" class="btn">📨 Send waiting bottles</button>
       </div>
       <div id="display-result" class="export-result" aria-live="polite"></div>
     </div>

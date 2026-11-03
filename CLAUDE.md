@@ -476,7 +476,33 @@ to the start. No card screen.
   - Every label and emoji is also written in the code (`POWER_CARDS`,
     `POWER_DOORS`, `SITUATION_CARDS`, `WHO_CARDS`, `HOW_CARDS`), because
     with an empty `assets/` there is no manifest to read them from.
-- **Next: P6** — The bottle (§8).
+- **P6 — built (3 November 2026), on branch `v3`.** 🍾 The bottle (§8),
+  section 33 of `app.js`. The bottle is drawn as SVG (`bottleSvg()`), big
+  on the left, with a band per item in the item type's colour.
+  - 🍾 tokens (one of each kind, 4 at most; 📍 only once Safe place has a
+    real place; ⚡ chooses which power) · 👥 me / friend (may tap a friend's
+    agent) / teacher / everyone · ✍️ with my agent or 🎭 mystery (not for
+    "me"; a mystery voice MUST take a spy voice — Normal is not offered) ·
+    🚀 cork, then swipe up or HOLD 🚀 (900 ms) · 🗂️ shelf, 3 bottles.
+  - **What leaves:** `buildBottlePayload()` — never the agent id or log;
+    envelope only for a friend or teacher. **Voices are disguised on the
+    iPad:** the filters' `build(src, c)` now take the AudioContext to build
+    in, and `Voice.render()` runs one through an OfflineAudioContext into a
+    WAV (16 kHz mono). So the display plays what the child heard, and a
+    mystery voice never leaves undisguised.
+  - **The same flight whatever happens.** `sendBottle()` animates first and
+    delivers quietly after; a failure leaves it `waiting`.
+    `sendWaitingBottles()` tries every agent's waiting bottles — on entering
+    the bottle screen, when the link is switched on, every 30 s, and from
+    the adult panel's 📨 button (which also shows how many are waiting).
+    Bottles of an agent that is not open are updated with
+    `logEventOnAgent()`.
+  - Item-power refers to its power by index (§10) AND by `powerId`;
+    `removePower()` shifts the indices.
+  - **Not built:** dragging a token into the bottle (tapping does it — §8
+    asks for tap OR drag), and the short finish after the bottle (§3) —
+    finishing still goes straight back to the start.
+- **Next: P7** — The display (§9.5).
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

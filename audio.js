@@ -48,20 +48,25 @@ const Voice = (function () {
      THE FILTERS (spec §7)
      Each one is just a recipe for wiring nodes together. `build` receives the
      source node and returns the node that should be connected to the speakers.
+
+     v3 P6: `build` also receives `c`, the AudioContext to build in. Playing
+     passes the live one; Voice.render() passes an OfflineAudioContext, which
+     works through the same recipe faster than real time and hands back the
+     disguised sound - so a bottle carries exactly what the child heard.
      ========================================================================== */
   const FILTERS = [
     {
       id: 'normal', icon: '🙂', label: 'Normal',
-      build: (src) => src
+      build: (src, c) => src
     },
     {
       // playbackRate also raises the pitch, which is the chipmunk effect wanted.
       id: 'squeaky', icon: '🐭', label: 'Squeaky',
-      build: (src) => { src.playbackRate.value = 1.5; return src; }
+      build: (src, c) => { src.playbackRate.value = 1.5; return src; }
     },
     {
       id: 'deep', icon: '🐻', label: 'Deep',
-      build: (src) => { src.playbackRate.value = 0.7; return src; }
+      build: (src, c) => { src.playbackRate.value = 0.7; return src; }
     },
     {
       /* RING MODULATION. A GainNode is a volume knob. Normally you set it to a
@@ -70,10 +75,10 @@ const Voice = (function () {
          far too fast to hear as volume - it is heard as a robot rasp instead.
          gain.value starts at 0 so ONLY the oscillator moves the knob. */
       id: 'robot', icon: '🤖', label: 'Robot',
-      build: (src) => {
-        const ring = ctx.createGain();
+      build: (src, c) => {
+        const ring = c.createGain();
         ring.gain.value = 0;
-        const osc = ctx.createOscillator();
+        const osc = c.createOscillator();
         osc.frequency.value = 50;
         osc.connect(ring.gain);
         osc.start();
@@ -88,16 +93,16 @@ const Voice = (function () {
          lowpass keeps what is BELOW 3000Hz. The waveshaper then roughs it up
          slightly, the way a cheap speaker does. */
       id: 'radio', icon: '📻', label: 'Spy radio',
-      build: (src) => {
-        const high = ctx.createBiquadFilter();
+      build: (src, c) => {
+        const high = c.createBiquadFilter();
         high.type = 'highpass';
         high.frequency.value = 300;
 
-        const low = ctx.createBiquadFilter();
+        const low = c.createBiquadFilter();
         low.type = 'lowpass';
         low.frequency.value = 3000;
 
-        const shaper = ctx.createWaveShaper();
+        const shaper = c.createWaveShaper();
         shaper.curve = makeDistortionCurve(12);   // 12 = light, not a fuzz pedal
 
         src.connect(high);
@@ -112,13 +117,13 @@ const Voice = (function () {
          is quieter than the last and the echo dies away instead of screaming.
          The dry (untouched) signal is mixed in so the voice is still clear. */
       id: 'echo', icon: '🏔️', label: 'Echo',
-      build: (src) => {
-        const mix = ctx.createGain();
+      build: (src, c) => {
+        const mix = c.createGain();
 
-        const delay = ctx.createDelay(1.0);
+        const delay = c.createDelay(1.0);
         delay.delayTime.value = 0.25;
 
-        const feedback = ctx.createGain();
+        const feedback = c.createGain();
         feedback.gain.value = 0.4;
 
         src.connect(mix);                 // dry
@@ -313,6 +318,70 @@ const Voice = (function () {
     return buffer;
   }
 
+  /* RENDER a recording through one filter, offline, and hand back a WAV file
+     (v3 §9.1, P6). An OfflineAudioContext runs the same node recipe as
+     play(), but into memory rather than the speakers, so the result is the
+     sound the child heard - disguise and all. Mono at 16,000 Hz - plenty
+     for a voice - keeps ten seconds near 300 KB, so even a bottle with
+     several recordings stays under the relay's 2 MB. */
+  async function render(audioId, blob, filterId) {
+    const buffer = await toBuffer(audioId, blob);
+    const filter = FILTERS.find(f => f.id === filterId) || FILTERS[0];
+    const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!Offline) throw new Error('no-offline-audio');
+
+    // Squeaky plays faster (shorter) and Deep slower (longer); Echo needs
+    // a moment after the voice for its last repeats to die away.
+    const speed = filterId === 'squeaky' ? 1.5 : filterId === 'deep' ? 0.7 : 1;
+    const tail = filterId === 'echo' ? 1.5 : 0.2;
+    const rate = 16000;
+    const length = Math.ceil((buffer.duration / speed + tail) * rate);
+    const off = new Offline(1, length, rate);
+
+    const source = off.createBufferSource();
+    source.buffer = buffer;
+    source._extras = [];
+    filter.build(source, off).connect(off.destination);
+    source.start(0);
+
+    const rendered = await new Promise(function (resolve, reject) {
+      // Older Safari only reports through oncomplete; newer returns a Promise.
+      off.oncomplete = function (e) { resolve(e.renderedBuffer); };
+      const maybe = off.startRendering();
+      if (maybe && maybe.then) maybe.then(resolve, reject);
+    });
+    return encodeWav(rendered);
+  }
+
+  /* A WAV file is a 44-byte header followed by the samples as 16-bit
+     numbers. Writing it by hand needs no library (§4). */
+  function encodeWav(buffer) {
+    const samples = buffer.getChannelData(0);
+    const bytes = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(bytes);
+    const text = function (at, str) {
+      for (let i = 0; i < str.length; i++) view.setUint8(at + i, str.charCodeAt(i));
+    };
+    text(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    text(8, 'WAVE');
+    text(12, 'fmt ');
+    view.setUint32(16, 16, true);                 // the size of this part
+    view.setUint16(20, 1, true);                  // 1 = plain PCM
+    view.setUint16(22, 1, true);                  // one channel
+    view.setUint32(24, buffer.sampleRate, true);
+    view.setUint32(28, buffer.sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);                 // 16 bits a sample
+    text(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    for (let i = 0; i < samples.length; i++) {
+      const v = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+    }
+    return new Blob([bytes], { type: 'audio/wav' });
+  }
+
   /* Play a recording with one filter applied. Returns a Promise that resolves
      when the sound has finished (or was stopped). */
   async function play(audioId, blob, filterId, onEnded) {
@@ -326,7 +395,7 @@ const Voice = (function () {
     source._extras = [];
 
     const filter = FILTERS.find(f => f.id === filterId) || FILTERS[0];
-    const tail = filter.build(source);
+    const tail = filter.build(source, ctx);
     tail.connect(ctx.destination);
     // Spec §5a: the voice drives the body, so playback is tapped for loudness.
     attachAnalyser(tail);
@@ -503,6 +572,7 @@ const Voice = (function () {
     stop: stop,
     isRecording: isRecording,
     play: play,
+    render: render,
     stopPlayback: stopPlayback,
     forget: forget,
     durationOf: durationOf

@@ -3436,3 +3436,91 @@ body[data-motion="full"] .pfx-bounce { animation: act-jump 700ms cubic-bezier(.3
   [data-mission="powers"] .powers-lasttime .when-own { width: 120px; }
   [data-mission="powers"] .powers-canvas-wrap { width: 200px; }
 }
+
+/* ============================================================
+   THE BOTTLE (v3 §8, P6)
+   ============================================================ */
+.bottle-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.bottle-art { width: 100%; max-width: 220px; aspect-ratio: 3 / 5; touch-action: none; }
+.bottle-art svg { width: 100%; height: 100%; overflow: visible; }
+.bottle-glass { fill: rgba(170, 230, 255, .12); stroke: rgba(210, 245, 255, .75); stroke-width: 3; }
+.bottle-cork { fill: #b9874f; stroke: #7a5532; stroke-width: 2; }
+/* A band drops in from the top when an item is added (Full motion only). */
+body[data-motion="full"] .bottle-band.is-new { animation: band-drop 520ms cubic-bezier(.34,1.3,.64,1) both; }
+@keyframes band-drop { from { transform: translateY(-120px); opacity: 0; } to { transform: none; opacity: 1; } }
+body[data-motion="full"] .bottle-cork.is-new { animation: cork-in 420ms ease-out both; }
+@keyframes cork-in { from { transform: translateY(-30px); } to { transform: none; } }
+
+/* The bottle flies off the top when it is sent. In Calm and Off it simply
+   fades - the same moment, without the movement. */
+.bottle-art.is-flying { transition: opacity 600ms ease-in; opacity: 0; }
+body[data-motion="full"] .bottle-art.is-flying {
+  transition: transform 900ms cubic-bezier(.5,0,.75,0), opacity 900ms ease-in;
+  transform: translateY(-140vh) rotate(-8deg);
+}
+
+/* What is in the bottle, under it: one chip per item, tap twice to remove. */
+.bottle-items { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 260px; }
+.bottle-chip {
+  min-width: 64px; min-height: 64px;
+  border: none; border-radius: 16px;
+  font-size: 30px;
+  background: var(--navy-2);
+  box-shadow: inset 0 -6px 0 var(--chip, #fff);
+}
+.bottle-chip img { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: #fff; }
+.bottle-chip.is-armed { background: var(--danger, #ff6b6b); }
+
+.bottle-tokens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 480px; }
+.bottle-token {
+  min-height: 96px;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  box-shadow: inset 0 -6px 0 var(--chip, #fff);
+}
+.bottle-token .token-icon { font-size: 38px; line-height: 1; }
+.bottle-token[disabled] { opacity: .35; }
+.bottle-sub { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.bottle-sub[hidden] { display: none; }
+
+.bottle-friends { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.bottle-friends[hidden] { display: none; }
+.bottle-friend {
+  min-width: 96px; min-height: 96px;
+  flex-direction: column; gap: 4px;
+  font-size: 14px;
+}
+.bottle-friend .friend-emblem { font-size: 34px; line-height: 1; }
+.bottle-friend.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+.bottle-disguise { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.bottle-disguise[hidden] { display: none; }
+
+/* Hold 🚀 to send: the button fills up while it is held. */
+.bottle-rocket { position: relative; overflow: hidden; min-width: 240px; }
+.bottle-rocket .rocket-fill {
+  position: absolute; inset: 0;
+  background: rgba(255,255,255,.45);
+  transform: scaleX(0); transform-origin: left center;
+}
+.bottle-rocket.is-holding .rocket-fill { transform: scaleX(1); transition: transform var(--hold-ms, 900ms) linear; }
+.bottle-rocket .rocket-face { position: relative; }
+
+.bottle-kept {
+  width: 150px;
+  border-radius: 18px;
+  background: var(--navy-2);
+  padding: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+}
+.bottle-kept .kept-art { width: 60px; }
+.bottle-kept .kept-to { font-size: 28px; line-height: 1; }
+.bottle-kept .kept-state { font-size: 15px; color: var(--muted); }
+
+@media (orientation: portrait) {
+  [data-mission="bottle"] .bottle-art { max-width: 150px; }
+}
+/* Long item names ("Something I can't live without") wrap inside the token. */
+.bottle-token .btn-label { white-space: normal; text-align: center; line-height: 1.2; }
+.bottle-wrap[hidden] { display: none; }

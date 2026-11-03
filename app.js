@@ -1173,6 +1173,7 @@ function leaveCurrent() {
   if (typeof stopHandshake === 'function') stopHandshake();
   if (typeof stopSuit === 'function') stopSuit();
   if (typeof stopPowers === 'function') stopPowers();
+  if (typeof stopBottle === 'function') stopBottle();
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -1209,6 +1210,7 @@ function goToMission(index, reasonAction) {
   else if (mission.id === 'suit') enterSuit();
   else if (mission.id === 'safe') enterSafe();
   else if (mission.id === 'powers') enterPowers();
+  else if (mission.id === 'bottle') enterBottle();
   else hideEditor();
 }
 
@@ -1392,6 +1394,7 @@ async function openAdultPanel() {
   paintSpeedButtons();
   paintBackupState();
   paintDisplayLink('');
+  paintWaitingCount();
   $('#export-result').innerHTML = '';
   $('#delete-confirm').hidden = true;
 }
@@ -1814,6 +1817,7 @@ function wireUp() {
   wireQuickAgent();
   wireSuit();
   wirePowers();
+  wireBottle();
   wirePolish();
   wireSessionControls();
   $('#btn-stamp').addEventListener('click', stampMission);
@@ -5564,6 +5568,8 @@ function paintDisplayLink(message) {
 async function setDisplayOn(on) {
   state.displayOn = Boolean(on);
   await Storage.setMeta('displayOn', state.displayOn);
+  // Switching on is the moment to send anything that has been waiting.
+  if (state.displayOn) sendWaitingBottles();
   paintDisplayLink(state.displayOn
     ? 'On. A bottle a child sends will go to the display.'
     : 'Off. Bottles stay on this iPad until the link is on.');
@@ -7226,6 +7232,16 @@ async function removePower(index) {
   state.agent.powers.splice(index, 1);
   powersUi.index = null;
   logEvent('powers_remove', { index: index });
+
+  /* A bottle's ⚡ item names its power by its place in this list (§10), so
+     the places after this one move down by one. An item that gave THIS
+     power keeps its powerId but its `power` becomes null: the power it
+     gave no longer exists on this agent. */
+  state.agent.bottles.forEach(b => b.items.forEach(item => {
+    if (item.type !== 'item-power' || typeof item.power !== 'number') return;
+    if (item.powerId === p.id || item.power === index) item.power = null;
+    else if (item.power > index) item.power -= 1;
+  }));
   scheduleSave();
   if (state.agent.powers.length === 0) newPowerDraft();
   else startPowersPhase('mine');
@@ -7408,4 +7424,873 @@ function wirePowers() {
     else if (phase === 'sentence') speakLine(POWER_SLOTS.find(s => s.id === powersUi.slot).say);
     else speakLine('nar-powers-more');
   });
+}
+
+
+/* ===========================================================================
+   33. THE BOTTLE (v3 §8, P6)
+
+   "What will your agent hand over?" The bottle is the hero of this screen:
+   it stands big on the left, and each item dropped in adds a band of
+   colour. The colours belong to the item TYPES, not to feelings.
+
+     🍾 Fill      up to 4 items, one of each kind
+     👥 Who for   🙋 me (kept on this iPad) · 👫 a friend · 🧑‍🏫 my teacher ·
+                  🌍 everyone (the big screen)
+     ✍️ Sign      ✍️ with my agent, or 🎭 a mystery - not asked for "me".
+                  Honest wording: a mystery hides the sender ON THE DISPLAY,
+                  and a mystery voice message must be in a spy voice.
+     🚀 Send      push the cork in, then swipe the bottle up or HOLD 🚀
+                  (every gesture has a tap alternative)
+     🗂️ Shelf     up to three bottles per agent
+
+   SENDING (v3 §9.1). Only what the display will show leaves the iPad, and
+   only for a bottle the child sends: never the agent's id, its event log,
+   or any other agent. For a friend or a teacher only the envelope goes (who
+   it is for, and who it is from if signed); the contents stay here.
+
+   THE CHILD ALWAYS SEES THE SAME FLIGHT. If the display link is off or
+   fails, the bottle is kept as `waiting` and goes by itself the next time
+   the link works - a child never sees an error (§9.3).
+
+   A voice is sent as the sound the child HEARD: Voice.render() disguises it
+   on the iPad, so a mystery bottle's real voice never leaves the iPad.
+   ======================================================================== */
+
+const MAX_BOTTLES = 3;
+const MAX_ITEMS = 4;
+
+// Each kind of item, its token and its colour band.
+const BOTTLE_ITEMS = [
+  { id: 'item-power',     emoji: '⚡', label: 'A power to give',               colour: '#ffd23f' },
+  { id: 'item-handshake', emoji: '🤝', label: 'My handshake',                  colour: '#ff8fab' },
+  { id: 'item-drawing',   emoji: '✏️', label: 'A drawing',                     colour: '#4cc9f0' },
+  { id: 'item-voice',     emoji: '🎤', label: 'A voice message',               colour: '#b892ff' },
+  { id: 'item-game',      emoji: '🎮', label: 'My favourite game',             colour: '#43aa8b' },
+  { id: 'item-cant-live', emoji: '💎', label: "Something I can't live without", colour: '#f77f00' },
+  { id: 'item-safe',      emoji: '📍', label: 'My safe place',                 colour: '#9fb3d1' }
+];
+
+const BOTTLE_TO = [
+  { id: 'who-me',       emoji: '🙋', label: 'Me' },
+  { id: 'who-friend',   emoji: '👫', label: 'A friend' },
+  { id: 'who-teacher',  emoji: '🧑‍🏫', label: 'My teacher' },
+  { id: 'who-everyone', emoji: '🌍', label: 'Everyone' }
+];
+
+const BOTTLE_SIGN = [
+  { id: 'sign-agent',   emoji: '✍️', label: 'With my agent' },
+  { id: 'sign-mystery', emoji: '🎭', label: 'Mystery' }
+];
+
+const BOTTLE_HOLD_MS = 900;          // how long 🚀 must be held
+
+const bottleUi = {
+  phase: 'fill',
+  index: null,          // which agent.bottles entry is being made
+  sub: null,            // null, 'power' or 'voice' - one item being made
+  voiceDraft: null,     // { audioId, filter } while a voice message is made
+  corked: false,
+  newBand: -1,          // the band to drop in, once
+  armed: null,          // the chip waiting for its second tap
+  friends: []           // the other agents on this iPad, for 👫
+};
+let bottleTimers = [];
+let bottleHold = null;
+
+function itemKind(id) { return BOTTLE_ITEMS.find(k => k.id === id); }
+function currentBottle() {
+  return bottleUi.index === null ? null : (state.agent.bottles[bottleUi.index] || null);
+}
+
+/* Safe place counts as "done" when it holds a real place to talk in. */
+function safePlaceForBottle() {
+  const talk = state.agent.safe && state.agent.safe.talk;
+  return talk && (talk.png || (talk.id && talk.id !== SAFE_NOWHERE)) ? talk : null;
+}
+
+/* The powers a bottle can give: the agent's own, and a session-2 power. */
+function givablePowers() {
+  const out = [];
+  state.agent.powers.forEach((p, i) => {
+    if (p.power) out.push({ power: i, powerId: p.id, emoji: powerEmoji(p), label: powerLabel(p) });
+  });
+  if (hasV2Power(state.agent) && !state.agent.powers.some(p => p.power === 'v2')) {
+    out.push({ power: 'v2', powerId: null, emoji: '⏪', label: 'From last time' });
+  }
+  return out;
+}
+
+/* ---- entering, leaving, steps ---- */
+
+function enterBottle() {
+  if (!state.agent) return;
+  hideEditor();
+  bottleUi.sub = null;
+  bottleUi.corked = false;
+  bottleUi.armed = null;
+  const open = state.agent.bottles.findIndex(b => b.state === 'open');
+  if (open !== -1) {
+    bottleUi.index = open;
+    startBottlePhase('fill');
+  } else if (state.agent.bottles.length) {
+    bottleUi.index = null;
+    startBottlePhase('shelf');
+  } else {
+    bottleUi.index = null;
+    startBottlePhase('fill');
+  }
+  // A good moment to send anything still waiting from earlier.
+  sendWaitingBottles();
+}
+
+function stopBottle() {
+  bottleTimers.forEach(clearTimeout);
+  bottleTimers = [];
+  cancelHold();
+  const art = $('#bottle-art');
+  if (art) art.classList.remove('is-flying');
+}
+
+function startBottlePhase(phase) {
+  bottleUi.phase = phase;
+  if (phase !== 'send') bottleUi.corked = false;
+  paintBottle();
+}
+
+function goBottlePhase(phase, how) {
+  if (phase === bottleUi.phase) return;
+  logEvent('bottle_phase', { to: phase, how: how });
+  startBottlePhase(phase);
+}
+
+const BOTTLE_TITLES = {
+  fill: ['What goes in?', 'nar-bottle-intro'],
+  to:   ['Who is it for?', 'nar-bottle-to'],
+  sign: ['Show your agent?', 'nar-bottle-sign'],
+  send: ['Cork it, send it', 'nar-bottle-cork'],
+  shelf: ['My bottles', 'nar-bottle-intro']
+};
+
+function paintBottle() {
+  const b = currentBottle();
+  const phase = bottleUi.phase;
+  const tab = name => $('[data-bottle-phase="' + name + '"]');
+  tab('to').hidden = !(b && b.items.length);
+  tab('sign').hidden = !(b && b.to && b.to !== 'who-me');
+  tab('send').hidden = !(b && b.to && (b.to === 'who-me' || b.signed !== null));
+  tab('shelf').hidden = !state.agent.bottles.some(x => x.state !== 'open');
+  $$('[data-bottle-phase]').forEach(btn =>
+    btn.classList.toggle('is-on', btn.dataset.bottlePhase === phase));
+  ['fill', 'to', 'sign', 'send', 'shelf'].forEach(name => {
+    $('#bottle-' + name).hidden = name !== phase;
+  });
+  let title = BOTTLE_TITLES[phase][0];
+  if (phase === 'send' && b && b.to === 'who-me') title = 'Cork it, keep it';
+  $('#bottle-title').textContent = title;
+
+  // On the shelf there is no bottle being made, and an empty one standing
+  // there reads as unfinished - the shelf shows the bottles themselves.
+  $('.bottle-wrap').hidden = phase === 'shelf';
+  paintBottleArt();
+  paintBottleChips();
+  if (phase === 'fill') paintTokens();
+  if (phase === 'to') paintBottleTo();
+  if (phase === 'sign') paintBottleSign();
+  if (phase === 'send') paintBottleSend();
+  if (phase === 'shelf') paintBottleShelf();
+}
+
+/* ---- the bottle itself ---- */
+
+/* The glass, the bands and the cork, as SVG. Drawn by code so it can be
+   drawn small on the shelf too. */
+const BOTTLE_PATH = 'M50 8 H70 V46 C70 58 100 62 100 84 V184 C100 192 94 196 86 196 ' +
+                    'H34 C26 196 20 192 20 184 V84 C20 62 50 58 50 46 Z';
+
+function bottleSvg(bottle, opts) {
+  const o = opts || {};
+  const items = (bottle && bottle.items) || [];
+  const id = 'clip' + Math.random().toString(36).slice(2, 8);
+  let bands = '';
+  items.forEach((item, i) => {
+    const kind = itemKind(item.type);
+    const y = 166 - i * 30;
+    bands += '<rect class="bottle-band' + (i === o.newBand ? ' is-new' : '') + '" x="18" y="' + y +
+             '" width="84" height="30" fill="' + (kind ? kind.colour : '#fff') + '"/>';
+  });
+  const cork = o.corked
+    ? '<rect class="bottle-cork' + (o.newCork ? ' is-new' : '') + '" x="47" y="0" width="26" height="22" rx="5"/>'
+    : '';
+  return '<svg viewBox="0 0 120 200" aria-hidden="true">' +
+    '<defs><clipPath id="' + id + '"><path d="' + BOTTLE_PATH + '"/></clipPath></defs>' +
+    '<g clip-path="url(#' + id + ')">' + bands + '</g>' +
+    '<path class="bottle-glass" d="' + BOTTLE_PATH + '"/>' + cork + '</svg>';
+}
+
+function paintBottleArt() {
+  const art = $('#bottle-art');
+  art.classList.remove('is-flying');
+  art.innerHTML = bottleSvg(currentBottle(), {
+    newBand: bottleUi.newBand,
+    corked: bottleUi.corked,
+    newCork: bottleUi.corked === 'new'
+  });
+  bottleUi.newBand = -1;
+  if (bottleUi.corked === 'new') bottleUi.corked = true;
+}
+
+/* What is in the bottle, as chips under it. One tap arms a chip, a second
+   takes it out - nothing a child made vanishes on one stray tap. */
+function paintBottleChips() {
+  const box = $('#bottle-items');
+  box.innerHTML = '';
+  const b = currentBottle();
+  if (!b || bottleUi.phase === 'shelf') return;
+  b.items.forEach((item, i) => {
+    const kind = itemKind(item.type);
+    const chip = document.createElement('button');
+    chip.className = 'bottle-chip' + (bottleUi.armed === i ? ' is-armed' : '');
+    chip.style.setProperty('--chip', kind.colour);
+    chip.setAttribute('aria-label', bottleUi.armed === i ? 'Take it out? Tap again' : kind.label);
+    if (bottleUi.armed === i) chip.textContent = '❓';
+    else if (item.png) chip.innerHTML = '<img alt="" src="' + item.png + '">';
+    else chip.textContent = kind.emoji;
+    chip.addEventListener('click', () => armBottleChip(i));
+    box.appendChild(chip);
+  });
+}
+
+function armBottleChip(i) {
+  if (bottleUi.phase === 'send' && bottleUi.corked) return;   // corked: sealed
+  clearTimeout(ownRemoveTimer);
+  if (bottleUi.armed === i) {
+    bottleUi.armed = null;
+    removeBottleItem(i);
+    return;
+  }
+  bottleUi.armed = i;
+  playSfx('sfx-pop');
+  paintBottleChips();
+  ownRemoveTimer = setTimeout(() => { bottleUi.armed = null; paintBottleChips(); }, 3000);
+}
+
+async function removeBottleItem(i) {
+  const b = currentBottle();
+  const item = b && b.items[i];
+  if (!item) return;
+  // A recording made for the bottle goes with it.
+  if (item.audioId) { Voice.forget(item.audioId); await Storage.deleteAudio(item.audioId); }
+  b.items.splice(i, 1);
+  logEvent('bottle_item_remove', { type: item.type });
+  paintBottle();
+  scheduleSave();
+}
+
+/* ---- 🍾 fill ---- */
+
+function paintTokens() {
+  const b = currentBottle();
+  const items = (b && b.items) || [];
+  const full = items.length >= MAX_ITEMS;
+  const box = $('#bottle-tokens');
+  box.innerHTML = '';
+  box.hidden = Boolean(bottleUi.sub);
+  BOTTLE_ITEMS.forEach(kind => {
+    // My safe place is only offered once there is one (§8).
+    if (kind.id === 'item-safe' && !safePlaceForBottle()) return;
+    const token = document.createElement('button');
+    token.className = 'btn bottle-token';
+    token.style.setProperty('--chip', kind.colour);
+    token.innerHTML = '<span class="token-icon">' + kind.emoji + '</span><span class="btn-label"></span>';
+    token.querySelector('.btn-label').textContent = kind.label;
+    const already = items.some(it => it.type === kind.id);
+    const noPower = kind.id === 'item-power' && givablePowers().length === 0;
+    token.disabled = full || already || noPower;
+    token.addEventListener('click', () => tapToken(kind));
+    box.appendChild(token);
+  });
+  $('#bottle-fill-go').hidden = !(items.length && !bottleUi.sub);
+  paintBottleSub();
+}
+
+/* The bottle is saved the moment its first item goes in (state 'open'). */
+function ensureBottle() {
+  let b = currentBottle();
+  if (b) return b;
+  b = {
+    id: uuid(),
+    createdAt: nowIso(),
+    items: [],
+    to: null,
+    toAgentId: null,
+    signed: null,
+    state: 'open',
+    sentAt: null,
+    deliveredAt: null
+  };
+  state.agent.bottles.push(b);
+  bottleUi.index = state.agent.bottles.length - 1;
+  return b;
+}
+
+function addBottleItem(item) {
+  const b = ensureBottle();
+  if (b.items.length >= MAX_ITEMS) return;
+  b.items.push(item);
+  bottleUi.newBand = b.items.length - 1;
+  bottleUi.sub = null;
+  logEvent('bottle_item_add', { type: item.type });
+  playSfx('sfx-bottle-drop');
+  if (b.items.length === MAX_ITEMS) speakLine('nar-bottle-full');
+  paintBottle();
+  scheduleSave();
+}
+
+function tapToken(kind) {
+  speakLabel(kind.id);
+  const b = currentBottle();
+  if (b && b.items.length >= MAX_ITEMS) return;
+
+  if (kind.id === 'item-power') {
+    const choices = givablePowers();
+    if (choices.length === 1) addPowerItem(choices[0]);
+    else { bottleUi.sub = 'power'; paintTokens(); }
+    return;
+  }
+  if (kind.id === 'item-handshake') {
+    // The rhythm itself goes in. No handshake yet? Make one now.
+    const add = taps => addBottleItem({ type: 'item-handshake', taps: taps.slice() });
+    if (state.agent.handshake) add(state.agent.handshake.taps);
+    else openHandshakeSheet(h => { if (h) add(h.taps); });
+    return;
+  }
+  if (kind.id === 'item-voice') {
+    bottleUi.sub = 'voice';
+    bottleUi.voiceDraft = null;
+    paintTokens();
+    return;
+  }
+  if (kind.id === 'item-safe') {
+    const place = safePlaceForBottle();
+    addBottleItem({ type: 'item-safe', place: { id: place.id || null, png: place.png || null } });
+    return;
+  }
+  // A drawing, my favourite game, something I can't live without: the
+  // shared ✏️ sheet - draw it, say it, or both.
+  openOwnCard({
+    title: kind.label,
+    say: 'nar-' + kind.id,
+    onKeep: card => addBottleItem({ type: kind.id, png: card.png || null, audioId: card.audioId || null })
+  });
+}
+
+/* A power GIVEN to whoever the bottle is for. `power` is the power's place
+   in agent.powers (§10), and `powerId` its own id, so the item still knows
+   which power it was if an earlier one is removed. */
+function addPowerItem(choice) {
+  addBottleItem({ type: 'item-power', power: choice.power, powerId: choice.powerId });
+  playSfx('sfx-gift');
+}
+
+/* One item being made: which power, or a voice message. */
+function paintBottleSub() {
+  const sub = $('#bottle-sub');
+  sub.innerHTML = '';
+  sub.hidden = !bottleUi.sub;
+  if (!bottleUi.sub) return;
+
+  const back = document.createElement('button');
+  back.className = 'btn tool';
+  back.setAttribute('aria-label', 'Back');
+  back.textContent = '↩️';
+  back.addEventListener('click', cancelBottleSub);
+
+  if (bottleUi.sub === 'power') {
+    const row = document.createElement('div');
+    row.className = 'power-when powers-cards';
+    givablePowers().forEach(choice => {
+      row.appendChild(modeCard({ id: 'give-' + choice.power, emoji: choice.emoji, label: choice.label },
+                               false, () => addPowerItem(choice)));
+    });
+    sub.appendChild(row);
+    sub.appendChild(back);
+    return;
+  }
+
+  // A voice message: 🎤, then any of the six voices, then ✓ in it goes.
+  const draft = bottleUi.voiceDraft;
+  const mic = document.createElement('button');
+  mic.id = 'bottle-mic';
+  mic.className = 'btn btn-big word-mic';
+  mic.setAttribute('aria-label', 'Record a voice message');
+  mic.textContent = Voice.isRecording() ? '⏹️' : '🎤';
+  mic.addEventListener('click', recordBottleVoice);
+  sub.appendChild(mic);
+  if (draft) {
+    sub.appendChild(voicePicker(draft.filter, true, filterId => {
+      draft.filter = filterId;
+      logEvent('bottle_voice_filter', { filter: filterId });
+      paintBottleSub();
+      playClipIn(draft.audioId, filterId);
+    }));
+    const put = document.createElement('button');
+    put.className = 'btn btn-accent btn-big';
+    put.innerHTML = '✓ <span class="btn-label">Put it in</span>';
+    put.addEventListener('click', () => {
+      const d = bottleUi.voiceDraft;
+      bottleUi.voiceDraft = null;
+      addBottleItem({ type: 'item-voice', audioId: d.audioId, filter: d.filter });
+    });
+    sub.appendChild(put);
+  }
+  sub.appendChild(back);
+}
+
+/* The six spy voices as buttons. `withNormal` false leaves "Normal" out -
+   a mystery voice message must be disguised (§8). */
+function voicePicker(current, withNormal, onPick) {
+  const row = document.createElement('div');
+  row.className = 'word-voices';
+  Voice.FILTERS.forEach(filter => {
+    if (!withNormal && filter.id === 'normal') return;
+    const b = document.createElement('button');
+    b.className = 'btn word-voice' + (current === filter.id ? ' is-on' : '');
+    b.innerHTML = '<span class="voice-icon">' + filter.icon + '</span><span class="btn-label"></span>';
+    b.querySelector('.btn-label').textContent = filter.label;
+    b.addEventListener('click', () => onPick(filter.id));
+    row.appendChild(b);
+  });
+  return row;
+}
+
+async function playClipIn(audioId, filterId) {
+  if (state.muted) return;
+  Voice.unlock();
+  const row = await Storage.loadAudio(audioId);
+  if (row) Voice.play(audioId, row.blob, filterId);
+}
+
+async function recordBottleVoice() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+  const mic = $('#bottle-mic');
+  if (mic) { mic.classList.add('is-recording'); mic.textContent = '⏹️'; }
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    const old = bottleUi.voiceDraft;
+    if (old && old.audioId) { Voice.forget(old.audioId); await Storage.deleteAudio(old.audioId); }
+    bottleUi.voiceDraft = { audioId: id, filter: (old && old.filter) || 'normal' };
+    logEvent('bottle_voice_record', { ms: Math.round(result.ms) });
+    playClipIn(id, bottleUi.voiceDraft.filter);
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  paintBottleSub();
+}
+
+async function cancelBottleSub() {
+  const d = bottleUi.voiceDraft;
+  if (d && d.audioId) { Voice.forget(d.audioId); await Storage.deleteAudio(d.audioId); }
+  bottleUi.voiceDraft = null;
+  bottleUi.sub = null;
+  paintTokens();
+}
+
+/* ---- 👥 who is it for ---- */
+
+async function paintBottleTo() {
+  const b = currentBottle();
+  const box = $('#bottle-to-cards');
+  box.innerHTML = '';
+  BOTTLE_TO.forEach(to => {
+    box.appendChild(modeCard(to, b.to === to.id, () => chooseBottleTo(to.id)));
+  });
+  $('#bottle-to-go').hidden = !b.to;
+
+  // 👫 The child MAY tap the friend's agent among the tiles; "a friend" on
+  // its own is fine too (§8). Emblem and codename only.
+  const friends = $('#bottle-friends');
+  friends.hidden = b.to !== 'who-friend';
+  if (b.to !== 'who-friend') return;
+  const all = (await Storage.listAgents()).map(migrateAgent);
+  friends.innerHTML = '';
+  all.filter(a => a.id !== state.agent.id).forEach(agent => {
+    const tile = document.createElement('button');
+    tile.className = 'btn bottle-friend' + (b.toAgentId === agent.id ? ' is-on' : '');
+    tile.innerHTML = '<span class="friend-emblem"></span><span class="btn-label"></span>';
+    tile.querySelector('.friend-emblem').textContent = agentEmblem(agent);
+    tile.querySelector('.btn-label').textContent = agent.codename || 'Agent';
+    tile.addEventListener('click', () => {
+      b.toAgentId = b.toAgentId === agent.id ? null : agent.id;
+      logEvent('bottle_friend_pick', { toAgentId: b.toAgentId });
+      paintBottleTo();
+      scheduleSave();
+    });
+    friends.appendChild(tile);
+  });
+}
+
+function chooseBottleTo(id) {
+  const b = currentBottle();
+  b.to = id;
+  if (id !== 'who-friend') b.toAgentId = null;
+  if (id === 'who-me') b.signed = null;       // nothing to sign for "me"
+  logEvent('bottle_to', { who: id });
+  speakLabel(id);
+  if (id === 'who-friend') speakLine('nar-bottle-friend');
+  paintBottle();
+  scheduleSave();
+}
+
+/* ---- ✍️ show your agent, or a mystery ---- */
+
+function paintBottleSign() {
+  const b = currentBottle();
+  const box = $('#bottle-sign-cards');
+  box.innerHTML = '';
+  BOTTLE_SIGN.forEach(sign => {
+    const on = b.signed === (sign.id === 'sign-agent');
+    box.appendChild(modeCard(sign, b.signed !== null && on, () => chooseSign(sign.id === 'sign-agent')));
+  });
+
+  // A mystery voice message must be disguised: "Normal" is not offered,
+  // and the child hears the disguise before going on (§8).
+  const disguise = $('#bottle-disguise');
+  disguise.innerHTML = '';
+  const plain = b.signed === false ? b.items.filter(it => it.type === 'item-voice' && it.filter === 'normal') : [];
+  disguise.hidden = b.signed !== false || !b.items.some(it => it.type === 'item-voice');
+  if (!disguise.hidden) {
+    const voice = b.items.find(it => it.type === 'item-voice');
+    const head = document.createElement('div');
+    head.className = 'soon-icon';
+    head.textContent = '🎭🎤';
+    disguise.appendChild(head);
+    disguise.appendChild(voicePicker(voice.filter, false, filterId => {
+      b.items.forEach(it => { if (it.type === 'item-voice') it.filter = filterId; });
+      logEvent('bottle_voice_filter', { filter: filterId, mystery: true });
+      paintBottleSign();
+      playClipIn(voice.audioId, filterId);
+      scheduleSave();
+    }));
+  }
+  $('#bottle-sign-go').hidden = b.signed === null || plain.length > 0;
+}
+
+function chooseSign(signed) {
+  const b = currentBottle();
+  b.signed = signed;
+  logEvent('bottle_sign', { signed: signed });
+  speakLine(signed ? 'nar-sign-agent' : 'nar-sign-mystery');
+  paintBottle();
+  scheduleSave();
+}
+
+/* ---- 🚀 cork it, send it ---- */
+
+function paintBottleSend() {
+  const b = currentBottle();
+  const forMe = b.to === 'who-me';
+  $('#bottle-cork').hidden = Boolean(bottleUi.corked);
+  $('#bottle-rocket').hidden = !bottleUi.corked || forMe;
+  $('#bottle-keep').hidden = !bottleUi.corked || !forMe;
+}
+
+function corkBottle() {
+  bottleUi.corked = 'new';
+  bottleUi.armed = null;
+  logEvent('bottle_cork', {});
+  playSfx('sfx-cork');
+  if (currentBottle().to !== 'who-me') speakLine('nar-bottle-send');
+  paintBottle();
+}
+
+function keepBottle() {
+  const b = currentBottle();
+  b.state = 'kept';
+  logEvent('bottle_keep', {});
+  speakLine('nar-bottle-kept');
+  bottleUi.index = null;
+  scheduleSave();
+  startBottlePhase('shelf');
+}
+
+/* Send: the same flight whether or not the link works (§8). */
+function sendBottle() {
+  const b = currentBottle();
+  if (!b || !bottleUi.corked || b.to === 'who-me' || b.state !== 'open') return;
+  cancelHold();
+  b.state = 'sent';
+  b.sentAt = nowIso();
+  logEvent('bottle_send', { to: b.to, signed: Boolean(b.signed), items: b.items.map(it => it.type) });
+  playSfx('sfx-bottle-send');
+  $('#bottle-art').classList.add('is-flying');
+  scheduleSave();
+
+  const agent = state.agent;
+  bottleTimers.push(setTimeout(() => {
+    speakLine('nar-bottle-sent');
+    bottleUi.index = null;
+    startBottlePhase('shelf');
+  }, 1000));
+
+  // Then, quietly, the actual sending.
+  deliverBottle(agent, b).then(ok => {
+    if (ok) return;
+    b.state = 'waiting';
+    if (agent === state.agent) { logEvent('bottle_queued', {}); scheduleSave(); }
+    else logEventOnAgent(agent, 'bottle_queued', {});
+    paintWaitingCount();
+  });
+}
+
+/* Hold 🚀: the button fills while it is held, and sends when it is full. */
+function startHold(event) {
+  event.preventDefault();
+  const rocket = $('#bottle-rocket');
+  rocket.style.setProperty('--hold-ms', BOTTLE_HOLD_MS + 'ms');
+  rocket.classList.add('is-holding');
+  clearTimeout(bottleHold);
+  bottleHold = setTimeout(sendBottle, BOTTLE_HOLD_MS);
+}
+
+function cancelHold() {
+  clearTimeout(bottleHold);
+  bottleHold = null;
+  const rocket = $('#bottle-rocket');
+  if (rocket) rocket.classList.remove('is-holding');
+}
+
+/* Swipe the bottle up to send it. */
+let swipeFrom = null;
+function bottleSwipeStart(event) { swipeFrom = event.clientY; }
+function bottleSwipeEnd(event) {
+  if (swipeFrom === null) return;
+  const dy = event.clientY - swipeFrom;
+  swipeFrom = null;
+  if (bottleUi.phase === 'send' && dy < -60) sendBottle();
+}
+
+/* ---- 🗂️ the shelf ---- */
+
+function paintBottleShelf() {
+  const list = $('#bottle-shelf-list');
+  list.innerHTML = '';
+  state.agent.bottles.forEach(b => {
+    if (b.state === 'open') return;
+    const card = document.createElement('div');
+    card.className = 'bottle-kept';
+    const to = BOTTLE_TO.find(t => t.id === b.to);
+    // A child sees "sent" whether it has arrived yet or is still waiting.
+    const stateText = b.state === 'kept' ? '🔒 Kept' : '🚀 Sent';
+    card.innerHTML = '<div class="kept-art">' + bottleSvg(b, { corked: true }) + '</div>' +
+      '<div class="kept-to">' + (to ? to.emoji : '') + (b.signed === false ? '🎭' : '') + '</div>' +
+      '<div class="kept-state"></div>';
+    card.querySelector('.kept-state').textContent = stateText;
+    list.appendChild(card);
+  });
+  $('#bottle-new').hidden = state.agent.bottles.length >= MAX_BOTTLES;
+}
+
+/* ---- what goes to the display (v3 §9.1) ---- */
+
+/* A picture made smaller, so a bottle stays well under the relay's 2 MB. */
+function shrinkPng(dataUrl, max) {
+  return new Promise(resolve => {
+    if (!dataUrl) { resolve(null); return; }
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+/* The agent as a picture, at most `size` pixels, drawn by the same code as
+   the v2 card (drawAgentToCanvas), standing in its place. */
+async function agentPicture(agent, size) {
+  await preloadCardAssets(agent);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  drawAgentToCanvas(canvas.getContext('2d'), agent.cover || {}, 0, 0, size, false, cardAssets.hq);
+  return canvas.toDataURL('image/png');
+}
+
+/* A recording as the sound the child heard: disguised on the iPad. */
+async function renderedClip(audioId, filterId) {
+  try {
+    const row = await Storage.loadAudio(audioId);
+    if (!row) return null;
+    return await blobToDataUrl(await Voice.render(audioId, row.blob, filterId || 'normal'));
+  } catch (err) {
+    reportError('render voice', err);
+    return null;
+  }
+}
+
+async function itemPayload(agent, item) {
+  const out = { type: item.type };
+  if (item.type === 'item-power') {
+    const p = item.power === 'v2' ? null
+      : (agent.powers.find(x => x.id === item.powerId) || agent.powers[item.power]);
+    out.power = p ? p.power : 'v2';
+    const own = p ? p.own : (agent.powerup && agent.powerup.power);
+    out.picture = await shrinkPng(own && own.png, 256);
+    // "Control teachers" shows what the child's "so that" shows (§7.2).
+    if (p && p.power === 'pow-control-teachers' && p.soThat) out.soThat = await shrinkPng(p.soThat.png, 256);
+  } else if (item.type === 'item-handshake') {
+    out.taps = item.taps;
+  } else if (item.type === 'item-voice') {
+    out.audio = await renderedClip(item.audioId, item.filter);
+    out.filter = item.filter;
+  } else if (item.type === 'item-safe') {
+    out.place = item.place.id;
+    out.picture = await shrinkPng(item.place.png, 512);
+  } else {
+    // A drawing, a game, something I can't live without.
+    out.picture = await shrinkPng(item.png, 512);
+    out.audio = item.audioId ? await renderedClip(item.audioId, 'normal') : null;
+  }
+  return out;
+}
+
+/* The bottle as it travels. NEVER the agent id, the event log, or another
+   agent (§9.1). For a friend or a teacher: the envelope only. */
+async function buildBottlePayload(agent, bottle) {
+  let toEmblem = null;
+  if (bottle.to === 'who-friend' && bottle.toAgentId) {
+    const friend = await Storage.loadAgent(bottle.toAgentId);
+    toEmblem = friend ? agentEmblem(migrateAgent(friend)) : null;
+  }
+  const payload = {
+    type: 'bottle',
+    bottleId: bottle.id,               // random; nothing to do with the agent id
+    sentAt: bottle.sentAt,
+    to: bottle.to,
+    toEmblem: toEmblem,
+    signed: Boolean(bottle.signed),
+    from: null,
+    items: []
+  };
+  if (bottle.signed) {
+    payload.from = {
+      codename: agent.codename,
+      emblem: agentEmblem(agent),
+      picture: await agentPicture(agent, 256),
+      handshake: agent.handshake ? agent.handshake.taps : null
+    };
+  }
+  if (bottle.to === 'who-everyone') {
+    for (const item of bottle.items) payload.items.push(await itemPayload(agent, item));
+  }
+  // The relay takes 2 MB at most. A bottle that would be bigger drops its
+  // sounds rather than not arriving at all.
+  if (JSON.stringify(payload).length > 1900000) {
+    payload.items.forEach(it => { if (it.audio) { it.audio = null; it.audioDropped = true; } });
+  }
+  return payload;
+}
+
+/* Hand one bottle to the relay. True if it took it. */
+async function deliverBottle(agent, bottle) {
+  if (!state.displayOn) return false;
+  let ok = false;
+  try {
+    ok = await sendToRelay(await buildBottlePayload(agent, bottle));
+  } catch (err) {
+    reportError('bottle payload', err);
+  }
+  if (!ok) return false;
+  bottle.state = 'delivered';
+  bottle.deliveredAt = nowIso();
+  const ms = Date.parse(bottle.deliveredAt) - Date.parse(bottle.sentAt);
+  if (agent === state.agent) { logEvent('bottle_delivered', { ms: ms }); scheduleSave(); }
+  else await logEventOnAgent(agent, 'bottle_delivered', { ms: ms });
+  return true;
+}
+
+/* Every bottle on this iPad still waiting to go - from any agent. Stops at
+   the first failure: the link is down, and the rest would fail too. */
+let sendingWaiting = false;
+async function sendWaitingBottles() {
+  if (sendingWaiting || !state.displayOn) return 0;
+  sendingWaiting = true;
+  let sent = 0;
+  try {
+    const agents = (await Storage.listAgents()).map(migrateAgent);
+    outer:
+    for (const stored of agents) {
+      // The open agent is changed in memory, never behind its back.
+      const agent = state.agent && state.agent.id === stored.id ? state.agent : stored;
+      for (const bottle of agent.bottles.filter(b => b.state === 'waiting')) {
+        if (await deliverBottle(agent, bottle)) sent++;
+        else break outer;
+      }
+    }
+  } catch (err) {
+    reportError('send waiting bottles', err);
+  }
+  sendingWaiting = false;
+  paintWaitingCount();
+  return sent;
+}
+
+/* The adult panel's count. Adults see numbers; children never do. */
+async function paintWaitingCount() {
+  const label = $('#bottles-waiting');
+  if (!label) return 0;
+  const agents = (await Storage.listAgents()).map(migrateAgent);
+  let n = 0;
+  agents.forEach(stored => {
+    const agent = state.agent && state.agent.id === stored.id ? state.agent : stored;
+    n += agent.bottles.filter(b => b.state === 'waiting').length;
+  });
+  label.textContent = n === 0 ? 'No bottles waiting'
+    : n === 1 ? '1 bottle waiting' : n + ' bottles waiting';
+  return n;
+}
+
+function wireBottle() {
+  $$('[data-bottle-phase]').forEach(b =>
+    b.addEventListener('click', () => goBottlePhase(b.dataset.bottlePhase, 'tab')));
+  $('#bottle-fill-go').addEventListener('click', () => goBottlePhase('to', 'next'));
+  $('#bottle-to-go').addEventListener('click', () =>
+    goBottlePhase(currentBottle().to === 'who-me' ? 'send' : 'sign', 'next'));
+  $('#bottle-sign-go').addEventListener('click', () => goBottlePhase('send', 'next'));
+  $('#bottle-cork').addEventListener('click', corkBottle);
+  $('#bottle-keep').addEventListener('click', keepBottle);
+  const rocket = $('#bottle-rocket');
+  rocket.addEventListener('pointerdown', startHold);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => rocket.addEventListener(e, cancelHold));
+  const art = $('#bottle-art');
+  art.addEventListener('pointerdown', bottleSwipeStart);
+  window.addEventListener('pointerup', bottleSwipeEnd);
+  $('#bottle-new').addEventListener('click', () => {
+    if (state.agent.bottles.length >= MAX_BOTTLES) return;
+    logEvent('bottle_new', {});
+    bottleUi.index = null;
+    startBottlePhase('fill');
+  });
+  $('#bottle-say').addEventListener('click', () => speakLine(BOTTLE_TITLES[bottleUi.phase][1]));
+
+  // The adult panel: send the waiting bottles now.
+  $('#btn-send-waiting').addEventListener('click', async () => {
+    paintDisplayLink('Sending…');
+    const n = await sendWaitingBottles();
+    const left = await paintWaitingCount();
+    paintDisplayLink(left === 0 ? '✅ Nothing waiting.' :
+      (n ? '✅ Sent ' + n + '. ' : '') + '⚠️ ' + left + ' still waiting - is the link on and the relay running?');
+  });
+
+  // While the app is open, try the waiting ones every 30 seconds.
+  setInterval(() => { if (state.displayOn) sendWaitingBottles(); }, 30000);
 }
