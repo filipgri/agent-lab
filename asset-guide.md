@@ -160,6 +160,122 @@ These help Claude Code draw the parts kit, especially hair. Use the scenes proje
 
 ---
 
+### v3 pictures: read this before 3.6–3.9
+
+Added for session 3 (`agent-lab-v3-spec.md` §11.1). Every card a child chooses
+from or watches gets a picture; the app shows each one's emoji until the file
+arrives, so nothing waits for them.
+
+- **Make `pow-slow-everybody` first,** in the stickers project, and refine it
+  until you love it. It is the style anchor: attach it to every later v3 chat
+  and say *"Same style as the attached image."*
+- **One image per message.** Ask for a white background, then remove it (§3.3).
+  Check every picture against §6.
+- **Cards marked 👤 show figures.** Start those messages with:
+
+```
+This card may show people, but only like this: simple round bean-shaped figures in soft grey-lilac with two dot eyes and rounded mitten hands. No skin colour, hair, gender cues or clothing details. A grown-up at school is a taller bean figure wearing a lanyard. Arrows, motion lines, speech bubbles, question marks and stars are fine. Still no writing, letters or numbers.
+```
+
+- **Three are copies, not new pictures:** `who-teacher` is a copy of
+  `disp-teacher`, `mode-handshake` is a copy of `how-handshake`, and
+  `mode-device` is a copy of the existing `stk-aac-talker`. Copy the file under
+  the second name.
+- **To bring them in,** put the downloads in `assets/incoming/` and say
+  **"Bring in the new assets."** Every v3 picture is the sticker kind (PNG,
+  longest side 512, transparency kept), except `disp-shore` — the wide kind,
+  JPEG, longest side 1920, centre-cropped to 16:9 — and `disp-board`, a sticker
+  with a longest side of 1024.
+
+### 3.6 Power cards ⭐ — `assets/img/powers/`
+
+Stickers project. Make the five from Filip's notes first: slow everybody down,
+control teachers, control all displays, control devices and speak for your
+friends.
+
+| id | label | fallback | 👤 | picture |
+|---|---|---|---|---|
+| pow-slow-everybody | Slow everybody down | 🐢 | | A big friendly tortoise carrying a round clock on its shell, with soft wavy slow-motion lines behind it. |
+| pow-pause | Pause the world | ⏸️ | | A big round pause button with two bars, with tiny ice crystals frozen round its edge. |
+| pow-hold-turn | Hold my turn | 🎟️ | | A glowing golden ticket with a star in the middle, like a token that saves your turn. |
+| pow-warn-me | Warn me first | 🔔 | | A friendly bell ringing, with three dots in an arc beside it lighting up one after another. |
+| pow-say-again | Say it again | 🔁 | | A speech bubble with a curved replay arrow looping round it. |
+| pow-turn-down | Turn the room down | 🔉 | | A big volume knob turned down low, with sound waves getting smaller and softer. |
+| pow-dim-lights | Dim the lights | 🌙 | | A light bulb glowing softly beside a slider switch pushed halfway down. |
+| pow-quiet-bubble | Quiet bubble | 🫧 | 👤 | A bean figure sitting calmly inside a big shiny bubble, with jagged sound waves bouncing off the outside. |
+| pow-translator | Translator | 🔄 | | A small machine with two windows: a picture of a house goes in one side and comes out of the other as a speech bubble with a house in it, with arrows going both ways. |
+| pow-my-way | Everyone talks my way | 🌀 | 👤 | A row of bean figures all copying the same big wave as a leader bean figure in front. |
+| pow-get-me | Get-what-I-mean ray | 💡 | | A ray gun shooting a beam of light into a speech bubble, which lights up with a light bulb inside. |
+| pow-control-teachers | Control teachers | 🎮 | 👤 | A chunky game controller; above it, a taller bean figure with a lanyard happily follows a big curved arrow, mid-step. |
+| pow-question-swap | Question swap | 🔀 | 👤 | A small bean figure and a taller bean figure with a lanyard; two speech bubbles with question marks swap places between them along curved arrows. |
+| pow-pass | Pass | 🛑 | 👤 | A calm bean figure holding up a green card, with a curved arrow jumping over a dot above it. |
+| pow-invisible | Invisibility cloak | 👻 | | A flowing cloak whose lower half fades into sparkles and becomes see-through. |
+| pow-control-displays | Control all displays | 📺 | | A remote control pointing at a big wall screen that glows with bright swirls of colour. |
+| pow-control-devices | Control devices | 🎛️ | | A remote control in the middle, with a lamp, a speaker and a whiteboard around it, each joined to it by a little spark. |
+| pow-see-points | See my points | ⭐ | | A big gold star with one open eye in its middle. |
+| pow-change-rule | Change a rule | 📜 | | A paper scroll unrolling, with a pencil drawing new simple shapes on it. |
+| pow-speak-for-friends | Speak for your friends | 💬 | 👤 | Two bean figures side by side holding mitten hands; one has a big speech bubble with a small heart in it. |
+| pow-call-ally | Call an ally | 📣 | 👤 | A megaphone sending out soft signal waves, and a second bean figure running in to help. |
+| pow-team-up | Team up | 🤝 | 👤 | Two bean figures doing a high five, with sparkles. |
+
+### 3.7 Doors ⭐ — `assets/img/doors/`
+
+Stickers project. Make `fam-time` first, then attach it and say *"Same door,
+but …"* for the rest.
+
+| id | label | fallback | 👤 | picture |
+|---|---|---|---|---|
+| fam-time | Time | ⏳ | | A tall, rounded, deep-blue wooden door, slightly open with warm light inside, with a glowing hourglass on it. |
+| fam-senses | Sound and light | 🔊 | | The same door in orange, with a glowing light bulb and a sound wave on it. |
+| fam-language | Words | 🗣️ | | The same door in green, with a glowing speech bubble on it. |
+| fam-floor | Turns | ✋ | | The same door in purple, with two glowing curved arrows chasing each other in a circle. |
+| fam-screens | Screens | 📺 | | The same door in teal, with a glowing screen on it. |
+| fam-together | Together | 🤝 | | The same door in pink, with two glowing linked rings on it. |
+
+### 3.8 Display ⭐ — `assets/img/display/`
+
+`disp-shore` uses the scenes project; the other three use the stickers project.
+
+| id | label | fallback | 👤 | picture |
+|---|---|---|---|---|
+| disp-shore | Shore | 🏖️ | | Ignore "square". A calm seaside seen from the beach at golden hour: smooth sand across the bottom third, small gentle waves, and a wide soft sky with a low sun and a few clouds. Lots of empty space and nothing on the sand. Wide landscape; it will be cropped to 16:9, so keep everything important in the middle band. |
+| disp-board | Board | 📌 | | A wide wooden noticeboard on two short posts, with an empty cork surface, front view. |
+| disp-bottle | Bottle | 🍾 | | A sea-green glass bottle standing upright, with a cork and a rolled-up paper scroll inside. |
+| disp-teacher | Teacher figure | 🧑‍🏫 | 👤 | A taller bean figure wearing a lanyard, standing, front view, arms relaxed. |
+
+### 3.9 Choice cards ◻️ — `assets/img/cards/`
+
+Stickers project. The emoji are fine until these arrive.
+
+| id | label | fallback | 👤 | picture |
+|---|---|---|---|---|
+| likeme-like | Like me | 🪞 | 👤 | A bean figure looking into a mirror and seeing exactly the same bean figure. |
+| likeme-bit | A bit like me | 🌗 | 👤 | A bean figure looking into a mirror; the reflection is the same shape, but one half is a different colour. |
+| likeme-else | Someone else | 🎭 | | A colourful masquerade mask on a stick. |
+| mode-talk | Talking | 🗣️ | | A speech bubble with sound waves coming from it. |
+| mode-hands | Hands | ✋ | 👤 | Two grey-lilac mitten hands moving, with motion lines, as if signing. |
+| mode-handshake | Secret handshake | 🤝 | | Copy of `how-handshake`. |
+| mode-draw | Drawing | ✏️ | | A pencil drawing a sun on a sheet of paper. |
+| mode-act | Acting it out | 🎭 | 👤 | A bean figure in a big dramatic pose on a small stage under a spotlight. |
+| mode-pictures | Pictures | 🖼️ | | Four picture cards in a grid, showing a cup, a ball, a house and a star. |
+| mode-write | Writing | 📝 | | A pencil writing wavy lines, not letters, on lined paper. |
+| mode-device | A device | 📱 | | Copy of `stk-aac-talker`. |
+| mode-hand-up | Hand up | 🙋 | 👤 | A bean figure with one mitten hand raised high. |
+| mode-quiet | Being quiet | 🤫 | 👤 | A calm bean figure holding a mitten hand where its mouth would be, with a small crossed-out sound wave beside it. |
+| who-me | Me | 🙋 | 👤 | One bean figure pointing at itself with a mitten hand, with a small star above it. |
+| who-friend | A friend | 👫 | 👤 | Two bean figures side by side with linked arms. |
+| who-teacher | My teacher | 🧑‍🏫 | 👤 | Copy of `disp-teacher`. |
+| who-class | My class | 🏫 | 👤 | A group of small bean figures sitting round a table. |
+| who-everyone | Everyone | 🌍 | 👤 | A big crowd of bean figures in rows, filling the picture. |
+| who-room | The room | 💡 | | A small cut-away room like a doll's house: a ceiling light, a speaker on the wall, a window and a table, with no figures. |
+| how-badge | My badge | 🏷️ | | A small rectangular electronic badge with a glowing blank screen, hanging from a lanyard clip. |
+| how-handshake | My secret handshake | 🤝 | 👤 | Two grey-lilac mitten hands meeting in a handshake, with little rhythm dots around them. |
+| how-hand-sign | A hand sign | ✋ | 👤 | One grey-lilac mitten hand making a sign, with small motion lines. |
+| how-word | A secret word | 🗣️ | | A speech bubble with a small golden key inside it. |
+| how-drawing | A drawing | ✏️ | | A pencil drawing a simple swirl on a sheet of paper. |
+| how-button | A button | 🔘 | | A big round push button, glowing. |
+
+
 ## 4. ElevenLabs: narrator and sounds
 
 ### 4.1 Whose voice?
@@ -283,65 +399,106 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-idea-grow | Grow and shrink. |
 | nar-idea-animals | Talk to animals. |
 
-**Session 3: force field and mood codes ◻️**
+**Session 3: v3 instructions ◻️**
+
+| id | plays when | text |
+|---|---|---|
+| nar-v3-welcome | Start screen 🔊 | Find your agent, or make a new one. |
+| nar-v3-gallery | Start screen, when agents exist | Is your agent here? Tap it. |
+| nar-base-pick | Quick agent | Pick an agent to start from. |
+| nar-base-blank | Start blank | Or start from nothing. |
+| nar-likeme-ask | Like-me question | Is your agent like you? |
+| nar-suit-likes | Talking, step 1 | How does your agent like to talk? |
+| nar-suit-school | Talking, step 2 | How does school want your agent to talk? |
+| nar-handshake-make | Handshake | Tap a secret handshake for your agent. |
+| nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
+| nar-safe-talk | Safe place, step 1 | Where does your agent feel safe to talk? |
+| nar-safe-stops | Safe place, step 2 | Where does your agent's power stop working? |
+| nar-powers-make | Powers start | Make up a power. Draw it or say it. |
+| nar-powers-ideas | Need ideas? | Here are some ideas. Pick a door. |
+| nar-powers-when | When slot | When does your agent use it? |
+| nar-powers-who | Who slot | Who does your power work on? |
+| nar-powers-how | How slot | How do you switch it on? |
+| nar-powers-sothat | So-that slot | So that what? Draw it or say it. |
+| nar-powers-fire | Power fires | Power on! |
+| nar-powers-more | After a power | Make another power, or Stamp it. |
+| nar-bottle-intro | Bottle | What will your agent hand over? |
+| nar-bottle-full | Fourth item goes in | Your bottle is full. |
+| nar-bottle-to | Who it's for | Who is it for? |
+| nar-bottle-friend | Pick a friend | Tap your friend's agent. |
+| nar-bottle-sign | Sign or mystery | Show your agent, or send a mystery? |
+| nar-bottle-cork | Cork | Push the cork in. |
+| nar-bottle-send | Send | Swipe it up to send it. |
+| nar-bottle-sent | After sending | Your bottle is on its way. |
+| nar-bottle-kept | Kept | Your bottle stays on your shelf. |
+
+**Session 3: v3 card labels ◻️**
 
 | id | text |
 |---|---|
-| nar-field-intro | Make your agent's force field. Pick its size and look. |
-| nar-field-approach | Someone is coming. What does your force field do? |
-| nar-approach-friend | A friend. |
-| nar-approach-teacher | A teacher. |
-| nar-approach-new | Someone new. |
-| nar-react-bounce | Bounce off. |
-| nar-react-letin | Let them in. |
-| nar-react-wave | Wave hello. |
-| nar-mood-intro | Make a secret mood code. |
-| nar-mood-situation | Pick a moment. |
-| nar-mood-enact | Show how your agent reacts. |
-| nar-mood-sign | [whispers] Make a secret sign for it. |
-| nar-mood-readers | Who can read this sign? |
-| nar-people-me | Only me. |
-| nar-people-friends | Friends. |
-| nar-people-teachers | Teachers. |
-| nar-people-family | Family. |
-| nar-people-everyone | Everyone. |
-
-**Session 4: rules, badge and dossier ◻️**
-
-| id | text |
-|---|---|
-| nar-rules-intro | Make rules for the people around your agent. |
-| nar-rules-who | Who is this rule for? |
-| nar-rules-action | What should they do? |
-| nar-rules-when | When? |
-| nar-rules-check | Listen. Is this right? |
-| nar-rules-badge | Put this rule on your badge? |
-| nar-please | Please. |
-| nar-please-dont | Please don't. |
-| nar-act-give-time | Give me time. |
-| nar-act-talk-slower | Talk slower. |
-| nar-act-write-it | Write it down. |
-| nar-act-show-me | Show me. |
-| nar-act-ask-first | Ask me first. |
-| nar-act-touch-things | Touch my things. |
-| nar-act-finish-words | Finish my words. |
-| nar-act-sit-with-me | Sit with me. |
-| nar-act-let-me-move | Let me move. |
-| nar-act-headphones | Let me wear headphones. |
-| nar-act-help-me | Help me. |
-| nar-act-include-me | Include me. |
-| nar-when-class | In class. |
-| nar-when-lunch | At lunch. |
-| nar-when-playtime | At playtime. |
-| nar-when-loud | When it's loud. |
-| nar-when-upset | When I'm upset. |
-| nar-when-always | Always. |
-| nar-badge-intro | Design your badge and your wall poster. |
-| nar-badge-front | People near you can see your badge. |
-| nar-badge-pocket | Press the star to open your secret pocket. |
-| nar-badge-wall | The whole school can see the wall. |
-| nar-badge-vault | Anything you leave out stays in your vault. |
-| nar-dossier-flip | Flip your file. The back is top secret. |
+| nar-likeme-like | Like me. |
+| nar-likeme-bit | A bit like me. |
+| nar-likeme-else | Someone else. |
+| nar-mode-talk | Talking. |
+| nar-mode-hands | Hands. |
+| nar-mode-handshake | Secret handshake. |
+| nar-mode-draw | Drawing. |
+| nar-mode-act | Acting it out. |
+| nar-mode-pictures | Pictures. |
+| nar-mode-write | Writing. |
+| nar-mode-device | A device. |
+| nar-mode-hand-up | Hand up. |
+| nar-mode-quiet | Being quiet. |
+| nar-safe-nowhere | Nowhere. |
+| nar-fam-time | Time. |
+| nar-fam-senses | Sound and light. |
+| nar-fam-language | Words. |
+| nar-fam-floor | Turns. |
+| nar-fam-screens | Screens. |
+| nar-fam-together | Together. |
+| nar-pow-slow-everybody | Slow everybody down. |
+| nar-pow-pause | Pause the world. |
+| nar-pow-hold-turn | Hold my turn. |
+| nar-pow-warn-me | Warn me first. |
+| nar-pow-say-again | Say it again. |
+| nar-pow-turn-down | Turn the room down. |
+| nar-pow-dim-lights | Dim the lights. |
+| nar-pow-quiet-bubble | Quiet bubble. |
+| nar-pow-translator | Translator. |
+| nar-pow-my-way | Everyone talks my way. |
+| nar-pow-get-me | Get-what-I-mean ray. |
+| nar-pow-control-teachers | Control teachers. |
+| nar-pow-question-swap | Question swap. |
+| nar-pow-pass | Pass. |
+| nar-pow-invisible | Invisibility cloak. |
+| nar-pow-control-displays | Control all displays. |
+| nar-pow-control-devices | Control devices. |
+| nar-pow-see-points | See my points. |
+| nar-pow-change-rule | Change a rule. |
+| nar-pow-speak-for-friends | Speak for your friends. |
+| nar-pow-call-ally | Call an ally. |
+| nar-pow-team-up | Team up. |
+| nar-who-me | Me. |
+| nar-who-friend | A friend. |
+| nar-who-teacher | My teacher. |
+| nar-who-class | My class. |
+| nar-who-everyone | Everyone. |
+| nar-who-room | The room. |
+| nar-how-badge | My badge. |
+| nar-how-handshake | My secret handshake. |
+| nar-how-hand-sign | A hand sign. |
+| nar-how-word | A secret word. |
+| nar-how-drawing | A drawing. |
+| nar-how-button | A button. |
+| nar-item-power | A power to give. |
+| nar-item-handshake | My handshake. |
+| nar-item-drawing | A drawing. |
+| nar-item-voice | A voice message. |
+| nar-item-game | My favourite game. |
+| nar-item-cant-live | Something I can't live without. |
+| nar-item-safe | My safe place. |
+| nar-sign-agent | With my agent. |
+| nar-sign-mystery | Mystery. The big screen won't say who. |
 
 ### 4.6 Sound effects
 
@@ -374,8 +531,15 @@ The "stand-in" column is the generated sound the app plays until your file arriv
 | sfx-file-open | Card or dossier opens | A paper folder opening, pages rustling. | 1 | whoosh | ⭐ |
 | sfx-seal | Sealing the file | A wax seal pressed down, a soft squish and click. | 0.8 | stamp | ⭐ |
 | sfx-new | New stickers have arrived | A cheerful two-note chime. | 0.7 | sparkle | ⭐ |
-| sfx-field-bounce | Force field bounces someone off | A springy, rubbery boing. | 0.6 | pop | ◻️ |
-| sfx-field-open | Force field lets someone in | A soft bubble opening. | 0.6 | pop | ◻️ |
+| sfx-handshake-tap | A handshake tap | One soft knock on a wooden table. | 0.3 | pop | ◻️ |
+| sfx-door-open | A power door opens | A small wooden door creaking open, short and friendly. | 0.7 | whoosh | ◻️ |
+| sfx-slow | Slow everybody down | A gentle sound slowing down and dropping in pitch, like a toy winding down. | 1.5 | whoosh | ◻️ |
+| sfx-bottle-drop | An item drops into the bottle | A small object dropping into a glass bottle, one soft clink. | 0.6 | pop | ◻️ |
+| sfx-cork | The cork goes in | A cork pushed into a glass bottle, a soft squeak and a pop. | 0.6 | pop | ◻️ |
+| sfx-bottle-send | The bottle flies off | A soft rising whoosh with a tiny sparkle at the end. | 1 | whoosh | ◻️ |
+| sfx-bottle-arrive | A bottle arrives on the display | A gentle splash of water, then a soft two-note chime. | 1.2 | sparkle | ◻️ |
+| sfx-gift | A power is given | A soft magical sparkle travelling from left to right. | 1 | sparkle | ◻️ |
+| sfx-timer-ring | A real-for-a-minute ring starts or ends | One soft, low bell ring. | 1.2 | sparkle | ◻️ |
 
 ---
 
@@ -430,3 +594,82 @@ This is how children's influence becomes visible (Lundy, 2007): they see the sys
 - Bianchi, F., Kalluri, P., Durmus, E., et al. (2023). Easily accessible text-to-image generation amplifies demographic stereotypes at large scale. *FAccT '23*. https://doi.org/10.1145/3593013.3594095
 - Lundy, L. (2007). 'Voice' is not enough: Conceptualising Article 12 of the United Nations Convention on the Rights of the Child. *British Educational Research Journal*, 33(6), 927–942. https://doi.org/10.1080/01411920701657033
 - Zapparrata, N. M., Brooks, P. J., & Ober, T. M. (2023). Developmental language disorder is associated with slower processing across domains: A meta-analysis of time-based tasks. *Journal of Speech, Language, and Hearing Research*, 66(1), 325–346. https://doi.org/10.1044/2022_JSLHR-22-00221
+
+---
+
+## 9. Retired (v2; not made)
+
+v3 replaced the force field, mood codes, rules, badge and dossier screens
+(`agent-lab-v3-spec.md` §3). These lines and sounds are kept here as a record,
+not made. They sit outside §4.5 and §4.6 on purpose: `tools/make_audio.py`
+reads only those two sections, and `tools/sync-assets.py` reads only the
+headings it lists, so nothing here is made or put in the manifest. Their files
+from earlier sessions stay where they are.
+
+**Retired: session 3 force field and mood codes (v2; not made)**
+
+| id | text |
+|---|---|
+| nar-field-intro | Make your agent's force field. Pick its size and look. |
+| nar-field-approach | Someone is coming. What does your force field do? |
+| nar-approach-friend | A friend. |
+| nar-approach-teacher | A teacher. |
+| nar-approach-new | Someone new. |
+| nar-react-bounce | Bounce off. |
+| nar-react-letin | Let them in. |
+| nar-react-wave | Wave hello. |
+| nar-mood-intro | Make a secret mood code. |
+| nar-mood-situation | Pick a moment. |
+| nar-mood-enact | Show how your agent reacts. |
+| nar-mood-sign | [whispers] Make a secret sign for it. |
+| nar-mood-readers | Who can read this sign? |
+| nar-people-me | Only me. |
+| nar-people-friends | Friends. |
+| nar-people-teachers | Teachers. |
+| nar-people-family | Family. |
+| nar-people-everyone | Everyone. |
+
+**Retired: session 4 rules, badge and dossier (v2; not made)**
+
+| id | text |
+|---|---|
+| nar-rules-intro | Make rules for the people around your agent. |
+| nar-rules-who | Who is this rule for? |
+| nar-rules-action | What should they do? |
+| nar-rules-when | When? |
+| nar-rules-check | Listen. Is this right? |
+| nar-rules-badge | Put this rule on your badge? |
+| nar-please | Please. |
+| nar-please-dont | Please don't. |
+| nar-act-give-time | Give me time. |
+| nar-act-talk-slower | Talk slower. |
+| nar-act-write-it | Write it down. |
+| nar-act-show-me | Show me. |
+| nar-act-ask-first | Ask me first. |
+| nar-act-touch-things | Touch my things. |
+| nar-act-finish-words | Finish my words. |
+| nar-act-sit-with-me | Sit with me. |
+| nar-act-let-me-move | Let me move. |
+| nar-act-headphones | Let me wear headphones. |
+| nar-act-help-me | Help me. |
+| nar-act-include-me | Include me. |
+| nar-when-class | In class. |
+| nar-when-lunch | At lunch. |
+| nar-when-playtime | At playtime. |
+| nar-when-loud | When it's loud. |
+| nar-when-upset | When I'm upset. |
+| nar-when-always | Always. |
+| nar-badge-intro | Design your badge and your wall poster. |
+| nar-badge-front | People near you can see your badge. |
+| nar-badge-pocket | Press the star to open your secret pocket. |
+| nar-badge-wall | The whole school can see the wall. |
+| nar-badge-vault | Anything you leave out stays in your vault. |
+| nar-dossier-flip | Flip your file. The back is top secret. |
+
+**Retired: sounds (v2; not made)**
+
+| id | plays when | prompt | seconds | stand-in | tier |
+|---|---|---|---|---|---|
+| sfx-field-bounce | Force field bounces someone off | A springy, rubbery boing. | 0.6 | pop | ◻️ |
+| sfx-field-open | Force field lets someone in | A soft bubble opening. | 0.6 | pop | ◻️ |
+

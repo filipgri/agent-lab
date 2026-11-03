@@ -18,23 +18,23 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v74';
+const CACHE_VERSION = 'agent-lab-v75';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
-   ./app.js?v=74 are two different URLs as far as it is concerned. */
+   ./app.js?v=75 are two different URLs as far as it is concerned. */
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=74',
-  './boot-guard.js?v=74',
-  './storage.js?v=74',
-  './audio.js?v=74',
-  './effects.js?v=74',
-  './assets.js?v=74',
-  './stickers.js?v=74',
-  './parts.js?v=74',
-  './app.js?v=74',
+  './style.css?v=75',
+  './boot-guard.js?v=75',
+  './storage.js?v=75',
+  './audio.js?v=75',
+  './effects.js?v=75',
+  './assets.js?v=75',
+  './stickers.js?v=75',
+  './parts.js?v=75',
+  './app.js?v=75',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -83,7 +83,11 @@ function cacheAssets(cache) {
     })
     .then(function (manifest) {
       const files = [];
-      ['hq', 'situations', 'stickers', 'narrator', 'sfx'].forEach(function (group) {
+      // v3 §11.1: powers, doors and choice cards are shown on the iPad, so
+      // they are cached too. 'display' is NOT: those four pictures belong
+      // to the big screen on Filip's laptop, and an iPad never shows them.
+      ['hq', 'situations', 'stickers', 'narrator', 'sfx',
+       'powers', 'doors', 'cards'].forEach(function (group) {
         (manifest[group] || []).forEach(function (item) {
           if (item && item.file) files.push('./assets/' + item.file);
         });

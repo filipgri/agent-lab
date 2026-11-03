@@ -5,17 +5,20 @@ Built for a school design club research session (TACT, WP1, Dawn House Design Cl
 
 ## Read this first
 
-Three files are the brief, and they stack:
+Four files are the brief, and they stack. `DATA.md` is the record of what
+the app actually saves:
 
 | File | What it is | Wins when they disagree |
 |---|---|---|
+| `agent-lab-v3-spec.md` | v3: powers and the bottle (session 3 on) | **beats both specs** |
+| `agent-lab-v2-spec.md` | the v2 changes | beats the build spec |
 | `agent-lab-build-spec.md` | the original v1 brief | lowest |
-| `agent-lab-v2-spec.md` | the v2 changes, after the first iPad test | **beats the build spec** |
-| `asset-guide.md` | every image, voice line and sound, with filenames | **beats both, for assets** |
+| `asset-guide.md` | every image, voice line and sound | **beats all three, for assets** |
+| `DATA.md` | every saved field and logged event | must always match the code |
 
-Read all three before changing anything. Section numbers (§3, §7, §8…) are
-referenced throughout the code comments; a bare § means the v1 build spec, and
-"v2 §" means the v2 spec.
+Read all of them before changing anything. Section numbers (§3, §7, §8…) are
+referenced throughout the code comments; a bare § means the v1 build spec,
+"v2 §" the v2 spec and "v3 §" the v3 spec.
 
 ## How to work on this project
 
@@ -27,13 +30,17 @@ referenced throughout the code comments; a bare § means the v1 build spec, and
 - **Plain HTML, CSS and JavaScript only.** No frameworks, no build step, no npm,
   no external libraries, CDNs, Google Fonts or analytics. Everything is local.
 - **Never make network requests** except loading the app's own files **and its
-  own `assets/`** (v2 §1). The app never calls an AI, image or voice service.
+  own `assets/`** (v2 §1), and — from v3 P1 — sending a bottle the child chose
+  to send to the relay (v3 §9). The app never calls an AI, image or voice
+  service.
 - **Local asset files are allowed now** (v2 §1), which amends §4, §13 and the
   old "sounds are generated, never loaded" rule. A file is used if it exists;
   otherwise the app uses the stand-in. **The app must work fully with an empty
   `assets/` folder** — test it both ways before calling a milestone done.
-- **The data model changes in v2 §6 are approved.** Anything beyond them still
-  needs asking.
+- **The data model changes in v2 §6 and v3 §10 are approved.** Anything
+  beyond them still needs asking.
+- **`DATA.md` is updated in the same commit as any field or event it
+  describes** (v3 §1). It is part of the research record.
 - **The app never interprets a child** (v2 §12). No scores, no inferred
   feelings or labels, no suggestions based on what a child chose. It records
   what the child did, in order, and that record is the research data.
@@ -42,13 +49,17 @@ referenced throughout the code comments; a bare § means the v1 build spec, and
 
 ## Non-negotiables (spec §3)
 
-- All data stays on the iPad in IndexedDB. No accounts, no server, no cloud,
-  no analytics.
-- **No camera access, ever.** Microphone only in the Voice mission (Mission 4).
+- All data stays on the iPad in IndexedDB, with one exception (v3 §9). When a
+  child sends a bottle, that bottle and nothing else goes to the relay on
+  Filip's laptop over the room's private network. Never the event log, the
+  agent record, its id, or other agents. The relay and the display keep
+  nothing on disk. No accounts, no cloud, no analytics.
+- **No camera access, ever.** The microphone records only when a child taps 🎤.
 - **Codenames only.** Never ask for or store a real name.
 - The Content-Security-Policy meta tag in `index.html` must stay. Note it
   forbids inline `<script>` and `onclick=""` — wire everything up with
-  `addEventListener`.
+  `addEventListener`. `connect-src` may list `https://*.local:8443` and
+  `https://localhost:8443` (the relay) and nothing else.
 - Never commit exported data, recordings, or screenshots of children's work.
 
 ## Do not add (spec §12)
@@ -56,6 +67,12 @@ referenced throughout the code comments; a bare § means the v1 build spec, and
 Points, scores, leaderboards, timers (apart from the 10-second recording limit),
 camera access, accounts, cloud sync, analytics, AI or online voice services,
 external fonts or libraries, or text-heavy instructions.
+
+And from v3 §17: feeling screens or feeling words (the dunes app owns
+feelings); counts, totals, rankings or "most popular" anywhere, including the
+display; any network destination except the relay, and nothing sent except a
+bottle the child chose to send; reactions to what a child drew, said or
+chose; any promise of total secrecy.
 
 ## Files
 
@@ -79,10 +96,18 @@ external fonts or libraries, or text-heavy instructions.
 | `tools/bring-in-assets.py` | Files `assets/incoming/` into place, resized |
 | `tools/make_audio.py` | **Supplied by Filip.** Makes the narration and sounds with ElevenLabs. Do not write another — keep this one working |
 | `README.md` | Deploy steps, iPad setup, test checklists |
+| `DATA.md` | **v3.** Every saved field and every logged event. Must match the code |
+| `boot-guard.js` | Loads first: catches errors, heals a stale cache (see Conventions) |
+| `version.json` | The release number `boot-guard.js` checks against |
+| `display/index.html` | **v3 P7.** The big-screen display (plus any `display/*.js`, `display/*.css`) |
+| `display/relay.py` | **v3 P1.** The laptop relay. Python standard library only |
+| `display/certs/` | **v3 P1.** The relay's https certificate. **Gitignored** |
+| `tools/analyse.py` | **v3 P9.** The analysis script, run at home after a session |
 
 v2 §1 also allows `parts.js` (V2) and `stickers.js` (V2) when those milestones
 arrive. **Authoring tools live in `tools/`**: they run on Filip's computer, may
-call online services, and the app never loads anything from them.
+call online services, and the app never loads anything from them. v3 adds the
+`display/` folder, which runs on Filip's laptop during a session.
 
 `app.js` is numbered into sections with comment banners (1. CONFIG, 2. STATE …
 14. MISSION 1). Keep adding numbered sections rather than new files — the spec's
@@ -276,11 +301,55 @@ release** or an iPad will keep running the old JavaScript against new HTML.
     gallery shows 🔒 and asks before opening. A wrong try shakes and clears —
     **no counter, no lock-out** — and "Ask a grown-up" opens any file with the
     panel PIN, so a child who forgets can never lose their own work.
-- **Next: v2 V6 — Exports for the build team** (v2 §5.12) and moving agents
-  between iPads (§5.2).
+- **v2 V6–V9 were never built: v3 replaced them.** Session 2 ran on commit
+  `b0ba4c1` (to be tagged `session-2`).
 
-**→ Session 2 is now buildable end to end.** §10 asks for a full run on a real
-iPad in about 13 minutes before the session.
+### v3 (agent-lab-v3-spec.md)
+
+Session 3 onwards. Five missions: 🎨 `make` · 🗣️ `suit` · 📍 `safe` (off in
+the session-3 preset) · ⚡ `powers` · 🍾 `bottle`, then a short finish and back
+to the start. No card screen.
+
+- **P0 — done (3 November 2026), on branch `v3`, not pushed.** Clearing the
+  ground.
+  - ⚠️ **The `session-2` tag did not exist on GitHub**, which §14 says should
+    stop the build. P0 was built on a local `v3` branch and nothing was pushed,
+    so the iPads stay on the session-2 version until Filip has tagged it.
+  - **Retired the v2 screens** (Power-up, HQ as a mission, Voice, Force field,
+    Mood codes, Rules, Badge, the Reveal card, the 🧩 popup, badge and wall
+    checks) from `MISSIONS`, `index.html` and `app.js`. **Their data stays** in
+    every record and every export. Kept: `renderAgentView`,
+    `drawAgentToCanvas`, `shapesToSvgUrl`, all three doors, the brush, the
+    ✏️ sheet (`openOwnCard`), the seal, and the HQ screen (section 27 of
+    `app.js` and its panel in `index.html`), which P4 turns into Safe place.
+  - **`MISSIONS` is the five v3 missions.** `defaultOn: false` keeps Safe
+    place off unless an adult switches it on. `DEFAULT_SESSION` is 3. Each
+    new mission is a "coming soon" placeholder with Stamp it and Pass. The
+    flow ends with `finishSession()`.
+  - **Data model v3** (§10): `fillDefaults()` adds `likeMe`, `base`, `suit`,
+    `handshake`, `safe`, `powers`, `bottles` and the four new mission keys,
+    and sets `schemaVersion: 3`. v2 mission keys and fields are untouched.
+    Exports say `schemaVersion: 3`.
+  - **The gallery shows every agent as itself** (§4), not its emblem. A sealed
+    agent keeps the emblem and 🔒; one with nothing drawn keeps the emblem. A
+    🔊 by "Find your agent" says `nar-v3-gallery`.
+  - **Import takes several files**, skips an agent already here unchanged
+    (same `createdAt`, event count and last event time — including a copy an
+    earlier import made under a new id), copies in a changed one, and reports
+    added / skipped / copied.
+  - **Asset guide** (§11): retired v2 lines moved to a new §9 "Retired", so
+    `make_audio.py` never makes them; 91 v3 narrator lines and 9 sounds
+    added; four new picture groups — `powers`, `doors`, `display`, `cards` —
+    in the manifest, the Asset check, the service worker (not `display`; the
+    iPad never shows those) and `bring-in-assets.py`, which learnt `board`
+    (PNG, 1024) and `wide` (JPEG, 16:9 crop, 1920).
+  - **`draw_stroke` now names its canvas** (`STROKE_WHERE`). It used to say
+    `"rule"` for everything but the feeling code, so session-2 strokes on the
+    ✏️ sheet say `"rule"` — DATA.md explains.
+  - **`DATA.md`** written: every field and event, including the ones only in
+    session-2 and older data.
+  - **The seal can be opened but not set** until a v3 screen offers it again.
+- **Next: P1** — the relay and the iPad side of sending (§9).
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)
@@ -359,6 +428,9 @@ hand-edit the manifest, and never edit both.
   mid-session.
 
 ## Conventions in this codebase
+
+Many of these name screens v3 retired. They stay, because the lesson still
+applies (v3 §13).
 
 ### v2 conventions (from V3)
 

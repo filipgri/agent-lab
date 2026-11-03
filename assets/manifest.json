@@ -360,6 +360,527 @@
       "prompt": "A spy gadget wristwatch with a glowing blank screen."
     }
   ],
+  "powers": [
+    {
+      "id": "pow-slow-everybody",
+      "file": "img/powers/pow-slow-everybody.png",
+      "label": "Slow everybody down",
+      "fallback": "🐢",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A big friendly tortoise carrying a round clock on its shell, with soft wavy slow-motion lines behind it."
+    },
+    {
+      "id": "pow-pause",
+      "file": "img/powers/pow-pause.png",
+      "label": "Pause the world",
+      "fallback": "⏸️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A big round pause button with two bars, with tiny ice crystals frozen round its edge."
+    },
+    {
+      "id": "pow-hold-turn",
+      "file": "img/powers/pow-hold-turn.png",
+      "label": "Hold my turn",
+      "fallback": "🎟️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A glowing golden ticket with a star in the middle, like a token that saves your turn."
+    },
+    {
+      "id": "pow-warn-me",
+      "file": "img/powers/pow-warn-me.png",
+      "label": "Warn me first",
+      "fallback": "🔔",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A friendly bell ringing, with three dots in an arc beside it lighting up one after another."
+    },
+    {
+      "id": "pow-say-again",
+      "file": "img/powers/pow-say-again.png",
+      "label": "Say it again",
+      "fallback": "🔁",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A speech bubble with a curved replay arrow looping round it."
+    },
+    {
+      "id": "pow-turn-down",
+      "file": "img/powers/pow-turn-down.png",
+      "label": "Turn the room down",
+      "fallback": "🔉",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A big volume knob turned down low, with sound waves getting smaller and softer."
+    },
+    {
+      "id": "pow-dim-lights",
+      "file": "img/powers/pow-dim-lights.png",
+      "label": "Dim the lights",
+      "fallback": "🌙",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A light bulb glowing softly beside a slider switch pushed halfway down."
+    },
+    {
+      "id": "pow-quiet-bubble",
+      "file": "img/powers/pow-quiet-bubble.png",
+      "label": "Quiet bubble",
+      "fallback": "🫧",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure sitting calmly inside a big shiny bubble, with jagged sound waves bouncing off the outside."
+    },
+    {
+      "id": "pow-translator",
+      "file": "img/powers/pow-translator.png",
+      "label": "Translator",
+      "fallback": "🔄",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A small machine with two windows: a picture of a house goes in one side and comes out of the other as a speech bubble with a house in it, with arrows going both ways."
+    },
+    {
+      "id": "pow-my-way",
+      "file": "img/powers/pow-my-way.png",
+      "label": "Everyone talks my way",
+      "fallback": "🌀",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A row of bean figures all copying the same big wave as a leader bean figure in front."
+    },
+    {
+      "id": "pow-get-me",
+      "file": "img/powers/pow-get-me.png",
+      "label": "Get-what-I-mean ray",
+      "fallback": "💡",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A ray gun shooting a beam of light into a speech bubble, which lights up with a light bulb inside."
+    },
+    {
+      "id": "pow-control-teachers",
+      "file": "img/powers/pow-control-teachers.png",
+      "label": "Control teachers",
+      "fallback": "🎮",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A chunky game controller; above it, a taller bean figure with a lanyard happily follows a big curved arrow, mid-step."
+    },
+    {
+      "id": "pow-question-swap",
+      "file": "img/powers/pow-question-swap.png",
+      "label": "Question swap",
+      "fallback": "🔀",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A small bean figure and a taller bean figure with a lanyard; two speech bubbles with question marks swap places between them along curved arrows."
+    },
+    {
+      "id": "pow-pass",
+      "file": "img/powers/pow-pass.png",
+      "label": "Pass",
+      "fallback": "🛑",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A calm bean figure holding up a green card, with a curved arrow jumping over a dot above it."
+    },
+    {
+      "id": "pow-invisible",
+      "file": "img/powers/pow-invisible.png",
+      "label": "Invisibility cloak",
+      "fallback": "👻",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A flowing cloak whose lower half fades into sparkles and becomes see-through."
+    },
+    {
+      "id": "pow-control-displays",
+      "file": "img/powers/pow-control-displays.png",
+      "label": "Control all displays",
+      "fallback": "📺",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A remote control pointing at a big wall screen that glows with bright swirls of colour."
+    },
+    {
+      "id": "pow-control-devices",
+      "file": "img/powers/pow-control-devices.png",
+      "label": "Control devices",
+      "fallback": "🎛️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A remote control in the middle, with a lamp, a speaker and a whiteboard around it, each joined to it by a little spark."
+    },
+    {
+      "id": "pow-see-points",
+      "file": "img/powers/pow-see-points.png",
+      "label": "See my points",
+      "fallback": "⭐",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A big gold star with one open eye in its middle."
+    },
+    {
+      "id": "pow-change-rule",
+      "file": "img/powers/pow-change-rule.png",
+      "label": "Change a rule",
+      "fallback": "📜",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A paper scroll unrolling, with a pencil drawing new simple shapes on it."
+    },
+    {
+      "id": "pow-speak-for-friends",
+      "file": "img/powers/pow-speak-for-friends.png",
+      "label": "Speak for your friends",
+      "fallback": "💬",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Two bean figures side by side holding mitten hands; one has a big speech bubble with a small heart in it."
+    },
+    {
+      "id": "pow-call-ally",
+      "file": "img/powers/pow-call-ally.png",
+      "label": "Call an ally",
+      "fallback": "📣",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A megaphone sending out soft signal waves, and a second bean figure running in to help."
+    },
+    {
+      "id": "pow-team-up",
+      "file": "img/powers/pow-team-up.png",
+      "label": "Team up",
+      "fallback": "🤝",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Two bean figures doing a high five, with sparkles."
+    }
+  ],
+  "doors": [
+    {
+      "id": "fam-time",
+      "file": "img/doors/fam-time.png",
+      "label": "Time",
+      "fallback": "⏳",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A tall, rounded, deep-blue wooden door, slightly open with warm light inside, with a glowing hourglass on it."
+    },
+    {
+      "id": "fam-senses",
+      "file": "img/doors/fam-senses.png",
+      "label": "Sound and light",
+      "fallback": "🔊",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "The same door in orange, with a glowing light bulb and a sound wave on it."
+    },
+    {
+      "id": "fam-language",
+      "file": "img/doors/fam-language.png",
+      "label": "Words",
+      "fallback": "🗣️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "The same door in green, with a glowing speech bubble on it."
+    },
+    {
+      "id": "fam-floor",
+      "file": "img/doors/fam-floor.png",
+      "label": "Turns",
+      "fallback": "✋",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "The same door in purple, with two glowing curved arrows chasing each other in a circle."
+    },
+    {
+      "id": "fam-screens",
+      "file": "img/doors/fam-screens.png",
+      "label": "Screens",
+      "fallback": "📺",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "The same door in teal, with a glowing screen on it."
+    },
+    {
+      "id": "fam-together",
+      "file": "img/doors/fam-together.png",
+      "label": "Together",
+      "fallback": "🤝",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "The same door in pink, with two glowing linked rings on it."
+    }
+  ],
+  "display": [
+    {
+      "id": "disp-shore",
+      "file": "img/display/disp-shore.jpg",
+      "label": "Shore",
+      "fallback": "🏖️",
+      "kind": "wide",
+      "people": false,
+      "prompt": "Ignore \"square\". A calm seaside seen from the beach at golden hour: smooth sand across the bottom third, small gentle waves, and a wide soft sky with a low sun and a few clouds. Lots of empty space and nothing on the sand. Wide landscape; it will be cropped to 16:9, so keep everything important in the middle band."
+    },
+    {
+      "id": "disp-board",
+      "file": "img/display/disp-board.png",
+      "label": "Board",
+      "fallback": "📌",
+      "kind": "board",
+      "people": false,
+      "prompt": "A wide wooden noticeboard on two short posts, with an empty cork surface, front view."
+    },
+    {
+      "id": "disp-bottle",
+      "file": "img/display/disp-bottle.png",
+      "label": "Bottle",
+      "fallback": "🍾",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A sea-green glass bottle standing upright, with a cork and a rolled-up paper scroll inside."
+    },
+    {
+      "id": "disp-teacher",
+      "file": "img/display/disp-teacher.png",
+      "label": "Teacher figure",
+      "fallback": "🧑‍🏫",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A taller bean figure wearing a lanyard, standing, front view, arms relaxed."
+    }
+  ],
+  "cards": [
+    {
+      "id": "likeme-like",
+      "file": "img/cards/likeme-like.png",
+      "label": "Like me",
+      "fallback": "🪞",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure looking into a mirror and seeing exactly the same bean figure."
+    },
+    {
+      "id": "likeme-bit",
+      "file": "img/cards/likeme-bit.png",
+      "label": "A bit like me",
+      "fallback": "🌗",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure looking into a mirror; the reflection is the same shape, but one half is a different colour."
+    },
+    {
+      "id": "likeme-else",
+      "file": "img/cards/likeme-else.png",
+      "label": "Someone else",
+      "fallback": "🎭",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A colourful masquerade mask on a stick."
+    },
+    {
+      "id": "mode-talk",
+      "file": "img/cards/mode-talk.png",
+      "label": "Talking",
+      "fallback": "🗣️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A speech bubble with sound waves coming from it."
+    },
+    {
+      "id": "mode-hands",
+      "file": "img/cards/mode-hands.png",
+      "label": "Hands",
+      "fallback": "✋",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Two grey-lilac mitten hands moving, with motion lines, as if signing."
+    },
+    {
+      "id": "mode-handshake",
+      "file": "img/cards/mode-handshake.png",
+      "label": "Secret handshake",
+      "fallback": "🤝",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "Copy of `how-handshake`."
+    },
+    {
+      "id": "mode-draw",
+      "file": "img/cards/mode-draw.png",
+      "label": "Drawing",
+      "fallback": "✏️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A pencil drawing a sun on a sheet of paper."
+    },
+    {
+      "id": "mode-act",
+      "file": "img/cards/mode-act.png",
+      "label": "Acting it out",
+      "fallback": "🎭",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure in a big dramatic pose on a small stage under a spotlight."
+    },
+    {
+      "id": "mode-pictures",
+      "file": "img/cards/mode-pictures.png",
+      "label": "Pictures",
+      "fallback": "🖼️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "Four picture cards in a grid, showing a cup, a ball, a house and a star."
+    },
+    {
+      "id": "mode-write",
+      "file": "img/cards/mode-write.png",
+      "label": "Writing",
+      "fallback": "📝",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A pencil writing wavy lines, not letters, on lined paper."
+    },
+    {
+      "id": "mode-device",
+      "file": "img/cards/mode-device.png",
+      "label": "A device",
+      "fallback": "📱",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "Copy of `stk-aac-talker`."
+    },
+    {
+      "id": "mode-hand-up",
+      "file": "img/cards/mode-hand-up.png",
+      "label": "Hand up",
+      "fallback": "🙋",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure with one mitten hand raised high."
+    },
+    {
+      "id": "mode-quiet",
+      "file": "img/cards/mode-quiet.png",
+      "label": "Being quiet",
+      "fallback": "🤫",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A calm bean figure holding a mitten hand where its mouth would be, with a small crossed-out sound wave beside it."
+    },
+    {
+      "id": "who-me",
+      "file": "img/cards/who-me.png",
+      "label": "Me",
+      "fallback": "🙋",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "One bean figure pointing at itself with a mitten hand, with a small star above it."
+    },
+    {
+      "id": "who-friend",
+      "file": "img/cards/who-friend.png",
+      "label": "A friend",
+      "fallback": "👫",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Two bean figures side by side with linked arms."
+    },
+    {
+      "id": "who-teacher",
+      "file": "img/cards/who-teacher.png",
+      "label": "My teacher",
+      "fallback": "🧑‍🏫",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Copy of `disp-teacher`."
+    },
+    {
+      "id": "who-class",
+      "file": "img/cards/who-class.png",
+      "label": "My class",
+      "fallback": "🏫",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A group of small bean figures sitting round a table."
+    },
+    {
+      "id": "who-everyone",
+      "file": "img/cards/who-everyone.png",
+      "label": "Everyone",
+      "fallback": "🌍",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A big crowd of bean figures in rows, filling the picture."
+    },
+    {
+      "id": "who-room",
+      "file": "img/cards/who-room.png",
+      "label": "The room",
+      "fallback": "💡",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A small cut-away room like a doll's house: a ceiling light, a speaker on the wall, a window and a table, with no figures."
+    },
+    {
+      "id": "how-badge",
+      "file": "img/cards/how-badge.png",
+      "label": "My badge",
+      "fallback": "🏷️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A small rectangular electronic badge with a glowing blank screen, hanging from a lanyard clip."
+    },
+    {
+      "id": "how-handshake",
+      "file": "img/cards/how-handshake.png",
+      "label": "My secret handshake",
+      "fallback": "🤝",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Two grey-lilac mitten hands meeting in a handshake, with little rhythm dots around them."
+    },
+    {
+      "id": "how-hand-sign",
+      "file": "img/cards/how-hand-sign.png",
+      "label": "A hand sign",
+      "fallback": "✋",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "One grey-lilac mitten hand making a sign, with small motion lines."
+    },
+    {
+      "id": "how-word",
+      "file": "img/cards/how-word.png",
+      "label": "A secret word",
+      "fallback": "🗣️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A speech bubble with a small golden key inside it."
+    },
+    {
+      "id": "how-drawing",
+      "file": "img/cards/how-drawing.png",
+      "label": "A drawing",
+      "fallback": "✏️",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A pencil drawing a simple swirl on a sheet of paper."
+    },
+    {
+      "id": "how-button",
+      "file": "img/cards/how-button.png",
+      "label": "A button",
+      "fallback": "🔘",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "A big round push button, glowing."
+    }
+  ],
   "narrator": [
     {
       "id": "nar-start-welcome",
@@ -687,254 +1208,459 @@
       "text": "Talk to animals."
     },
     {
-      "id": "nar-field-intro",
-      "file": "audio/narrator/nar-field-intro.mp3",
-      "text": "Make your agent's force field. Pick its size and look."
+      "id": "nar-v3-welcome",
+      "file": "audio/narrator/nar-v3-welcome.mp3",
+      "text": "Find your agent, or make a new one."
     },
     {
-      "id": "nar-field-approach",
-      "file": "audio/narrator/nar-field-approach.mp3",
-      "text": "Someone is coming. What does your force field do?"
+      "id": "nar-v3-gallery",
+      "file": "audio/narrator/nar-v3-gallery.mp3",
+      "text": "Is your agent here? Tap it."
     },
     {
-      "id": "nar-approach-friend",
-      "file": "audio/narrator/nar-approach-friend.mp3",
+      "id": "nar-base-pick",
+      "file": "audio/narrator/nar-base-pick.mp3",
+      "text": "Pick an agent to start from."
+    },
+    {
+      "id": "nar-base-blank",
+      "file": "audio/narrator/nar-base-blank.mp3",
+      "text": "Or start from nothing."
+    },
+    {
+      "id": "nar-likeme-ask",
+      "file": "audio/narrator/nar-likeme-ask.mp3",
+      "text": "Is your agent like you?"
+    },
+    {
+      "id": "nar-suit-likes",
+      "file": "audio/narrator/nar-suit-likes.mp3",
+      "text": "How does your agent like to talk?"
+    },
+    {
+      "id": "nar-suit-school",
+      "file": "audio/narrator/nar-suit-school.mp3",
+      "text": "How does school want your agent to talk?"
+    },
+    {
+      "id": "nar-handshake-make",
+      "file": "audio/narrator/nar-handshake-make.mp3",
+      "text": "Tap a secret handshake for your agent."
+    },
+    {
+      "id": "nar-handshake-listen",
+      "file": "audio/narrator/nar-handshake-listen.mp3",
+      "text": "Listen. Tap again to make a new one."
+    },
+    {
+      "id": "nar-safe-talk",
+      "file": "audio/narrator/nar-safe-talk.mp3",
+      "text": "Where does your agent feel safe to talk?"
+    },
+    {
+      "id": "nar-safe-stops",
+      "file": "audio/narrator/nar-safe-stops.mp3",
+      "text": "Where does your agent's power stop working?"
+    },
+    {
+      "id": "nar-powers-make",
+      "file": "audio/narrator/nar-powers-make.mp3",
+      "text": "Make up a power. Draw it or say it."
+    },
+    {
+      "id": "nar-powers-ideas",
+      "file": "audio/narrator/nar-powers-ideas.mp3",
+      "text": "Here are some ideas. Pick a door."
+    },
+    {
+      "id": "nar-powers-when",
+      "file": "audio/narrator/nar-powers-when.mp3",
+      "text": "When does your agent use it?"
+    },
+    {
+      "id": "nar-powers-who",
+      "file": "audio/narrator/nar-powers-who.mp3",
+      "text": "Who does your power work on?"
+    },
+    {
+      "id": "nar-powers-how",
+      "file": "audio/narrator/nar-powers-how.mp3",
+      "text": "How do you switch it on?"
+    },
+    {
+      "id": "nar-powers-sothat",
+      "file": "audio/narrator/nar-powers-sothat.mp3",
+      "text": "So that what? Draw it or say it."
+    },
+    {
+      "id": "nar-powers-fire",
+      "file": "audio/narrator/nar-powers-fire.mp3",
+      "text": "Power on!"
+    },
+    {
+      "id": "nar-powers-more",
+      "file": "audio/narrator/nar-powers-more.mp3",
+      "text": "Make another power, or Stamp it."
+    },
+    {
+      "id": "nar-bottle-intro",
+      "file": "audio/narrator/nar-bottle-intro.mp3",
+      "text": "What will your agent hand over?"
+    },
+    {
+      "id": "nar-bottle-full",
+      "file": "audio/narrator/nar-bottle-full.mp3",
+      "text": "Your bottle is full."
+    },
+    {
+      "id": "nar-bottle-to",
+      "file": "audio/narrator/nar-bottle-to.mp3",
+      "text": "Who is it for?"
+    },
+    {
+      "id": "nar-bottle-friend",
+      "file": "audio/narrator/nar-bottle-friend.mp3",
+      "text": "Tap your friend's agent."
+    },
+    {
+      "id": "nar-bottle-sign",
+      "file": "audio/narrator/nar-bottle-sign.mp3",
+      "text": "Show your agent, or send a mystery?"
+    },
+    {
+      "id": "nar-bottle-cork",
+      "file": "audio/narrator/nar-bottle-cork.mp3",
+      "text": "Push the cork in."
+    },
+    {
+      "id": "nar-bottle-send",
+      "file": "audio/narrator/nar-bottle-send.mp3",
+      "text": "Swipe it up to send it."
+    },
+    {
+      "id": "nar-bottle-sent",
+      "file": "audio/narrator/nar-bottle-sent.mp3",
+      "text": "Your bottle is on its way."
+    },
+    {
+      "id": "nar-bottle-kept",
+      "file": "audio/narrator/nar-bottle-kept.mp3",
+      "text": "Your bottle stays on your shelf."
+    },
+    {
+      "id": "nar-likeme-like",
+      "file": "audio/narrator/nar-likeme-like.mp3",
+      "text": "Like me."
+    },
+    {
+      "id": "nar-likeme-bit",
+      "file": "audio/narrator/nar-likeme-bit.mp3",
+      "text": "A bit like me."
+    },
+    {
+      "id": "nar-likeme-else",
+      "file": "audio/narrator/nar-likeme-else.mp3",
+      "text": "Someone else."
+    },
+    {
+      "id": "nar-mode-talk",
+      "file": "audio/narrator/nar-mode-talk.mp3",
+      "text": "Talking."
+    },
+    {
+      "id": "nar-mode-hands",
+      "file": "audio/narrator/nar-mode-hands.mp3",
+      "text": "Hands."
+    },
+    {
+      "id": "nar-mode-handshake",
+      "file": "audio/narrator/nar-mode-handshake.mp3",
+      "text": "Secret handshake."
+    },
+    {
+      "id": "nar-mode-draw",
+      "file": "audio/narrator/nar-mode-draw.mp3",
+      "text": "Drawing."
+    },
+    {
+      "id": "nar-mode-act",
+      "file": "audio/narrator/nar-mode-act.mp3",
+      "text": "Acting it out."
+    },
+    {
+      "id": "nar-mode-pictures",
+      "file": "audio/narrator/nar-mode-pictures.mp3",
+      "text": "Pictures."
+    },
+    {
+      "id": "nar-mode-write",
+      "file": "audio/narrator/nar-mode-write.mp3",
+      "text": "Writing."
+    },
+    {
+      "id": "nar-mode-device",
+      "file": "audio/narrator/nar-mode-device.mp3",
+      "text": "A device."
+    },
+    {
+      "id": "nar-mode-hand-up",
+      "file": "audio/narrator/nar-mode-hand-up.mp3",
+      "text": "Hand up."
+    },
+    {
+      "id": "nar-mode-quiet",
+      "file": "audio/narrator/nar-mode-quiet.mp3",
+      "text": "Being quiet."
+    },
+    {
+      "id": "nar-safe-nowhere",
+      "file": "audio/narrator/nar-safe-nowhere.mp3",
+      "text": "Nowhere."
+    },
+    {
+      "id": "nar-fam-time",
+      "file": "audio/narrator/nar-fam-time.mp3",
+      "text": "Time."
+    },
+    {
+      "id": "nar-fam-senses",
+      "file": "audio/narrator/nar-fam-senses.mp3",
+      "text": "Sound and light."
+    },
+    {
+      "id": "nar-fam-language",
+      "file": "audio/narrator/nar-fam-language.mp3",
+      "text": "Words."
+    },
+    {
+      "id": "nar-fam-floor",
+      "file": "audio/narrator/nar-fam-floor.mp3",
+      "text": "Turns."
+    },
+    {
+      "id": "nar-fam-screens",
+      "file": "audio/narrator/nar-fam-screens.mp3",
+      "text": "Screens."
+    },
+    {
+      "id": "nar-fam-together",
+      "file": "audio/narrator/nar-fam-together.mp3",
+      "text": "Together."
+    },
+    {
+      "id": "nar-pow-slow-everybody",
+      "file": "audio/narrator/nar-pow-slow-everybody.mp3",
+      "text": "Slow everybody down."
+    },
+    {
+      "id": "nar-pow-pause",
+      "file": "audio/narrator/nar-pow-pause.mp3",
+      "text": "Pause the world."
+    },
+    {
+      "id": "nar-pow-hold-turn",
+      "file": "audio/narrator/nar-pow-hold-turn.mp3",
+      "text": "Hold my turn."
+    },
+    {
+      "id": "nar-pow-warn-me",
+      "file": "audio/narrator/nar-pow-warn-me.mp3",
+      "text": "Warn me first."
+    },
+    {
+      "id": "nar-pow-say-again",
+      "file": "audio/narrator/nar-pow-say-again.mp3",
+      "text": "Say it again."
+    },
+    {
+      "id": "nar-pow-turn-down",
+      "file": "audio/narrator/nar-pow-turn-down.mp3",
+      "text": "Turn the room down."
+    },
+    {
+      "id": "nar-pow-dim-lights",
+      "file": "audio/narrator/nar-pow-dim-lights.mp3",
+      "text": "Dim the lights."
+    },
+    {
+      "id": "nar-pow-quiet-bubble",
+      "file": "audio/narrator/nar-pow-quiet-bubble.mp3",
+      "text": "Quiet bubble."
+    },
+    {
+      "id": "nar-pow-translator",
+      "file": "audio/narrator/nar-pow-translator.mp3",
+      "text": "Translator."
+    },
+    {
+      "id": "nar-pow-my-way",
+      "file": "audio/narrator/nar-pow-my-way.mp3",
+      "text": "Everyone talks my way."
+    },
+    {
+      "id": "nar-pow-get-me",
+      "file": "audio/narrator/nar-pow-get-me.mp3",
+      "text": "Get-what-I-mean ray."
+    },
+    {
+      "id": "nar-pow-control-teachers",
+      "file": "audio/narrator/nar-pow-control-teachers.mp3",
+      "text": "Control teachers."
+    },
+    {
+      "id": "nar-pow-question-swap",
+      "file": "audio/narrator/nar-pow-question-swap.mp3",
+      "text": "Question swap."
+    },
+    {
+      "id": "nar-pow-pass",
+      "file": "audio/narrator/nar-pow-pass.mp3",
+      "text": "Pass."
+    },
+    {
+      "id": "nar-pow-invisible",
+      "file": "audio/narrator/nar-pow-invisible.mp3",
+      "text": "Invisibility cloak."
+    },
+    {
+      "id": "nar-pow-control-displays",
+      "file": "audio/narrator/nar-pow-control-displays.mp3",
+      "text": "Control all displays."
+    },
+    {
+      "id": "nar-pow-control-devices",
+      "file": "audio/narrator/nar-pow-control-devices.mp3",
+      "text": "Control devices."
+    },
+    {
+      "id": "nar-pow-see-points",
+      "file": "audio/narrator/nar-pow-see-points.mp3",
+      "text": "See my points."
+    },
+    {
+      "id": "nar-pow-change-rule",
+      "file": "audio/narrator/nar-pow-change-rule.mp3",
+      "text": "Change a rule."
+    },
+    {
+      "id": "nar-pow-speak-for-friends",
+      "file": "audio/narrator/nar-pow-speak-for-friends.mp3",
+      "text": "Speak for your friends."
+    },
+    {
+      "id": "nar-pow-call-ally",
+      "file": "audio/narrator/nar-pow-call-ally.mp3",
+      "text": "Call an ally."
+    },
+    {
+      "id": "nar-pow-team-up",
+      "file": "audio/narrator/nar-pow-team-up.mp3",
+      "text": "Team up."
+    },
+    {
+      "id": "nar-who-me",
+      "file": "audio/narrator/nar-who-me.mp3",
+      "text": "Me."
+    },
+    {
+      "id": "nar-who-friend",
+      "file": "audio/narrator/nar-who-friend.mp3",
       "text": "A friend."
     },
     {
-      "id": "nar-approach-teacher",
-      "file": "audio/narrator/nar-approach-teacher.mp3",
-      "text": "A teacher."
+      "id": "nar-who-teacher",
+      "file": "audio/narrator/nar-who-teacher.mp3",
+      "text": "My teacher."
     },
     {
-      "id": "nar-approach-new",
-      "file": "audio/narrator/nar-approach-new.mp3",
-      "text": "Someone new."
+      "id": "nar-who-class",
+      "file": "audio/narrator/nar-who-class.mp3",
+      "text": "My class."
     },
     {
-      "id": "nar-react-bounce",
-      "file": "audio/narrator/nar-react-bounce.mp3",
-      "text": "Bounce off."
-    },
-    {
-      "id": "nar-react-letin",
-      "file": "audio/narrator/nar-react-letin.mp3",
-      "text": "Let them in."
-    },
-    {
-      "id": "nar-react-wave",
-      "file": "audio/narrator/nar-react-wave.mp3",
-      "text": "Wave hello."
-    },
-    {
-      "id": "nar-mood-intro",
-      "file": "audio/narrator/nar-mood-intro.mp3",
-      "text": "Make a secret mood code."
-    },
-    {
-      "id": "nar-mood-situation",
-      "file": "audio/narrator/nar-mood-situation.mp3",
-      "text": "Pick a moment."
-    },
-    {
-      "id": "nar-mood-enact",
-      "file": "audio/narrator/nar-mood-enact.mp3",
-      "text": "Show how your agent reacts."
-    },
-    {
-      "id": "nar-mood-sign",
-      "file": "audio/narrator/nar-mood-sign.mp3",
-      "text": "[whispers] Make a secret sign for it."
-    },
-    {
-      "id": "nar-mood-readers",
-      "file": "audio/narrator/nar-mood-readers.mp3",
-      "text": "Who can read this sign?"
-    },
-    {
-      "id": "nar-people-me",
-      "file": "audio/narrator/nar-people-me.mp3",
-      "text": "Only me."
-    },
-    {
-      "id": "nar-people-friends",
-      "file": "audio/narrator/nar-people-friends.mp3",
-      "text": "Friends."
-    },
-    {
-      "id": "nar-people-teachers",
-      "file": "audio/narrator/nar-people-teachers.mp3",
-      "text": "Teachers."
-    },
-    {
-      "id": "nar-people-family",
-      "file": "audio/narrator/nar-people-family.mp3",
-      "text": "Family."
-    },
-    {
-      "id": "nar-people-everyone",
-      "file": "audio/narrator/nar-people-everyone.mp3",
+      "id": "nar-who-everyone",
+      "file": "audio/narrator/nar-who-everyone.mp3",
       "text": "Everyone."
     },
     {
-      "id": "nar-rules-intro",
-      "file": "audio/narrator/nar-rules-intro.mp3",
-      "text": "Make rules for the people around your agent."
+      "id": "nar-who-room",
+      "file": "audio/narrator/nar-who-room.mp3",
+      "text": "The room."
     },
     {
-      "id": "nar-rules-who",
-      "file": "audio/narrator/nar-rules-who.mp3",
-      "text": "Who is this rule for?"
+      "id": "nar-how-badge",
+      "file": "audio/narrator/nar-how-badge.mp3",
+      "text": "My badge."
     },
     {
-      "id": "nar-rules-action",
-      "file": "audio/narrator/nar-rules-action.mp3",
-      "text": "What should they do?"
+      "id": "nar-how-handshake",
+      "file": "audio/narrator/nar-how-handshake.mp3",
+      "text": "My secret handshake."
     },
     {
-      "id": "nar-rules-when",
-      "file": "audio/narrator/nar-rules-when.mp3",
-      "text": "When?"
+      "id": "nar-how-hand-sign",
+      "file": "audio/narrator/nar-how-hand-sign.mp3",
+      "text": "A hand sign."
     },
     {
-      "id": "nar-rules-check",
-      "file": "audio/narrator/nar-rules-check.mp3",
-      "text": "Listen. Is this right?"
+      "id": "nar-how-word",
+      "file": "audio/narrator/nar-how-word.mp3",
+      "text": "A secret word."
     },
     {
-      "id": "nar-rules-badge",
-      "file": "audio/narrator/nar-rules-badge.mp3",
-      "text": "Put this rule on your badge?"
+      "id": "nar-how-drawing",
+      "file": "audio/narrator/nar-how-drawing.mp3",
+      "text": "A drawing."
     },
     {
-      "id": "nar-please",
-      "file": "audio/narrator/nar-please.mp3",
-      "text": "Please."
+      "id": "nar-how-button",
+      "file": "audio/narrator/nar-how-button.mp3",
+      "text": "A button."
     },
     {
-      "id": "nar-please-dont",
-      "file": "audio/narrator/nar-please-dont.mp3",
-      "text": "Please don't."
+      "id": "nar-item-power",
+      "file": "audio/narrator/nar-item-power.mp3",
+      "text": "A power to give."
     },
     {
-      "id": "nar-act-give-time",
-      "file": "audio/narrator/nar-act-give-time.mp3",
-      "text": "Give me time."
+      "id": "nar-item-handshake",
+      "file": "audio/narrator/nar-item-handshake.mp3",
+      "text": "My handshake."
     },
     {
-      "id": "nar-act-talk-slower",
-      "file": "audio/narrator/nar-act-talk-slower.mp3",
-      "text": "Talk slower."
+      "id": "nar-item-drawing",
+      "file": "audio/narrator/nar-item-drawing.mp3",
+      "text": "A drawing."
     },
     {
-      "id": "nar-act-write-it",
-      "file": "audio/narrator/nar-act-write-it.mp3",
-      "text": "Write it down."
+      "id": "nar-item-voice",
+      "file": "audio/narrator/nar-item-voice.mp3",
+      "text": "A voice message."
     },
     {
-      "id": "nar-act-show-me",
-      "file": "audio/narrator/nar-act-show-me.mp3",
-      "text": "Show me."
+      "id": "nar-item-game",
+      "file": "audio/narrator/nar-item-game.mp3",
+      "text": "My favourite game."
     },
     {
-      "id": "nar-act-ask-first",
-      "file": "audio/narrator/nar-act-ask-first.mp3",
-      "text": "Ask me first."
+      "id": "nar-item-cant-live",
+      "file": "audio/narrator/nar-item-cant-live.mp3",
+      "text": "Something I can't live without."
     },
     {
-      "id": "nar-act-touch-things",
-      "file": "audio/narrator/nar-act-touch-things.mp3",
-      "text": "Touch my things."
+      "id": "nar-item-safe",
+      "file": "audio/narrator/nar-item-safe.mp3",
+      "text": "My safe place."
     },
     {
-      "id": "nar-act-finish-words",
-      "file": "audio/narrator/nar-act-finish-words.mp3",
-      "text": "Finish my words."
+      "id": "nar-sign-agent",
+      "file": "audio/narrator/nar-sign-agent.mp3",
+      "text": "With my agent."
     },
     {
-      "id": "nar-act-sit-with-me",
-      "file": "audio/narrator/nar-act-sit-with-me.mp3",
-      "text": "Sit with me."
-    },
-    {
-      "id": "nar-act-let-me-move",
-      "file": "audio/narrator/nar-act-let-me-move.mp3",
-      "text": "Let me move."
-    },
-    {
-      "id": "nar-act-headphones",
-      "file": "audio/narrator/nar-act-headphones.mp3",
-      "text": "Let me wear headphones."
-    },
-    {
-      "id": "nar-act-help-me",
-      "file": "audio/narrator/nar-act-help-me.mp3",
-      "text": "Help me."
-    },
-    {
-      "id": "nar-act-include-me",
-      "file": "audio/narrator/nar-act-include-me.mp3",
-      "text": "Include me."
-    },
-    {
-      "id": "nar-when-class",
-      "file": "audio/narrator/nar-when-class.mp3",
-      "text": "In class."
-    },
-    {
-      "id": "nar-when-lunch",
-      "file": "audio/narrator/nar-when-lunch.mp3",
-      "text": "At lunch."
-    },
-    {
-      "id": "nar-when-playtime",
-      "file": "audio/narrator/nar-when-playtime.mp3",
-      "text": "At playtime."
-    },
-    {
-      "id": "nar-when-loud",
-      "file": "audio/narrator/nar-when-loud.mp3",
-      "text": "When it's loud."
-    },
-    {
-      "id": "nar-when-upset",
-      "file": "audio/narrator/nar-when-upset.mp3",
-      "text": "When I'm upset."
-    },
-    {
-      "id": "nar-when-always",
-      "file": "audio/narrator/nar-when-always.mp3",
-      "text": "Always."
-    },
-    {
-      "id": "nar-badge-intro",
-      "file": "audio/narrator/nar-badge-intro.mp3",
-      "text": "Design your badge and your wall poster."
-    },
-    {
-      "id": "nar-badge-front",
-      "file": "audio/narrator/nar-badge-front.mp3",
-      "text": "People near you can see your badge."
-    },
-    {
-      "id": "nar-badge-pocket",
-      "file": "audio/narrator/nar-badge-pocket.mp3",
-      "text": "Press the star to open your secret pocket."
-    },
-    {
-      "id": "nar-badge-wall",
-      "file": "audio/narrator/nar-badge-wall.mp3",
-      "text": "The whole school can see the wall."
-    },
-    {
-      "id": "nar-badge-vault",
-      "file": "audio/narrator/nar-badge-vault.mp3",
-      "text": "Anything you leave out stays in your vault."
-    },
-    {
-      "id": "nar-dossier-flip",
-      "file": "audio/narrator/nar-dossier-flip.mp3",
-      "text": "Flip your file. The back is top secret."
+      "id": "nar-sign-mystery",
+      "file": "audio/narrator/nar-sign-mystery.mp3",
+      "text": "Mystery. The big screen won't say who."
     }
   ],
   "sfx": [
@@ -1091,19 +1817,75 @@
       "tier": "⭐"
     },
     {
-      "id": "sfx-field-bounce",
-      "file": "audio/sfx/sfx-field-bounce.mp3",
+      "id": "sfx-handshake-tap",
+      "file": "audio/sfx/sfx-handshake-tap.mp3",
       "fallback": "pop",
-      "prompt": "A springy, rubbery boing.",
+      "prompt": "One soft knock on a wooden table.",
+      "seconds": "0.3",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-door-open",
+      "file": "audio/sfx/sfx-door-open.mp3",
+      "fallback": "whoosh",
+      "prompt": "A small wooden door creaking open, short and friendly.",
+      "seconds": "0.7",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-slow",
+      "file": "audio/sfx/sfx-slow.mp3",
+      "fallback": "whoosh",
+      "prompt": "A gentle sound slowing down and dropping in pitch, like a toy winding down.",
+      "seconds": "1.5",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-bottle-drop",
+      "file": "audio/sfx/sfx-bottle-drop.mp3",
+      "fallback": "pop",
+      "prompt": "A small object dropping into a glass bottle, one soft clink.",
       "seconds": "0.6",
       "tier": "◻️"
     },
     {
-      "id": "sfx-field-open",
-      "file": "audio/sfx/sfx-field-open.mp3",
+      "id": "sfx-cork",
+      "file": "audio/sfx/sfx-cork.mp3",
       "fallback": "pop",
-      "prompt": "A soft bubble opening.",
+      "prompt": "A cork pushed into a glass bottle, a soft squeak and a pop.",
       "seconds": "0.6",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-bottle-send",
+      "file": "audio/sfx/sfx-bottle-send.mp3",
+      "fallback": "whoosh",
+      "prompt": "A soft rising whoosh with a tiny sparkle at the end.",
+      "seconds": "1",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-bottle-arrive",
+      "file": "audio/sfx/sfx-bottle-arrive.mp3",
+      "fallback": "sparkle",
+      "prompt": "A gentle splash of water, then a soft two-note chime.",
+      "seconds": "1.2",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-gift",
+      "file": "audio/sfx/sfx-gift.mp3",
+      "fallback": "sparkle",
+      "prompt": "A soft magical sparkle travelling from left to right.",
+      "seconds": "1",
+      "tier": "◻️"
+    },
+    {
+      "id": "sfx-timer-ring",
+      "file": "audio/sfx/sfx-timer-ring.mp3",
+      "fallback": "sparkle",
+      "prompt": "One soft, low bell ring.",
+      "seconds": "1.2",
       "tier": "◻️"
     }
   ]

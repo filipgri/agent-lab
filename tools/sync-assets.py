@@ -52,7 +52,8 @@ def rows_under(heading_fragment, text):
 def main():
     text = open(GUIDE, encoding="utf-8").read()
     manifest = {"version": 1, "hq": [], "situations": [],
-                "stickers": [], "narrator": [], "sfx": []}
+                "stickers": [], "powers": [], "doors": [], "display": [],
+                "cards": [], "narrator": [], "sfx": []}
 
     # --- HQ places: id | label | kind | fallback | scene ---
     for r in rows_under("### 3.1 HQ places", text):
@@ -77,11 +78,33 @@ def main():
             "isNew": bool(r[5].strip()), "prompt": r[6],
         })
 
-    # --- Narrator lines. Three tables use "id | plays when | text" and three
-    #     use "id | text", so the number of columns tells us which. ---
+    # --- v3 pictures (agent-lab-v3-spec.md §11.1). All four tables are
+    #     id | label | fallback | 👤 | picture. `kind` tells bring-in-assets.py
+    #     how to convert each one: almost everything is a sticker (PNG, 512,
+    #     transparent); disp-shore is the one wide scene (JPEG, 1920, 16:9) and
+    #     disp-board is a sticker drawn larger (1024). ---
+    for group, heading, folder in (("powers",  "### 3.6 Power cards",   "powers"),
+                                   ("doors",   "### 3.7 Doors",         "doors"),
+                                   ("display", "### 3.8 Display",       "display"),
+                                   ("cards",   "### 3.9 Choice cards",  "cards")):
+        for r in rows_under(heading, text):
+            kind = "wide" if r[0] == "disp-shore" else \
+                   "board" if r[0] == "disp-board" else "sticker"
+            ext = "jpg" if kind == "wide" else "png"
+            manifest[group].append({
+                "id": r[0], "file": "img/%s/%s.%s" % (folder, r[0], ext),
+                "label": r[1], "fallback": r[2], "kind": kind,
+                "people": bool(r[3].strip()), "prompt": r[4],
+            })
+
+    # --- Narrator lines. Some tables use "id | plays when | text" and some
+    #     use "id | text", so the number of columns tells us which.
+    #     The v2 session-3 and session-4 tables are retired (v3 §11): they
+    #     now live in the guide's §9 under "Retired" headings, which are
+    #     deliberately not in this list. ---
     seen = set()
     for heading in ("**Session 2: instructions", "**Session 2: card labels",
-                    "**Session 3: force field", "**Session 4: rules"):
+                    "**Session 3: v3 instructions", "**Session 3: v3 card labels"):
         for r in rows_under(heading, text):
             nid = r[0]
             line = r[2] if len(r) >= 3 else r[1]
@@ -105,7 +128,8 @@ def main():
         f.write("\n")
 
     print("wrote assets/manifest.json")
-    for key in ("hq", "situations", "stickers", "narrator", "sfx"):
+    for key in ("hq", "situations", "stickers", "powers", "doors",
+                "display", "cards", "narrator", "sfx"):
         print("  %-11s %d" % (key, len(manifest[key])))
 
 

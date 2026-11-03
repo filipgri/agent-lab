@@ -17,3 +17,6 @@ screenshots/
 assets/incoming/
 assets/reference/
 .env
+
+# v3 §13: the relay's https certificate and key never go near the repo.
+display/certs/

@@ -32,7 +32,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=74">
+  <link rel="stylesheet" href="./style.css?v=75">
 </head>
 <body>
 
@@ -101,7 +101,11 @@
          codename only - so a child finds their own by its symbol, and sees
          nothing about anyone else's work. -->
     <div id="gallery-block" class="gallery-block" hidden>
-      <h2 class="gallery-title">Find your agent</h2>
+      <!-- v3 §4: 🔊 says nar-v3-gallery. The button only exists while there
+           are agents to find, which is exactly when that line belongs. -->
+      <h2 class="gallery-title">Find your agent
+        <button class="btn btn-icon-only gallery-speak" data-say="nar-v3-gallery" aria-label="Hear this">🔊</button>
+      </h2>
       <div id="gallery" class="gallery"></div>
     </div>
 
@@ -185,8 +189,7 @@
 
     <div class="mission-body">
 
-      <!-- One <article> per mission. app.js shows one at a time.
-           All six are PLACEHOLDERS in Milestone 0. -->
+      <!-- One <article> per mission. app.js shows one at a time. -->
       <div class="mission-panels">
 
         <article class="mission-panel" data-mission="make">
@@ -298,69 +301,6 @@
         <!-- MISSION 2 - BOOST (spec §7). The Boost version starts as a copy of
              the Cover, and the Cover stays visible beside it as a reminder of
              what the agent looked like before. -->
-        <!-- MISSION: POWER-UP (v2 §5.4).
-             Three steps on ONE screen, so a child can see where they are and
-             go back. Each step has its own 🔊 line and a small ➡️ to skip. -->
-        <article class="mission-panel" data-mission="powerup">
-
-          <div class="power-wrap">
-
-            <!-- The agent, standing in its HQ if it has one, with the effect
-                 playing on it. -->
-            <aside class="power-stage-col">
-              <div id="power-stage" class="agent-view power-stage">
-                <canvas class="agent-pixels" width="16" height="16"></canvas>
-                <img class="agent-drawing" alt="" hidden>
-                <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
-                <div class="sticker-layer"></div>
-              </div>
-              <div class="power-stage-tools">
-                <button id="btn-power-replay" class="btn tool" aria-label="Play the power-up again">✨<span class="tool-word">Again</span></button>
-                <button id="btn-power-look" class="btn tool" aria-label="Change my look">🎨<span class="tool-word">My look</span></button>
-              </div>
-            </aside>
-
-            <div class="power-steps">
-
-              <!-- ============ STEP 1: make up a power ============ -->
-              <!-- ============ 1: what does the power look like? ============
-                   "Make up a power" used to be a question of its own, with a
-                   blank canvas first and the ten ideas held back until asked
-                   (v2 §5.4). After the 7 October iPad test it became one card
-                   in this list instead — ✏️ Make my own — in the same shape as
-                   ✏️ My own in the question below. Two questions, not three. -->
-              <section id="power-step-2" class="power-step">
-                <header class="power-head">
-                  <h2 class="power-title">1. What does your power look like?</h2>
-                  <button class="btn btn-icon-only" data-say="nar-power-effect" aria-label="Hear this">🔊</button>
-                  <button class="btn power-skip" data-step="3" aria-label="Skip to the next question">➡️</button>
-                </header>
-                <div id="power-effects" class="power-effects"></div>
-                <div id="power-own" class="hq-row"></div>
-              </section>
-
-              <!-- ============ STEP 3: when does the agent use it? ============ -->
-              <section id="power-step-3" class="power-step">
-                <header class="power-head">
-                  <h2 class="power-title">2. When does your agent use it?</h2>
-                  <button class="btn btn-icon-only" data-say="nar-power-when" aria-label="Hear this">🔊</button>
-                </header>
-                <p class="power-hint">Choose as many as you like.</p>
-                <div id="power-when" class="power-when"></div>
-              </section>
-
-            </div>
-          </div>
-
-          <!-- The editor, for "Change my look". Hidden until asked for. -->
-          <div id="m2-editor-mount" class="editor-mount" hidden></div>
-          <div id="m2-cover" class="agent-view cover-thumb" hidden>
-            <canvas class="agent-pixels" width="16" height="16"></canvas>
-            <img class="agent-drawing" alt="" hidden>
-            <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
-            <div class="sticker-layer"></div>
-          </div>
-        </article>
 
         <!-- MISSION 3 - SECRET FEELING CODE (spec §7).
              ORDER MATTERS HERE. The blank tile comes first: the child invents a
@@ -415,173 +355,51 @@
           </div>
         </article>
 
-        <article class="mission-panel" data-mission="field">
+        <!-- ============ v3 MISSIONS (agent-lab-v3-spec.md §3) ============
+             P0 puts each one on the strip as an honest "coming soon" with
+             Stamp it and Pass, so the flow can be walked end to end before
+             any of them is built. Each is replaced by its own milestone:
+             suit P3, safe P4, powers P5, bottle P6.
+
+             The HQ panel above is kept on purpose. It is no longer a mission,
+             but v3 §6 builds Safe place out of its layout. -->
+
+        <article class="mission-panel" data-mission="suit">
           <div class="soon-wrap">
-            <span class="soon-icon">🛡️</span>
-            <p class="soon-text">Your agent's force field is being built.</p>
+            <span class="soon-icon">🗣️</span>
+            <p class="soon-text">How your agent talks is being built.</p>
             <p class="soon-note">Coming soon</p>
           </div>
         </article>
 
-        <article class="mission-panel" data-mission="mood">
-
-          <!-- STEP 1: the three code slots. -->
-          <div id="m3-slots-view" class="m3-slots-view">
-            <p class="m3-lead">Make a secret sign for a feeling.</p>
-            <div id="m3-slots" class="m3-slots"></div>
-
-            <!-- Shown once at least one code exists. -->
-            <div id="m3-worn-block" class="m3-worn-block" hidden>
-              <h2 class="m4-question">Which one is your agent wearing today?</h2>
-              <div id="m3-worn" class="m3-worn"></div>
-            </div>
-          </div>
-
-          <!-- STEP 2: the maker, opened by tapping a slot. -->
-          <div id="m3-maker" class="m3-maker" hidden>
-
-            <div class="m3-stage-col">
-              <!-- A plain drawing canvas. Kept transparent so the sign shows on
-                   any colour later, on the ID card or worn on the agent. -->
-              <div class="m3-canvas-wrap">
-                <canvas id="m3-canvas" class="m3-canvas" width="320" height="320"></canvas>
-              </div>
-              <div id="m3-face-badge" class="m3-face-badge" hidden></div>
-            </div>
-
-            <!-- The rail scrolls; the finish row must not, or "Keep it" ends up
-                 below the fold. So it is a sibling of the rail, not inside it. -->
-            <div class="m3-side">
-            <div class="m3-tools">
-              <div id="m3-palette" class="palette"></div>
-
-              <div class="tool-row">
-                <button id="m3-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
-                <button id="m3-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
-                <button id="m3-mic" class="btn tool" aria-label="Record a name for this sign">🎤<span class="tool-word">Name it</span></button>
-              </div>
-
-              <!-- The faces stay hidden until this is pressed (spec §7). -->
-              <button id="m3-ideas" class="btn m3-ideas">💡 Need ideas?</button>
-              <div id="m3-faces" class="m3-faces" hidden></div>
-
-              <!-- Movement. Previewed live on the agent thumbnail, never on the
-                   thing being edited (spec §5a). -->
-              <h2 class="m4-question m4-question-small">How does your agent move when it feels this?</h2>
-              <div id="m3-moves" class="m3-moves"></div>
-
-            </div><!-- /.m3-tools -->
-
-              <div class="tool-row m3-finish">
-                <button id="m3-done" class="btn btn-primary m3-done">✓ Keep it</button>
-                <button id="m3-delete" class="btn tool btn-danger" aria-label="Remove this code" hidden>🗑️<span class="tool-word">Remove</span></button>
-              </div>
-            </div><!-- /.m3-side -->
+        <article class="mission-panel" data-mission="safe">
+          <div class="soon-wrap">
+            <span class="soon-icon">📍</span>
+            <p class="soon-text">Your agent's safe place is being built.</p>
+            <p class="soon-note">Coming soon</p>
           </div>
         </article>
 
-        <!-- MISSION 4 - VOICE PASSWORD (spec §7).
-             Three steps, shown one at a time: record it, hear it as it really
-             is, then try the voices. -->
-        <article class="mission-panel" data-mission="voice">
-
-          <!-- Shown if this iPad has no microphone, or the child said no to it.
-               Pass is always still available, so nobody is stuck. -->
-          <p id="m4-trouble" class="m4-trouble" hidden></p>
-
-          <div class="m4-wrap">
-
-            <!-- STEP 1: the big red button, with the ring that fills up. -->
-            <div class="m4-recorder">
-              <button id="m4-record" class="record-btn" aria-label="Record your voice password">
-                <!-- The ring is an SVG circle. app.js shortens the dash to fill
-                     it. rotate(-90) starts it at the top instead of the right. -->
-                <svg class="record-ring" viewBox="0 0 120 120" aria-hidden="true">
-                  <circle class="ring-track" cx="60" cy="60" r="54"></circle>
-                  <circle id="m4-ring" class="ring-fill" cx="60" cy="60" r="54"
-                          transform="rotate(-90 60 60)"></circle>
-                </svg>
-                <span id="m4-record-icon" class="record-icon">🎤</span>
-              </button>
-              <div id="m4-hint" class="m4-hint">Say your secret password</div>
-            </div>
-
-            <!-- STEP 2 and 3, revealed once there is a recording. -->
-            <div id="m4-after" class="m4-after" hidden>
-
-              <div class="m4-row">
-                <button id="m4-play" class="btn tool m4-big" aria-label="Play it">
-                  ▶️<span class="tool-word">Play it</span>
-                </button>
-                <button id="m4-rerecord" class="btn tool m4-big" aria-label="Record again">
-                  🔄<span class="tool-word">Again</span>
-                </button>
-              </div>
-
-              <!-- The six voices. Tapping one plays it AND chooses it (spec §7). -->
-              <div id="m4-filters-block" hidden>
-                <h2 class="m4-question">Which voice does your agent use?</h2>
-                <div id="m4-filters" class="filter-row"></div>
-              </div>
-
-            </div>
+        <article class="mission-panel" data-mission="powers">
+          <div class="soon-wrap">
+            <span class="soon-icon">⚡</span>
+            <p class="soon-text">Your agent's powers are being built.</p>
+            <p class="soon-note">Coming soon</p>
           </div>
         </article>
 
-        <!-- MISSION 5 - WHERE DOES MY AGENT GO? (spec §7).
-             EVERYTHING IS OFF BY DEFAULT. Sharing is always something the child
-             switches on, never something they have to find and switch off. -->
-        <article class="mission-panel" data-mission="badge">
-
-          <div id="m5-cards-view" class="m5-cards-view">
-            <p class="m3-lead">Where does your agent go?</p>
-            <div id="m5-cards" class="m5-cards"></div>
-          </div>
-
-          <!-- Tapping a card flips it over to its back, where the big on/off
-               switches live. -->
-          <div id="m5-detail" class="m5-detail" hidden>
-            <div class="flip-card">
-              <div id="m5-flip" class="flip-inner">
-                <div class="flip-face flip-front">
-                  <span id="m5-front-icon" class="place-icon"></span>
-                  <span id="m5-front-name" class="place-name"></span>
-                </div>
-                <div class="flip-face flip-back">
-                  <h2 id="m5-back-title" class="m5-back-title"></h2>
-                  <div id="m5-parts" class="m5-parts"></div>
-                  <button id="m5-done" class="btn btn-primary m5-done">✓ Done</button>
-                </div>
-              </div>
-            </div>
+        <article class="mission-panel" data-mission="bottle">
+          <div class="soon-wrap">
+            <span class="soon-icon">🍾</span>
+            <p class="soon-text">Your agent's bottle is being built.</p>
+            <p class="soon-note">Coming soon</p>
           </div>
         </article>
 
-        <!-- MISSION 6 - AGENT RULES (spec §7).
-             Three rule cards. For each one the child taps icons, draws their
-             own, or records it - no typing anywhere. -->
-        <article class="mission-panel" data-mission="rules">
 
-          <div id="m6-cards-view" class="m6-cards-view">
-            <p class="m3-lead">Make your agent rules.</p>
-            <div id="m6-cards" class="m6-cards"></div>
-          </div>
 
-          <div id="m6-detail" class="m6-detail" hidden>
-            <h2 id="m6-title" class="m6-title"></h2>
 
-            <!-- What the child has chosen so far, each removable. -->
-            <div id="m6-chosen" class="m6-chosen"></div>
 
-            <div id="m6-icons" class="m6-icons"></div>
-
-            <div class="tool-row m6-actions">
-              <button id="m6-draw" class="btn tool" aria-label="Draw your own rule">✏️<span class="tool-word">Draw</span></button>
-              <button id="m6-record" class="btn tool" aria-label="Say your rule">🎤<span class="tool-word">Say it</span></button>
-              <button id="m6-done" class="btn btn-primary m6-done">✓ Done</button>
-            </div>
-          </div>
-        </article>
 
       </div>
     </div>
@@ -601,114 +419,6 @@
 
 <!-- ============================================================ -->
 <!-- SCREEN: REVEAL (placeholder - Milestone 6 builds it)         -->
-<!-- ============================================================ -->
-<section id="screen-reveal" class="screen">
-  <header class="topbar">
-    <button class="btn btn-icon-only btn-mute" data-mute aria-label="Sound on or off">🔊</button>
-    <nav class="progress-strip" data-strip aria-label="Missions"></nav>
-    <!-- Home. This was 🧩 "Something's missing" (§7); after the 7 October
-         iPad test it is the way back to the start, because a child who
-         opened the wrong agent had no way out but finishing it. -->
-    <button class="btn btn-icon-only btn-home" data-home aria-label="Back to the start">🏠</button>
-  </header>
-
-  <main class="reveal-main">
-    <!-- THE AGENT ID CARD (spec §7).
-         Everything the child made, on one card. The full folder-opening
-         sequence from §5a arrives at Milestone 8; this is the card itself. -->
-    <div id="dossier" class="dossier">
-      <div class="dossier-stamp">CLASSIFIED</div>
-
-      <!-- The emoji sits beside the name, not at the far right: the top-right
-           corner belongs to the CLASSIFIED stamp. -->
-      <div class="dossier-head">
-        <div class="dossier-label">CODENAME</div>
-        <div class="dossier-name-row">
-          <span id="reveal-emoji" class="dossier-emoji">🦅</span>
-          <span id="reveal-name" class="dossier-name">Silent Falcon</span>
-        </div>
-      </div>
-
-      <div class="dossier-grid">
-
-        <!-- The two agents, side by side -->
-        <figure class="dossier-cell">
-          <figcaption class="dossier-label">COVER</figcaption>
-          <div id="reveal-cover" class="agent-view dossier-agent">
-            <canvas class="agent-pixels" width="16" height="16"></canvas>
-            <img class="agent-drawing" alt="" hidden>
-            <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
-            <div class="sticker-layer"></div>
-          </div>
-        </figure>
-
-        <!-- THE POWER (7 October iPad test).
-             This used to be a second copy of the agent labelled BOOST, in the
-             same HQ as the Cover - two identical pictures, and no sign of the
-             power anywhere. It now shows the agent's power-up look standing in
-             the MOMENT the power is used, with the effect named underneath. -->
-        <figure class="dossier-cell">
-          <figcaption class="dossier-label">POWER</figcaption>
-          <button id="reveal-fire" class="dossier-fire" aria-label="Fire the power">
-          <div id="reveal-boost" class="agent-view dossier-agent">
-            <canvas class="agent-pixels" width="16" height="16"></canvas>
-            <img class="agent-drawing" alt="" hidden>
-            <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
-            <div class="sticker-layer"></div>
-          </div>
-          </button>
-          <div id="reveal-power-note" class="dossier-note"></div>
-        </figure>
-
-        <!-- The mood code. Hidden until there is one: mood is a session-3
-             mission, so in session 2 this was always an empty box. -->
-        <figure id="reveal-feeling-cell" class="dossier-cell">
-          <figcaption class="dossier-label">FEELING CODE</figcaption>
-          <div id="reveal-feeling" class="dossier-feeling"></div>
-        </figure>
-
-        <!-- The voice password. The bars move while it plays, so there is
-             something to watch; the bounce used to be put on the POWER picture
-             instead, which made pressing ▶️ look like it did something to that
-             card. -->
-        <figure class="dossier-cell">
-          <figcaption class="dossier-label">VOICE PASSWORD</figcaption>
-          <button id="reveal-play" class="dossier-play">
-            <span class="dossier-play-icon">▶️</span>
-            <span id="reveal-bars" class="voice-bars" aria-hidden="true">
-              <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            </span>
-            <span id="reveal-voice-name" class="dossier-play-name">Normal</span>
-          </button>
-        </figure>
-      </div>
-
-      <!-- The rules, as the child set them -->
-      <div id="reveal-rules" class="dossier-rules"></div>
-    </div>
-  </main>
-
-  <footer class="bottombar reveal-bar">
-    <!-- v2 §5.11: the two checks come before Seal and Finish, because they are
-         what the card is FOR - can the child still tell it is their agent at
-         badge size, and on the wall? -->
-    <button id="btn-badge-check" class="btn btn-stamp">
-      <span class="btn-icon">🏷️</span><span class="btn-label">Badge check</span>
-    </button>
-    <button id="btn-wall-check" class="btn btn-stamp">
-      <span class="btn-icon">🖼️</span><span class="btn-label">Wall check</span>
-    </button>
-    <button id="btn-seal" class="btn btn-stamp">
-      <span class="btn-icon">🔒</span><span class="btn-label">Seal</span>
-    </button>
-    <button id="btn-save-card" class="btn btn-stamp">
-      <span class="btn-icon">💾</span><span class="btn-label">Save card</span>
-    </button>
-    <button id="btn-finish" class="btn btn-accent btn-stamp">
-      <span class="btn-icon">🏁</span><span class="btn-label">Finish</span>
-    </button>
-  </footer>
-</section>
 
 
 <!-- ============================================================ -->
@@ -798,7 +508,8 @@
       <!-- The other half of Export (v2 §5.2). Puts an exported file back on
            this iPad - after a wipe, or to move agents to another one. -->
       <button id="btn-import" class="btn">⬇️ Import from a file</button>
-      <input id="import-file" type="file" accept=".json,application/json" hidden>
+      <!-- v3 P0: `multiple` lets an adult pick every iPad's export at once. -->
+      <input id="import-file" type="file" accept=".json,application/json" multiple hidden>
 
       <div id="export-result" class="export-result"></div>
     </div>
@@ -828,25 +539,6 @@
           <button class="btn seg" data-speed="0.8">0.8×</button>
           <button class="btn seg" data-speed="0.9">0.9×</button>
           <button class="btn seg" data-speed="1">1.0×</button>
-        </div>
-      </div>
-      <!-- v2 §5.11: the badge check shows the render at life size, which
-           depends on how many CSS pixels this iPad puts in an inch. 132 is
-           right for the iPads we use; it is adjustable so the check stays
-           honest on other hardware. -->
-      <div class="setting-row">
-        <span>Badge size (px/inch)</span>
-        <div id="ppi-group" class="seg-group">
-          <button class="btn seg" data-ppi="120">120</button>
-          <button class="btn seg" data-ppi="132">132</button>
-          <button class="btn seg" data-ppi="144">144</button>
-        </div>
-      </div>
-      <div class="setting-row">
-        <span>Wall palette</span>
-        <div id="wall-group" class="seg-group">
-          <button class="btn seg" data-wall="6">6 colour</button>
-          <button class="btn seg" data-wall="7">7 colour</button>
         </div>
       </div>
       <div class="setting-row">
@@ -892,43 +584,7 @@
 <!-- ============================================================ -->
 <!-- Overlays: "Something's missing", typing a codename, toasts    -->
 <!-- ============================================================ -->
-<!-- A small drawing sheet. Mission 6 uses it for "draw your own rule";
-     Milestone 8's 🧩 Something's missing popup will use it too. -->
-<div id="draw-overlay" class="overlay" hidden>
-  <div class="sheet sheet-draw">
-    <h3 id="draw-title">Draw it</h3>
-    <div class="m3-canvas-wrap draw-sheet-canvas">
-      <canvas id="draw-canvas" class="m3-canvas" width="320" height="320"></canvas>
-    </div>
-    <div id="draw-palette" class="palette"></div>
-    <div class="sheet-actions">
-      <button id="draw-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
-      <button id="draw-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
-      <button id="draw-cancel" class="btn">Cancel</button>
-      <button id="draw-save" class="btn btn-accent">✓ Keep</button>
-    </div>
-  </div>
-</div>
 
-<!-- 🧩 SOMETHING'S MISSING (spec §6). On every screen. The child draws or
-     says what the app would not let them do, and it is saved against the
-     screen they were on - which is the research point of it. -->
-<div id="missing-overlay" class="overlay" hidden>
-  <div class="sheet sheet-draw">
-    <h3>🧩 Draw or say what's missing</h3>
-    <div class="m3-canvas-wrap draw-sheet-canvas">
-      <canvas id="missing-canvas" class="m3-canvas" width="320" height="320"></canvas>
-    </div>
-    <div id="missing-palette" class="palette"></div>
-    <div class="sheet-actions">
-      <button id="missing-undo" class="btn tool" aria-label="Undo">↶<span class="tool-word">Undo</span></button>
-      <button id="missing-clear" class="btn tool" aria-label="Clear">🧹<span class="tool-word">Clear</span></button>
-      <button id="missing-record" class="btn tool" aria-label="Say what is missing">🎤<span id="missing-record-word" class="tool-word">Say it</span></button>
-      <button id="btn-missing-close" class="btn">Cancel</button>
-      <button id="missing-save" class="btn btn-accent">✓ Send</button>
-    </div>
-  </div>
-</div>
 
 <!-- ✏️ MY OWN CARD (v2 §5.4, §5.5). When none of the cards is the right
      one, a child draws or says their own. -->
@@ -999,64 +655,23 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=74"></script>
-<script src="./storage.js?v=74"></script>
-<script src="./audio.js?v=74"></script>
-<script src="./effects.js?v=74"></script>
-<script src="./assets.js?v=74"></script>
-<script src="./stickers.js?v=74"></script>
-<script src="./parts.js?v=74"></script>
-<script src="./app.js?v=74"></script>
+<script src="./boot-guard.js?v=75"></script>
+<script src="./storage.js?v=75"></script>
+<script src="./audio.js?v=75"></script>
+<script src="./effects.js?v=75"></script>
+<script src="./assets.js?v=75"></script>
+<script src="./stickers.js?v=75"></script>
+<script src="./parts.js?v=75"></script>
+<script src="./app.js?v=75"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->
 <!-- The badge face at its real size on the Tufty: 320x240 pixels  -->
 <!-- on a screen about 49 x 37 mm. Tiny on purpose.                -->
-<!-- ============================================================ -->
-<div id="badge-overlay" class="overlay" hidden>
-  <div class="sheet">
-    <div class="sheet-head">
-      <h3 id="badge-title">Badge check</h3>
-      <button class="btn btn-icon-only" data-say="nar-card-badge" aria-label="Hear this">🔊</button>
-    </div>
-
-    <div class="badge-life">
-      <p class="badge-note">This is how big it really is.</p>
-      <canvas id="badge-canvas" width="320" height="240" class="badge-canvas"></canvas>
-    </div>
-
-    <div id="badge-zoom-wrap" class="badge-zoom-wrap" hidden>
-      <canvas id="badge-zoom" class="badge-zoom"></canvas>
-    </div>
-
-    <div class="sheet-tools">
-      <button id="btn-badge-zoom" class="btn tool" aria-label="Show it big">🔍<span class="tool-word">Big</span></button>
-      <button id="btn-badge-close" class="btn btn-accent" aria-label="Close">✓ Done</button>
-    </div>
-  </div>
-</div>
 
 <!-- ============================================================ -->
 <!-- WALL CHECK (v2 §5.11)                                         -->
 <!-- 800x480, dithered to the e-paper panel's few colours.         -->
-<!-- ============================================================ -->
-<div id="wall-overlay" class="overlay" hidden>
-  <div class="sheet">
-    <div class="sheet-head">
-      <h3>Wall check</h3>
-      <button class="btn btn-icon-only" data-say="nar-card-wall" aria-label="Hear this">🔊</button>
-    </div>
-
-    <div class="wall-wrap">
-      <canvas id="wall-canvas" width="800" height="480" class="wall-canvas"></canvas>
-    </div>
-    <p id="wall-note" class="badge-note"></p>
-
-    <div class="sheet-tools">
-      <button id="btn-wall-close" class="btn btn-accent" aria-label="Close">✓ Done</button>
-    </div>
-  </div>
-</div>
 
 <!-- ============================================================ -->
 <!-- SEAL (v2 §5.2)                                                -->

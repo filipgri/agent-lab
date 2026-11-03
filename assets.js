@@ -84,7 +84,9 @@ const Assets = (function () {
     })
     .then(function (data) {
       manifest = data || manifest;
-      ['hq', 'situations', 'stickers', 'narrator', 'sfx'].forEach(function (group) {
+      // v3 §11.1 adds four picture groups: powers, doors, display, cards.
+      ['hq', 'situations', 'stickers', 'narrator', 'sfx',
+       'powers', 'doors', 'display', 'cards'].forEach(function (group) {
         (manifest[group] || []).forEach(function (item) {
           item.group = group;
           byId.set(item.id, item);

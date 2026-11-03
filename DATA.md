@@ -1,0 +1,384 @@
+# Agent Lab — data dictionary
+
+Every field Agent Lab saves and every event it logs, and what each one means.
+
+**This file is part of the research record, so it must always match the code.**
+Every milestone that adds or changes a field or an event updates this file in
+the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
+this file.
+
+Last updated: **v3 P0** (3 November 2026). `schemaVersion` is now **3**.
+
+---
+
+## 1. Where the data lives
+
+Everything is stored on the iPad, in the browser's IndexedDB database
+`agent-lab` (`storage.js`). It has three stores:
+
+| Store | Key | Holds |
+|---|---|---|
+| `agents` | `id` | One record per agent: section 3. |
+| `audio` | `id` | One recording per row: `{ id, blob }`. `blob` is the audio file (`audio/mp4` on an iPad). Agents point at recordings by this `id` (every `audioId` field). |
+| `meta` | `key` | iPad settings, not about any child: section 6. |
+
+**What leaves the iPad:**
+- **The export file**, when an adult taps Export in the adult panel (section 2).
+- **From v3 P1, a bottle the child chooses to send** goes to the relay on
+  Filip's laptop. Nothing else is ever sent. (Not built yet.)
+
+**Clearing Safari's website data deletes all of it.** See CLAUDE.md, "Settled
+decisions". Export first.
+
+---
+
+## 2. The export file
+
+`agent-lab-export-YYYY-MM-DD.json`, made by **Export all** in the adult panel.
+
+| Field | Meaning |
+|---|---|
+| `app` | Always `"Agent Lab"`. |
+| `exportedAt` | When the file was made (ISO date and time). |
+| `milestone` | The build that made it, e.g. `"v3-P0"`. Session 2 exports say `"v2-V3"`. |
+| `schemaVersion` | `3` from v3 on. Session 2 exports say `2`. |
+| `includesPractice` | `true` if the adult ticked "include practice agents". Practice agents are left out otherwise. |
+| `agentCount` | How many agents are in `agents`. |
+| `agents` | Every agent record (section 3), each passed through `migrateAgent()` first, so it is always the current shape. |
+| `audio` | Every recording on the iPad: `{ "<audioId>": "data:audio/mp4;base64,…" }`. |
+
+**Import** (adult panel → Import from a file) takes one or several of these
+files. For each agent in them:
+
+| On this iPad already? | What import does | Reported as |
+|---|---|---|
+| No | Adds it with its own `id`, and sets `imported: true`. | added |
+| Yes, unchanged | Nothing. | skipped |
+| Yes, but changed | Adds it as a new agent with a new `id`, beside the one already here. | copied |
+
+"Unchanged" means the same `createdAt`, the same number of events and the same
+time on the last event. Recordings whose `id` is already on the iPad are left
+alone.
+
+---
+
+## 3. The agent record
+
+One record per agent. Fields are grouped by where they come from. **Nothing is
+ever deleted:** retired missions' fields stay in every record and every export
+(v3 §3, §10).
+
+### 3.1 Identity
+
+| Field | Type | Meaning |
+|---|---|---|
+| `schemaVersion` | number | `3`. `migrateAgent()` brings any older record up to 3 every time one is loaded, and is safe to run twice. |
+| `id` | string | A random uuid. Never a name. |
+| `createdAt` | ISO date | When the agent was made. |
+| `sessions` | number[] | Every session number this agent has been opened in, e.g. `[2, 3]`. |
+| `practice` | boolean | Made in practice mode. Practice agents are labelled and left out of exports. |
+| `imported` | boolean | Present and `true` if the agent arrived through Import. |
+
+### 3.2 Codename and emblem (v2 §5.1)
+
+| Field | Type | Meaning |
+|---|---|---|
+| `codename` | string | The spy name, e.g. `"Electric Bear"`. **Never a real name.** Not unique: two agents can share one. |
+| `codenameParts` | `{ word, animal }` | The two reels. A typed name has `animal: ""`. |
+| `codenameSource` | `"roll"` / `"type"` | Whether the child rolled the name or typed their own. |
+| `emblem` | `{ emoji, asset }` | The agent's symbol. `emoji` is the animal for a rolled name; for a typed name it is the sticker the child picked (`asset` is set instead if it was a picture sticker). `🕵️` if none. |
+| `codenameEmoji` | string | **v1 only.** The old name for `emblem.emoji`; read only by `agentEmblem()` as a fallback. |
+| `seal` | string / null | Three seal symbols joined, e.g. `"🦊⚡🔑"`, or `null`. A sealed agent asks for them before it opens. The symbols are 🦊 🌙 ⚡ 🍕 🎈 🌵 🐙 🎲 🔑. In v3 a child can open a sealed agent but cannot seal a new one yet. |
+| `requests` | object[] | Words a child wanted and found no sticker for: `{ word, where, t }`. `where` is `"codename-type"` or `"sticker-search"`. Shown as "📡 Request sent to HQ"; nothing is sent anywhere. |
+
+### 3.3 The look
+
+| Field | Type | Meaning |
+|---|---|---|
+| `door` | `"parts"` / `"pixel"` / `"draw"` / null | How the Cover was made. Since 8 October 2026 every new agent is `"parts"`. Older test agents can be `"pixel"` or `"draw"`, and are still drawn. (`"build"` is an old name for `"parts"`, renamed by `migrateAgent()`.) |
+| `cover` | look | **The agent.** The one shown everywhere. See "A look" below. |
+
+**A look** is `{ pixels, shapes, drawingPng, stickers }`:
+
+| Field | Meaning |
+|---|---|
+| `pixels` | Pixel door: 256 entries (16×16, row by row), each a colour like `"#ff6b6b"` or `null` for an empty square. |
+| `shapes` | Parts door: a list, drawn in order (later = in front). Each is `{ type, x, y, size, rotation, colour, flipX }`. `type` is a part id from `parts.js` (e.g. `"head-round"`) or one of the seven v1 shapes. `x`, `y` are the centre as fractions 0–1 of the stage. `size` is a scale (1 = the part's natural size), `rotation` in degrees, `colour` the child's tint, `flipX` mirrored or not. |
+| `drawingPng` | Draw door: the drawing as a PNG data URL, or `null`. |
+| `stickers` | A list of `{ emoji, asset, x, y, scale, rotation }`. One of `emoji` / `asset` is set. `x`, `y` are fractions 0–1, so a sticker stays put on any screen size. |
+
+### 3.4 Session 2 missions (v2; retired in v3, data kept)
+
+These were the session-2 screens. **v3 removed the screens, not the data.**
+
+| Field | Meaning |
+|---|---|
+| `powerup.look` | The Power-up look: a look (above) plus `glow`, the aura id or `null`. |
+| `powerup.lookEdited` | `true` once the child changed the Power-up look; until then it mirrored the Cover. Missing on agents that never opened the Power-up. |
+| `powerup.power` | `{ png, audioId, idea, effect }`. `png` / `audioId`: the child's own power, drawn and/or said, on the ✏️ sheet. `effect`: the effect chosen (`fx-…`). `idea`: an idea tile; the idea step was removed before session 2, so this is `null` there. |
+| `powerup.when` | Situation ids the child picked (`sit-…`): when the agent uses its power. |
+| `powerup.whenOwn` | The child's own situation cards: each `{ png, audioId }`. |
+| `hq` | `{ id, png }`. `id` is an HQ place (`hq-…`); `png` is a drawn place instead. Only one of the two is set. Shown behind the agent everywhere. Both `null` means either "never chosen" or "Nowhere" — the event log tells them apart (`hq_choose { id: null }` is Nowhere). |
+| `voice` | `{ audioId, filter, threeWays }`. The voice password: the recording, and the spy voice chosen to play it (`Voice.FILTERS` in `audio.js`; `"normal"` = unchanged). `threeWays` is three `audioId`s or `null`s from "Say it 3 ways", removed on 7 October 2026 — nothing shows them. |
+
+### 3.5 Fields for v2 missions that never opened
+
+v2 planned these for sessions 3 and 4. v3 replaced those missions, so on
+session-2 agents they hold their empty defaults — **except** on agents migrated
+from v1, where `moodCodes` and `rules` can carry v1 work.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `field` | `{ size: "m", texture: "none", colour: null, reactions: {…} }` | v2 force field. Never built. |
+| `moodCodes` | `[]` | v2 mood codes. On a v1 agent: its feeling codes, each `{ situation, situationOwn, face, move, fieldChange, sign: { png, audioId }, readers, firstStep }`, of which only `move` and `sign` hold anything. |
+| `rules` | `[]` | v2 sentence rules. Never built. (v1 rules are in `legacy.rules`.) |
+| `placements` | `{ badge: [], pocket: [], wall: [] }` | v2 badge and poster. Never built. |
+| `missing` | `[]` | "🧩 Something's missing" notes: `{ screen, png, audioId, t }`. The button left the top bar in v2, so this is empty on session-2 agents. |
+
+### 3.6 Missions
+
+| Field | Meaning |
+|---|---|
+| `missions` | One entry per mission id: `"todo"`, `"done"` (Stamp it) or `"passed"` (Pass). |
+
+- **v3 keys:** `make`, `suit`, `safe`, `powers`, `bottle`.
+- **v2 keys** (`powerup`, `hq`, `voice`, `field`, `mood`, `rules`, `badge`) stay
+  on every agent that had them, exactly as session 2 left them.
+- A v2 agent keeps its `make` status; the four new v3 keys arrive as `"todo"`.
+- In P0 the four new missions are placeholders, so `"done"` / `"passed"` on
+  them means only that the child tapped Stamp it / Pass on a "coming soon" screen.
+
+### 3.7 v3 fields (agent-lab-v3-spec.md §10)
+
+Added at P0 with their empty defaults. **Nothing writes to them yet;** each
+milestone that does will say so here.
+
+| Field | Default | Will hold | Milestone |
+|---|---|---|---|
+| `likeMe` | `null` | `"likeme-like"` / `"likeme-bit"` / `"likeme-else"` — "Is your agent like you?" | P2 |
+| `base` | `null` | `"base-1"` … `"base-8"` or `"blank"` — the ready agent the child started from. | P2 |
+| `suit` | `{ likes: [], likesOwn: [], school: [], schoolOwn: [] }` | How the agent likes to talk, and how school asks it to. `likes` / `school`: card ids. `…Own`: `{ png, audioId }` cards. | P3 |
+| `handshake` | `null` | `{ taps: [0, 310, 620] }` — milliseconds from the first tap. | P3 |
+| `safe` | `{ talk: null, stops: null }` | Each `{ id, png }`: an HQ place id or `"safe-nowhere"`, or a drawn place. | P4 |
+| `powers` | `[]` | Up to 3 powers. Shape below. | P5 |
+| `bottles` | `[]` | Up to 3 bottles. Shape below. | P6 |
+
+**One power** (v3 §10):
+
+| Field | Meaning |
+|---|---|
+| `id` | Short random id. |
+| `power` | A power card id (`pow-…`), `"own"` for one the child made up, or `"v2"` for the session-2 power. |
+| `own` | `{ png, audioId }` — the made-up power, drawn and/or said. |
+| `inventedFirst` | `true` if the child made up a power before opening the cards. |
+| `when` / `whenOwn` | Situation ids / own cards. |
+| `who` / `whoOwn` | Who-card ids / own cards. |
+| `how` / `howOwn` | How-card ids / own cards. |
+| `soThat` | `{ png, audioId }` or `null`. |
+| `skipped` | Which parts of the sentence the child skipped. |
+| `order` | The order the child filled the sentence in, e.g. `["power", "when", "who", "how"]`. |
+
+**One bottle** (v3 §10):
+
+| Field | Meaning |
+|---|---|
+| `id` | Random id. |
+| `createdAt` | ISO date. |
+| `items` | What is in it, e.g. `{ type: "item-power", power: 0 }`. An `item-power` points at one of the agent's `powers` by index, or at `"v2"`. |
+| `to` | A who-card id, e.g. `"who-everyone"`. |
+| `toAgentId` | Another agent's `id`, if sent to an agent; else `null`. |
+| `signed` | `true` = signed with the codename; `false` = a mystery bottle. |
+| `state` | `"kept"`, `"waiting"`, `"sent"` or `"delivered"`. |
+| `sentAt` / `deliveredAt` | ISO dates, or `null`. |
+
+### 3.8 `legacy`
+
+v1 fields that v2 had no place for, copied here by `migrateAgent()` so nothing
+from v1 was lost: `boost`, `feelingCodes`, `feelingWorn`, `rules`, `places`,
+`missions` (the v1 `m1`…`m6` statuses). Empty `{}` on any agent made in v2 or
+later.
+
+### 3.9 `events`
+
+The event log: section 4.
+
+---
+
+## 4. The event log (`agent.events`)
+
+Every meaningful action appends one event. **This log is the research data**,
+and it records what the child did, in order — never what it means (v2 §12).
+
+Every event has the same six fields:
+
+| Field | Meaning |
+|---|---|
+| `t` | When (ISO date and time, to the millisecond). |
+| `session` | The session the adult panel was set to (2, 3, …). |
+| `practice` | Practice mode on or off at the time. |
+| `mission` | The screen the child was on: a mission id, `"start"`, `"adult"`, or `"reveal"` (session 2's card). |
+| `action` | What happened: the tables below. |
+| `detail` | An object with the specifics; `{}` if none. |
+
+**Adult panel actions** (`session_set`, `practice_toggle`, `narration_speed`)
+are logged on whichever agent happens to be open, with `mission: "adult"`. They
+are about the iPad, not the child.
+
+The "v3" column says whether the current app can still log the event.
+"hidden" = the code is there but no screen reaches it until a later milestone.
+
+### 4.1 Start screen, codename and gallery
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `codename_spin` | The reels are rolled. | `{ word, animal, locks: { word, animal } }` | ✅ |
+| `codename_lock` | A 🔒 under a reel is tapped. | `{ reel: "word"/"animal", on }` | ✅ |
+| `codename_speak` | The big emblem is tapped (it says the name). | `{ codename }` | ✅ |
+| `codename_type` | A typed name is used. | `{ text }` | ✅ |
+| `emblem_choose` | A sticker is picked as the emblem for a typed name. | `{ value }` (emoji or asset id) | ✅ |
+| `agent_create` | New agent. The first event on every agent. | `{ codename }` | ✅ |
+| `agent_open` | An agent is opened from the gallery. | `{ from: "gallery" }` | ✅ |
+| `seal_open_ok` | A sealed agent is opened with the right symbols, or by an adult. | `{}` or `{ by: "adult" }` | ✅ |
+| `seal_open_fail` | A wrong try at a seal. Nothing locks; the row just clears. | `{}` | ✅ |
+| `seal_set` | The child sealed the agent. | `{}` | hidden |
+
+### 4.2 Moving through the missions
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `mission_enter` | A mission screen opens. | `{ mission }` | ✅ |
+| `back_to` | The child taps an earlier pip on the strip to go back. | `{ mission }` | ✅ |
+| `mission_leave` | Leaving a mission screen. | `{}` | ✅ |
+| `stamp` | Stamp it. | `{ mission }` | ✅ |
+| `pass` | Pass. | `{ mission }` | ✅ |
+| `locked_tap` | A locked pip is tapped. | `{ mission }` | ✅ |
+| `finish` | The flow ended and the app went back to the start. | `{}` | ✅ |
+| `go_home` | 🏠 tapped: saved as it stands, nothing stamped. | `{ from }` (the screen) | ✅ |
+| `speak` | 🔊 tapped for a mission's question. | `{ mission }` | ✅ |
+| `label_speak` | A picture card spoke its label. | `{ id }` (the card) | ✅ |
+| `mute_toggle` | Sound on/off. | `{ muted }` | ✅ |
+| `agent_tap` | The agent's thumbnail was tapped (it reacts). | `{}` | ✅ |
+| `update_apply` | An adult tapped "New version ready". | `{}` | ✅ |
+
+### 4.3 Make (the parts editor)
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `door_choose` | The Make editor opened on a new agent. Always Parts now. | `{ door: "parts", auto: true }` | ✅ |
+| `door_switch` | v1/v2: the child changed door. | `{ door }` | ✅ (unreachable with one door) |
+| `part_add` | A part was added from the tray. | `{ type, cat, onHead }` — `onHead`: it snapped onto a head | ✅ |
+| `part_recolour` | A part's colour changed. | `{ type, colour }` | ✅ |
+| `part_flip` | ↔ Flip. | `{ type, flipped }` | ✅ |
+| `part_layer` | Front / Back. | `{ type, to }` | ✅ |
+| `shape_add` | A v1 shape was added (Shapes category). | `{ shape, colour }` | ✅ |
+| `shape_change` | Bigger, smaller, turn… on a part or shape. | `{ what, shape }` | ✅ |
+| `shape_move` | A part or shape was dragged. | `{}` | ✅ |
+| `shape_remove` | Remove. | `{ shape }` | ✅ |
+| `sticker_add` | A sticker was placed. | `{ emoji, asset }` | ✅ |
+| `sticker_move` | A sticker was dragged, resized or turned. | `{}` | ✅ |
+| `sticker_remove` | A sticker was removed. | `{ emoji, asset }` | ✅ |
+| `sticker_search` | 🔍 search. | `{ query, results }` | ✅ |
+| `sticker_request` | A searched word had no sticker. | `{ word }` | ✅ |
+| `paint` | Pixel door: one finger-lift of painting. | `{ tool, colour, cells }` | ✅ (old agents) |
+| `undo` | Undo. | `{}` in the editor; `{ where }` on a drawing canvas | ✅ |
+| `clear` | Clear. | `{ door }` in the editor; `{ where }` on a drawing canvas | ✅ |
+
+### 4.4 Drawing and the ✏️ My own sheet
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `draw_stroke` | One stroke on a drawing canvas. | `{ where, points }` | ✅ |
+| `hq_choose` | An HQ place chosen. `{ id: null }` is Nowhere. | `{ id, changed }`, `{ id: null }`, or `{ id, from: "place-tab" }` | hidden (P4) |
+| `hq_draw` | A drawn HQ kept. | `{ drawn, said }` | hidden (P4) |
+| `hq_draw_remove` | A drawn HQ removed. | `{}` | hidden (P4) |
+| `power_when_own` | An own situation card kept. | `{ drawn, said }` | hidden |
+
+> ⚠️ **`draw_stroke` `where` in session-2 data.** Up to session 2, `where` was
+> `"feeling_code"` for the v1 feeling-code canvas and `"rule"` for **every
+> other canvas**. In session 2 the only canvas a child could reach was the ✏️
+> My own sheet, so **`where: "rule"` in session-2 data means a stroke on the
+> ✏️ sheet**, not a rule. The event's `mission` (`powerup` or `hq`) and the
+> keep event that follows (`power_draw`, `power_when_own`, `hq_draw`) say
+> which ✏️ it was. From v3 `where` is `"own_card"` for that sheet.
+
+### 4.5 Adult panel
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `session_set` | The session was changed. | `{ session }` | ✅ |
+| `practice_toggle` | Practice mode on/off. | `{ practice }` | ✅ |
+| `narration_speed` | Narration speed changed. | `{ speed }` | ✅ |
+
+### 4.6 Session 2 only (v2 screens, retired in v3)
+
+These are in session-2 data. v3 cannot log them.
+
+| Action | Screen | `detail` |
+|---|---|---|
+| `boost_copy` | Power-up: the Cover was copied into the Power-up look. | `{ from: "cover" }` |
+| `look_edit_open` | Power-up: "My look" opened. | `{}` |
+| `aura_choose` | Power-up: an aura (glow). | `{ aura }` |
+| `power_effect_choose` | Power-up: an effect tile. | `{ effect }` |
+| `power_fire` | Power-up / card: the power played on the agent. | `{ effect }` or `{ effect, where: "card" }` |
+| `power_draw` | Power-up: own power kept on the ✏️ sheet. | `{ drawn, said }` |
+| `power_draw_remove` | Power-up: own power removed. | `{}` |
+| `power_when_toggle` | Power-up: a situation card on/off. | `{ situation, on }` |
+| `power_when_own_remove` | Power-up: an own situation removed. | `{}` |
+| `power_step_skip` | Power-up: ➡️ to skip a step. | `{ to }` |
+| `boost_power_up` | v1 Boost / Power-up replay ✨. | `{}` |
+| `record_start` / `record_stop` / `record_fail` | Voice: 🎤 recording. | `record_stop`: `{ ms, bytes }`; `record_fail`: `{ reason }`; others may carry `{ slot }` |
+| `rerecord` | Voice: re-record. | `{}` |
+| `filter_play` | Voice: a spy voice played. | `{ filter, raw }` |
+| `filter_choose` | Voice: a spy voice chosen. | `{ filter }` |
+| `reveal_play` | Card: ▶️ the voice password. | `{ filter }` |
+| `reveal_skip` | Card: the finale skipped. | `{}` |
+| `card_save` | Card: Save card. | `{ how: "share" / "download" }` |
+| `card_save_cancel` | Card: the share sheet was closed. | `{}` |
+| `badge_check_open` / `badge_zoom` | Card: badge check. | `{}` |
+| `wall_check_open` | Card: wall check. | `{ palette }` |
+| `missing_open` / `missing_save` | 🧩 Something's missing (left the top bar in v2). | `{ screen }`; `{ screen, drawn, said }` |
+
+### 4.7 v1 and older test builds only
+
+Not in session-2 data. Listed so an old test export can still be read.
+
+| Action | From | `detail` |
+|---|---|---|
+| `feeling_code_add` / `feeling_code_edit` / `feeling_code_remove` | v1 Mission 3 | various |
+| `feeling_face_choose` / `feeling_move_choose` / `feeling_worn` | v1 Mission 3 | `{ face }` / `{ move }` / `{ index }` |
+| `feeling_draw` | v1 Mission 3 (Milestone 4) | |
+| `need_ideas_open` | v1 Mission 3 | `{}` |
+| `place_open` / `place_toggle` | v1 Mission 5 | `{ place }` / `{ place, part, on }` |
+| `rule_open` / `rule_set` / `rule_remove` | v1 Mission 6 | `{ rule, … }` |
+| `background_choose` | v1 Boost backgrounds | `{ background }` |
+| `codename_roll` | v1 codename roller | `{ codename }` |
+| `brush_size` / `mirror_toggle` | the Draw door (removed 8 October 2026) | `{ width }` / `{ on }` |
+| `ideas_open` / `power_idea_choose` / `power_record` | v2 Power-up step 1 (removed 7 October 2026) | |
+| `three_ways_record` | v2 "Say it 3 ways" (removed 7 October 2026) | `{ slot: "big"/"small"/"asking" }` |
+
+---
+
+## 5. Recordings
+
+Every `audioId` in an agent points at a row in the `audio` store. Recordings
+are at most 10 seconds. A re-recording deletes the clip it replaced.
+**Never put recordings into ChatGPT, ElevenLabs or any online service.**
+
+---
+
+## 6. iPad settings (`meta` store)
+
+About the iPad, not about any child. Not exported.
+
+| Key | Meaning |
+|---|---|
+| `session` | The session the adult panel is set to. Default 3 in v3. |
+| `missionOn` | `{ "<mission id>": true/false }` — single missions an adult switched on or off. Cleared when the session changes. |
+| `practice` | Practice mode. |
+| `motion` | `"full"` / `"calm"` / `"off"`. |
+| `muted` | Sound off. |
+| `narrationSpeed` | Narration speed, default `0.9`. |
+| `silly` | Allows the silly stickers in search. Nothing sets it, so it is always `false`. |
+| `lastAgentId` | The agent Continue opens. |
+| `lastExportAt` / `lastExportCount` | When this iPad was last exported, and how many agents went. |
+| `badgePpi` / `wallPalette` | v2 badge and wall check settings. No longer read. |

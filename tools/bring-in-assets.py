@@ -67,6 +67,11 @@ def convert(src, dest, kind):
 
     if kind == "sticker":
         cmd = ["sips", "-s", "format", "png", "-Z", "512", src, "--out", dest]
+    elif kind == "board":
+        # v3 §11.1: disp-board is a sticker, but drawn larger for the display.
+        cmd = ["sips", "-s", "format", "png", "-Z", "1024", src, "--out", dest]
+    elif kind == "wide":
+        return convert_wide(src, dest)
     else:
         cmd = ["sips", "-s", "format", "jpeg", "-s", "formatOptions", "80",
                "-Z", "1024", src, "--out", dest]
@@ -74,6 +79,39 @@ def convert(src, dest, kind):
     if result.returncode != 0:
         print("    ⚠️  sips failed:", result.stderr.decode().strip()[:120])
         return False
+    return True
+
+
+def convert_wide(src, dest):
+    """v3 §11.1: disp-shore, the display's backdrop. JPEG at quality 80,
+    longest side 1920, centre-cropped to 16:9 so it fills a TV or projector.
+
+    sips can crop to an exact size about the centre (--cropToHeightWidth), so
+    the work is only finding the largest 16:9 box that fits the picture."""
+    info = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", src],
+                          capture_output=True).stdout.decode()
+    try:
+        w = int(info.split("pixelWidth:")[1].split()[0])
+        h = int(info.split("pixelHeight:")[1].split()[0])
+    except (IndexError, ValueError):
+        print("    ⚠️  could not read the picture's size")
+        return False
+
+    if w * 9 > h * 16:                 # wider than 16:9 - trim the sides
+        crop_w, crop_h = round(h * 16 / 9), h
+    else:                              # taller than 16:9 - trim top and bottom
+        crop_w, crop_h = w, round(w * 9 / 16)
+
+    steps = [
+        ["sips", "--cropToHeightWidth", str(crop_h), str(crop_w), src, "--out", dest],
+        ["sips", "-s", "format", "jpeg", "-s", "formatOptions", "80",
+         "-Z", "1920", dest, "--out", dest],
+    ]
+    for cmd in steps:
+        result = subprocess.run(cmd, capture_output=True)
+        if result.returncode != 0:
+            print("    ⚠️  sips failed:", result.stderr.decode().strip()[:120])
+            return False
     return True
 
 
@@ -108,6 +146,12 @@ def main():
                         ("sfx", "audio")):
         for entry in manifest.get(group, []):
             index[normalise(entry["id"])] = (entry, kind)
+
+    # v3 §11.1: the four new picture groups say their own kind in the
+    # manifest - nearly all "sticker", plus one "wide" and one "board".
+    for group in ("powers", "doors", "display", "cards"):
+        for entry in manifest.get(group, []):
+            index[normalise(entry["id"])] = (entry, entry.get("kind", "sticker"))
 
     files = [f for f in sorted(os.listdir(INCOMING))
              if not f.startswith(".") and os.path.isfile(os.path.join(INCOMING, f))]
@@ -160,7 +204,7 @@ def main():
             ok = True
         else:
             ok = convert(src, dest, kind)
-            if ok and kind == "sticker" and not DRY:
+            if ok and kind in ("sticker", "board") and not DRY:
                 alpha = has_transparent_corners(dest)
                 if alpha is False:
                     print("    ⚠️  no transparency. Remove the background "
@@ -180,7 +224,8 @@ def main():
 
     # What is still missing, so the report is a to-do list.
     missing = []
-    for group in ("hq", "situations", "stickers", "narrator", "sfx"):
+    for group in ("hq", "situations", "stickers", "narrator", "sfx",
+                  "powers", "doors", "display", "cards"):
         for entry in manifest.get(group, []):
             if not os.path.exists(os.path.join(ASSETS, entry["file"])):
                 missing.append(entry["id"])

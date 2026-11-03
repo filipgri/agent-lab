@@ -2256,10 +2256,16 @@ body.is-practice .practice-badge { display: block; }
   letter-spacing: .03em;
 }
 
-/* --- The gallery (v2 §5.2) ---
-   Emblem and codename only. Nothing about anyone else's work is shown. */
+/* --- The gallery (v2 §5.2, v3 §4) ---
+   v3: every tile shows the agent itself and its codename, because children
+   know their own drawing on sight. Sealed agents keep the emblem and 🔒. */
 .gallery-block { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.gallery-title { margin: 0; font-size: 20px; color: var(--muted); letter-spacing: .04em; font-weight: 600; }
+.gallery-title {
+  margin: 0; font-size: 20px; color: var(--muted); letter-spacing: .04em; font-weight: 600;
+  /* The 🔊 sits beside the words, on the same line. */
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.gallery-speak { font-size: 24px; }
 .gallery { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 760px; }
 .gallery-tile {
   position: relative;
