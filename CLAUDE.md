@@ -451,7 +451,32 @@ to the start. No card screen.
     earlier tap cannot land after a newer choice.
   - `modeCard()` and the like-me cards now use `Assets.card()`, which already
     built a picture card with its emoji stand-in.
-- **Next: P5** — Powers (§7).
+- **P5 — built (3 November 2026), on branch `v3`.** ⚡ Powers (§7), section
+  32 of `app.js`, in the same frame as How my agent talks: the agent big in
+  the middle doing the power, short icon headings.
+  - ✨ a canvas (`#powers-canvas`, `STROKE_WHERE` "power") and 🎤; **the six
+    doors are not even built** until the child has drawn, recorded or tapped
+    💡. 🚪 doors → cards + ✏️. 📝 four slots (🕐 When ≤3 · 👥 Who · 🔌 Switch
+    on · 🎯 So that). ⚡ Power on! plays the power, then reads the sentence
+    back with `Assets.sayAndWait()` (new in `assets.js`: resolves when a
+    line ENDS), lighting each slot as it is read. ⚡ My powers: fire, 📝
+    change, 🗑️ two-tap remove, ➕ (three at most). ⏪ From last time offers
+    a session-2 power — including one that was only an effect.
+  - **The five ★ powers have their own scenes** (slow everybody down,
+    control teachers, control all displays, control devices, speak for your
+    friends); pause, quiet bubble, my way and invisible borrow v2's fx-*
+    classes; the rest pop their icon. Props sit on `#powers-fx` and stay
+    put in Calm/Off — they carry the meaning — while movement is Full only.
+  - 🤝 in 🔌 opens the handshake sheet (section 31); 🗣️ plays the agent's
+    secret word.
+  - **Timers:** `powersTimers` holds the read-back's pauses; the scene has
+    its own `powerFxTimer`. When `playPower()` cleared every timer, it
+    cancelled the "Power on!" pause started at the same moment, and the
+    read-back hung for ever. Never clear timers you did not start.
+  - Every label and emoji is also written in the code (`POWER_CARDS`,
+    `POWER_DOORS`, `SITUATION_CARDS`, `WHO_CARDS`, `HOW_CARDS`), because
+    with an empty `assets/` there is no manifest to read them from.
+- **Next: P6** — The bottle (§8).
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

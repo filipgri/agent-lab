@@ -3307,3 +3307,132 @@ body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-ou
 
 /* The handshake sheet (opened from Powers). */
 .sheet-handshake { width: min(560px, 100%); }
+
+/* ============================================================
+   POWERS (v3 §7, P5)
+   The same frame as How my agent talks: the agent big on the left (on
+   top, in portrait), the step beside it.
+   ============================================================ */
+.powers-make-row { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+.powers-canvas-wrap { flex: 0 0 auto; width: 230px; height: auto; }
+.powers-make-tools { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.powers-make-tools .palette { grid-template-columns: repeat(4, 44px); }
+.powers-tool-row { display: flex; gap: 8px; }
+#powers-mic.is-recording { animation: record-pulse 1s ease-in-out infinite; }
+#powers-mic.has-clip { box-shadow: inset 0 0 0 3px var(--accent); }
+.powers-make-go { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.powers-lasttime:empty { display: none; }
+.powers-lasttime .when-own { width: 150px; }
+
+/* The six doors: two rows of three, the same size, always in this order. */
+.powers-door-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+}
+.powers-door-grid[hidden] { display: none; }
+.powers-door-grid .pic-card { width: auto; }
+.powers-door-grid .pic-card-art { aspect-ratio: 3 / 4; min-height: 0; }
+.powers-cards { justify-content: center; }
+.powers-cards[hidden] { display: none; }
+.powers-cards .pic-card { width: 128px; }
+.powers-cards .pic-card-art { min-height: 88px; }
+.powers-cards .when-own { width: 128px; }
+.powers-cards .pic-card.is-full { opacity: .45; }
+.powers-door-tools { display: flex; gap: 12px; align-items: center; }
+
+/* The sentence strip: four slots in a row, each showing what is in it. */
+.powers-slots { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.powers-slot {
+  min-width: 96px;
+  min-height: 84px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px;
+}
+.powers-slot .slot-icon { font-size: 30px; line-height: 1; }
+.powers-slot .slot-fill { font-size: 20px; line-height: 1; min-height: 20px; letter-spacing: 2px; }
+.powers-slot.is-here { outline: 3px solid var(--accent); outline-offset: 3px; }
+/* While a sentence is read back, the slot being read lights up - so the
+   read-back can be FOLLOWED in a loud room, not only heard. */
+.powers-slot.is-reading, .powers-cards .pic-card.is-reading { background: var(--accent); color: #231c00; }
+
+/* My powers: one card per power, up to three. */
+.powers-shelf { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+.power-kept {
+  width: 168px;
+  border-radius: 18px;
+  background: var(--navy-2);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.power-kept-art { font-size: 56px; line-height: 1; height: 72px; display: grid; place-items: center; }
+.power-kept-art img { max-height: 72px; max-width: 120px; border-radius: 10px; background: #fff; }
+.power-kept-label { font-size: 16px; font-weight: 700; text-align: center; }
+.power-kept-strip { font-size: 18px; letter-spacing: 2px; min-height: 20px; }
+.power-kept-tools { display: flex; gap: 8px; }
+.power-kept-tools .btn { min-width: 64px; }
+.power-kept .is-armed { background: var(--danger, #ff6b6b); }
+
+/* ---- the power on the stage ----
+   Props sit on a layer over the agent. Every effect is transform and
+   opacity only, and nothing flashes more than three times a second (§5a).
+   In Calm and Off the props still APPEAR, standing still: they say what
+   the power is. Only the movement needs Full motion. */
+.pfx-layer { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 4; }
+.pfx-prop {
+  position: absolute;
+  font-size: 52px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+.pfx-prop img { width: 90px; height: 90px; object-fit: contain; border-radius: 14px; background: #fff; }
+.pfx-beam {
+  position: absolute;
+  height: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #ffd23f 0 10px, #fff6c2 10px 16px);
+  box-shadow: 0 0 12px #ffd23f;
+  transform-origin: left center;
+}
+body[data-motion="full"] .pfx-pop   { animation: pfx-pop 700ms cubic-bezier(.34,1.56,.64,1) both; }
+body[data-motion="full"] .pfx-walk  { animation: pfx-walk 4000ms linear both; }
+body[data-motion="full"] .pfx-beam  { animation: pfx-beam 450ms ease-out both; }
+body[data-motion="full"] .pfx-hop   { animation: pfx-hop 600ms ease-in-out 450ms 2 both; }
+body[data-motion="full"] .pfx-rise  { animation: pfx-rise 1800ms ease-out both; }
+body[data-motion="full"] .pfx-blink { animation: pfx-blink 800ms steps(2, jump-none) 3; }
+body[data-motion="full"] .pfx-slowmo { animation: pfx-slowmo 4000ms ease-in-out; }
+body[data-motion="full"] .pfx-wash  { animation: pfx-wash 2400ms ease-in-out; }
+body[data-motion="full"] .pfx-bounce { animation: act-jump 700ms cubic-bezier(.34,1.56,.64,1); }
+@keyframes pfx-pop  { from { opacity: 0; transform: translate(-50%, -30%) scale(.4); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes pfx-walk { from { left: 8%; } to { left: 92%; } }
+@keyframes pfx-beam { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes pfx-hop  { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, -80%); } }
+@keyframes pfx-rise { from { opacity: 0; transform: translate(-50%, 0); } 30% { opacity: 1; } to { opacity: 1; transform: translate(-50%, -110%); } }
+/* Two steps per 800 ms: on and off, well under three flashes a second. */
+@keyframes pfx-blink { from { opacity: 1; } to { opacity: .2; } }
+@keyframes pfx-slowmo {
+  0%, 100% { transform: rotate(0) translateX(0); }
+  25% { transform: rotate(-5deg) translateX(-8px); }
+  75% { transform: rotate(5deg) translateX(8px); }
+}
+/* Control all displays: the whole scene slowly changes colour once. */
+@keyframes pfx-wash { 0%, 100% { filter: none; } 50% { filter: hue-rotate(160deg) saturate(1.6); } }
+/* While a power plays and reads itself back, the screen waits for it. */
+[data-mission="powers"].is-busy .suit-side,
+[data-mission="powers"].is-busy .suit-phases { pointer-events: none; }
+
+/* Portrait: a smaller agent on Powers, so ✓ My power and 💡 Need ideas are
+   on screen without scrolling. Reachable is not the same as discoverable
+   (CLAUDE.md). */
+@media (orientation: portrait) {
+  [data-mission="powers"] .suit-stage-wrap { width: min(210px, 40vw); }
+  [data-mission="powers"] .powers-lasttime .when-own { width: 120px; }
+  [data-mission="powers"] .powers-canvas-wrap { width: 200px; }
+}

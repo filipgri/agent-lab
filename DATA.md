@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P4** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P5** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -163,25 +163,40 @@ milestone first writes each one; until then it keeps its default.
 | `base` | `null` | `"base-1"` … `"base-8"` (a ready agent from `Parts.BASES` in `parts.js`), or `"blank"`. Which one the child started from. The cover's `shapes` start as a copy of that base and change from there. `null` on agents made before v3. | P2 ✅ |
 | `suit` | see right | 🗣️ How my agent talks. Every card is sorted onto ONE of three piles, Talking-Mats style: 👍 Yes / 🤷 Not sure / 👎 No. **"My agent likes…"**: `likes` (👍), `likesUnsure` (🤷), `likesNot` (👎). **"School wants…"**: `school`, `schoolUnsure`, `schoolNot`. Each is a list of card ids, in the order they were put there. Cards: `mode-talk` (Talking), `mode-hands` (Signing), `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures` (Picture cards), `mode-write`, `mode-device`, and — in "School wants…" only — `mode-hand-up`, `mode-quiet`. `likesOwn` / `schoolOwn`: the child's ✏️ My own cards, each `{ png, audioId }`, which count as 👍. **`best`**: the one way the agent likes most — a card id from `likes`, or `"own-0"`, `"own-1"`… for an own card — or `null`. A card not yet sorted is on no pile. The app never compares the piles. Default `{ likes: [], likesUnsure: [], likesNot: [], likesOwn: [], school: [], schoolUnsure: [], schoolNot: [], schoolOwn: [], best: null }`. | P3 ✅ |
 | `secretWord` | `null` | 🤫 An invented word the child said: `{ audioId, filter }`. `filter` is one of the six spy voices (`normal`, `squeaky`, `deep`, `robot`, `radio`, `echo` — `Voice.FILTERS` in `audio.js`). A new recording replaces the old one (the old clip is deleted) and keeps the chosen voice. | P3 ✅ |
-| `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). Made on the handshake sheet, which Powers opens (P5). | P5 |
+| `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). Made on the handshake sheet, which Powers opens when a child turns on 🤝 "My secret handshake" in the 🔌 slot. | P5 ✅ |
 | `safe` | `{ talk: null, stops: null }` | 📍 Safe place. `talk`: "Where does your agent feel safe to talk?" `stops`: "Where does your agent's power stop working?" Each is `null` (not answered) or `{ id, png }`: `id` is one of the twelve HQ place ids or `"safe-nowhere"` (Nowhere, an equal choice); or `id: null` with `png` (a drawn place) and/or `audioId` (a place the child said) from the ✏️ sheet. The agent stands in `safe.talk` on every screen when it is a real place. Off in the session-3 preset. | P4 ✅ |
-| `powers` | `[]` | Up to 3 powers. Shape below. | P5 |
+| `powers` | `[]` | ⚡ Up to 3 powers, in the order they were made. Shape below. A power is saved the moment it is chosen, so a half-finished sentence is kept. | P5 ✅ |
 | `bottles` | `[]` | Up to 3 bottles. Shape below. | P6 |
 
 **One power** (v3 §10):
 
 | Field | Meaning |
 |---|---|
-| `id` | Short random id. |
-| `power` | A power card id (`pow-…`), `"own"` for one the child made up, or `"v2"` for the session-2 power. |
-| `own` | `{ png, audioId }` — the made-up power, drawn and/or said. |
-| `inventedFirst` | `true` if the child made up a power before opening the cards. |
-| `when` / `whenOwn` | Situation ids / own cards. |
-| `who` / `whoOwn` | Who-card ids / own cards. |
-| `how` / `howOwn` | How-card ids / own cards. |
-| `soThat` | `{ png, audioId }` or `null`. |
-| `skipped` | Which parts of the sentence the child skipped. |
-| `order` | The order the child filled the sentence in, e.g. `["power", "when", "who", "how"]`. |
+| `id` | Short random id (8 characters). Not linked to anything else. |
+| `power` | A power card id (`pow-…`, below), `"own"` for one the child made up, or `"v2"` for their session-2 power ("⏪ From last time"). |
+| `own` | `{ png, audioId }`. For `"own"`: the made-up power, drawn and/or said. For a card: whatever the child drew or said on ✨ BEFORE picking it, kept as that power's picture (§7.1) — both `null` if nothing. For `"v2"`: the session-2 drawing and recording, pointed at, never copied (they still belong to `powerup.power` and are never deleted from here). |
+| `inventedFirst` | `true` if the child drew or said something on ✨ before opening the ideas (💡 or 🚪), or never opened them at all; `false` if they opened the ideas first. |
+| `when` / `whenOwn` | 🕐 Situation ids (the session-2 ids: `sit-too-loud`, `sit-not-understood`, `sit-waiting`, `sit-did-well`, `sit-asked-answer`, `sit-unkind`, `sit-plans-change`, `sit-new-place`, `sit-playtime`, `sit-tricky-work`) / own cards `{ png, audioId }`. **Three at most, cards and own together.** |
+| `who` / `whoOwn` | 👥 `who-me`, `who-friend`, `who-teacher` (any adult at school), `who-class`, `who-everyone`, `who-room` / own cards. Any number. |
+| `how` / `howOwn` | 🔌 How it switches on: `how-badge`, `how-handshake`, `how-hand-sign`, `how-word`, `how-drawing`, `how-button` / own cards. Any number. |
+| `soThat` | 🎯 `{ png, audioId }` from the ✏️ sheet, or `null`. |
+| `skipped` | The slots still EMPTY when the power was last switched on (⚡), e.g. `["sothat"]`. Set at every ⚡. `[]` until the first. |
+| `order` | The order the sentence was filled in: always `"power"` first, then each slot the first time something was put in it, e.g. `["power", "who", "when"]`. |
+
+**The power cards and their doors** (§7.2). The doors are always shown in
+this order; the family ids are a lens for the analysis, and the children
+see the plain labels.
+
+| Door (`family`) | Label | Powers |
+|---|---|---|
+| `fam-time` | Time | `pow-slow-everybody` ★, `pow-pause`, `pow-hold-turn`, `pow-warn-me`, `pow-say-again` |
+| `fam-senses` | Sound and light | `pow-turn-down`, `pow-dim-lights`, `pow-quiet-bubble` |
+| `fam-language` | Words | `pow-translator`, `pow-my-way`, `pow-get-me` |
+| `fam-floor` | Turns | `pow-control-teachers` ★, `pow-question-swap`, `pow-pass`, `pow-invisible` |
+| `fam-screens` | Screens | `pow-control-displays` ★, `pow-control-devices` ★, `pow-see-points`, `pow-change-rule` |
+| `fam-together` | Together | `pow-speak-for-friends` ★, `pow-call-ally`, `pow-team-up` |
+
+★ = from Filip's notes; these five have their own scenes on the agent.
 
 **One bottle** (v3 §10):
 
@@ -309,10 +324,10 @@ The "v3" column says whether the current app can still log the event.
 | `suit_own_remove` | A ✏️ card was removed (second tap of two). | `{ step }` | ✅ |
 | `secret_word_record` | 🎤 A secret word was recorded. | `{ ms, again }` — `again` if it replaced one | ✅ |
 | `secret_word_voice` | A spy voice was picked for it. | `{ filter }` | ✅ |
-| `handshake_open` | The handshake sheet was opened (from Powers). | `{}` | P5 |
-| `handshake_make` | A handshake was finished: 1.5 s after the last tap, at the 8th tap, or 6 s after the first. | `{ taps, ms }` — `taps` is the whole rhythm (ms from the first tap), `ms` its length | P5 |
-| `handshake_redo` | The pad was tapped again when a handshake already existed, starting a new one. | `{}` | P5 |
-| `handshake_replay` | ▶️ Play it. (The automatic play-back after making one is not logged.) | `{}` | P5 |
+| `handshake_open` | The handshake sheet was opened (from 🤝 in Powers' 🔌 slot). | `{}` | ✅ |
+| `handshake_make` | A handshake was finished: 1.5 s after the last tap, at the 8th tap, or 6 s after the first. | `{ taps, ms }` — `taps` is the whole rhythm (ms from the first tap), `ms` its length | ✅ |
+| `handshake_redo` | The pad was tapped again when a handshake already existed, starting a new one. | `{}` | ✅ |
+| `handshake_replay` | ▶️ Play it. (The automatic play-back after making one is not logged.) | `{}` | ✅ |
 
 Each card says its label as it appears (not logged); a TAP on the card is a
 `label_speak`. The agent acts every card out — it moves (Full motion), and
@@ -328,6 +343,26 @@ the card's emoji appears by its head (always) — and that is not logged.
 | `safe_draw_remove` | That place was removed (second tap of two). | `{ step }` | ✅ |
 
 Every place tapped is also a `label_speak`.
+
+### 4.3d Powers (v3 P5)
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `powers_draw` | The first stroke on the ✨ canvas for a new power. (Every stroke is also a `draw_stroke` with `where: "power"`.) | `{}` | ✅ |
+| `powers_record` | 🎤 on ✨: the power was said. | `{ ms }` | ✅ |
+| `powers_ideas_open` | 💡 Need ideas? — or 🚪 — the FIRST time for this power. | `{ inventedFirst }` — had the child drawn or said anything first | ✅ |
+| `powers_door_open` | A door was opened. | `{ family }` | ✅ |
+| `powers_choose` | A power was chosen: a card, ✓ My power, ✏️ My own in a door, or ⏪ From last time. Choosing again changes it. | `{ power }`, plus `{ drawn, said }` for `"own"` | ✅ |
+| `powers_phase` | Another step opened (✨ 🚪 📝 ⚡). | `{ to, how: "next"/"tab" }` | ✅ |
+| `powers_slot_open` | Another slot of the sentence opened. | `{ slot, how: "next"/"tab" }` | ✅ |
+| `powers_slot` | A card in a slot turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
+| `powers_slot_skip` | ➡️ on a slot that was still empty. | `{ slot }` | ✅ |
+| `powers_sothat` | 🎯 "So that…" was kept. | `{ drawn, said }` | ✅ |
+| `powers_sothat_remove` | …and removed (two taps). | `{}` | ✅ |
+| `powers_fire` | ⚡ Power on! — the agent does the power and the sentence reads itself back. | `{ index }` — which of the agent's powers | ✅ |
+| `powers_edit` | 📝 on a kept power, to change its sentence. | `{ index }` | ✅ |
+| `powers_new` | ➕ Another power. | `{}` | ✅ |
+| `powers_remove` | 🗑️ A power was removed (two taps). | `{ index }` | ✅ |
 
 ### 4.4 Drawing and the ✏️ My own sheet
 

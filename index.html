@@ -471,11 +471,92 @@
           </div>
         </article>
 
+        <!-- ⚡ POWERS (v3 §7, P5) - the heart of v3. One power is the aim;
+             up to three are allowed. The agent stands BIG in the middle and
+             does the power (Filip, 3 November), and every step has a short
+             icon heading, because the room is too loud to rely on the voice.
+               ✨ Make up a power   draw it or say it - nothing else first
+               🚪 Ideas             six doors; NOT EVEN BUILT until the child
+                                    has drawn, recorded or tapped 💡
+               📝 The sentence      🕐 When · 👥 Who · 🔌 Switch on · 🎯 So that
+               ⚡ My powers         fire one, add another, or remove one -->
         <article class="mission-panel" data-mission="powers">
-          <div class="soon-wrap">
-            <span class="soon-icon">⚡</span>
-            <p class="soon-text">Your agent's powers are being built.</p>
-            <p class="soon-note">Coming soon</p>
+          <div class="suit-wrap">
+
+            <header class="power-head suit-head">
+              <div id="powers-phases" class="suit-phases seg-group">
+                <button class="btn seg" data-powers-phase="make" aria-label="Make up a power">✨</button>
+                <button class="btn seg" data-powers-phase="doors" aria-label="Ideas" hidden>🚪</button>
+                <button class="btn seg" data-powers-phase="sentence" aria-label="The sentence" hidden>📝</button>
+                <button class="btn seg" data-powers-phase="mine" aria-label="My powers" hidden>⚡</button>
+              </div>
+              <h2 id="powers-title" class="power-title">Make up a power</h2>
+              <button id="powers-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+            </header>
+
+            <div class="suit-main">
+              <!-- The agent, big, doing the power. -->
+              <div class="suit-stage-wrap">
+                <div id="powers-stage" class="agent-view suit-stage">
+                  <canvas class="agent-pixels" width="16" height="16"></canvas>
+                  <img class="agent-drawing" alt="" hidden>
+                  <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
+                  <div class="sticker-layer"></div>
+                </div>
+                <!-- Props for the power: a tortoise, a remote, a beam… -->
+                <div id="powers-fx" class="pfx-layer" aria-hidden="true"></div>
+              </div>
+
+              <!-- ✨ MAKE UP A POWER: a blank canvas and 🎤, nothing else. -->
+              <div id="powers-make" class="suit-side">
+                <div id="powers-lasttime" class="powers-lasttime"></div>
+                <div class="powers-make-row">
+                  <div class="m3-canvas-wrap powers-canvas-wrap">
+                    <canvas id="powers-canvas" class="m3-canvas" width="320" height="320"></canvas>
+                  </div>
+                  <div class="powers-make-tools">
+                    <div id="powers-palette" class="palette"></div>
+                    <div class="powers-tool-row">
+                      <button id="powers-undo" class="btn tool" aria-label="Undo">↩️</button>
+                      <button id="powers-clear" class="btn tool" aria-label="Clear">🧽</button>
+                      <button id="powers-mic" class="btn tool" aria-label="Say your power">🎤</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="powers-make-go">
+                  <button id="powers-mine-go" class="btn btn-accent btn-big" hidden>✓ <span class="btn-label">My power</span></button>
+                  <button id="powers-ideas" class="btn btn-big">💡 <span class="btn-label">Need ideas?</span></button>
+                </div>
+              </div>
+
+              <!-- 🚪 THE SIX DOORS, then one door's cards. Filled in by app.js
+                   only once the child has invented or asked (v3 §7.1). -->
+              <div id="powers-doors" class="suit-side" hidden>
+                <div id="powers-door-grid" class="powers-door-grid"></div>
+                <div id="powers-door-cards" class="power-when powers-cards" hidden></div>
+                <div class="powers-door-tools">
+                  <button id="powers-door-back" class="btn tool" aria-label="Back to the doors" hidden>🚪</button>
+                  <button id="powers-chosen-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+                </div>
+              </div>
+
+              <!-- 📝 THE SENTENCE: four slots, filled in any order. -->
+              <div id="powers-sentence" class="suit-side" hidden>
+                <div id="powers-slots" class="powers-slots"></div>
+                <div id="powers-slot-cards" class="power-when powers-cards"></div>
+                <div class="powers-door-tools">
+                  <button id="powers-slot-next" class="btn tool" aria-label="Next">➡️</button>
+                  <button id="powers-fire" class="btn btn-accent btn-big">⚡ <span class="btn-label">Power on!</span></button>
+                </div>
+              </div>
+
+              <!-- ⚡ MY POWERS: up to three. -->
+              <div id="powers-mine" class="suit-side" hidden>
+                <div id="powers-shelf" class="powers-shelf"></div>
+                <button id="powers-new" class="btn btn-big">➕ <span class="btn-label">Another power</span></button>
+              </div>
+            </div>
+
           </div>
         </article>
 

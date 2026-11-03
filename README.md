@@ -31,6 +31,10 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
 - **P4 — built.** 📍 Safe place: where the agent feels safe to talk, and where
   its power stops working. **Off in the session-3 preset**: switch it on in
   the adult panel under Missions this rotation.
+- **P5 — built.** ⚡ Powers: make one up first (draw it or say it), or ask for
+  ideas behind six doors; then the sentence — when, who, how it switches on,
+  so that — and ⚡ Power on!, where the agent does it, big, and the sentence
+  reads itself back. Up to three powers.
 
 The rest of this section describes session 2.
 

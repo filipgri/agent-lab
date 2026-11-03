@@ -232,6 +232,36 @@ const Assets = (function () {
     });
   }
 
+  /* Say a line and resolve when it has FINISHED - not when it starts, as
+     say() does - so a list of lines can be read out one after another
+     (v3 §7.3: a power's sentence reads itself back, card by card).
+
+     It never waits for ever: `maxMs` (6 s unless given) is a ceiling, for a
+     line that never reports its end. Like everything here, it never throws. */
+  function sayAndWait(id, options) {
+    const opts = options || {};
+    const maxMs = opts.maxMs || 6000;
+    return new Promise(function (resolve) {
+      let done = false;
+      const finish = function () { if (!done) { done = true; resolve(); } };
+      setTimeout(finish, maxMs);
+      say(id, opts).then(function (how) {
+        if (how === 'file' && narrating) {
+          narrating.addEventListener('ended', finish, { once: true });
+          narrating.addEventListener('pause', finish, { once: true });
+        } else if (how === 'speech' && 'speechSynthesis' in window) {
+          // The iPad's own voice has no "ended" we can reach from here, so
+          // ask it every 150 ms whether it is still talking.
+          const poll = setInterval(function () {
+            if (!speechSynthesis.speaking) { clearInterval(poll); finish(); }
+          }, 150);
+        } else {
+          finish();
+        }
+      }, finish);
+    });
+  }
+
   /* The stand-in for narration. `[whispers]` is a tag for the voice service,
      not something to read out, so it is stripped before speaking. */
   function speak(text) {
@@ -339,6 +369,7 @@ const Assets = (function () {
     refresh: refresh,
     card: card,
     say: say,
+    sayAndWait: sayAndWait,
     stopSaying: stopSaying,
     sfx: sfx,
     preview: preview,

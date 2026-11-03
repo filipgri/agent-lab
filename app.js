@@ -1172,6 +1172,7 @@ function leaveCurrent() {
   // let no "next part" timer from How my agent talks fire on another screen.
   if (typeof stopHandshake === 'function') stopHandshake();
   if (typeof stopSuit === 'function') stopSuit();
+  if (typeof stopPowers === 'function') stopPowers();
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -1207,6 +1208,7 @@ function goToMission(index, reasonAction) {
   if (mission.id === 'make') enterMake();
   else if (mission.id === 'suit') enterSuit();
   else if (mission.id === 'safe') enterSafe();
+  else if (mission.id === 'powers') enterPowers();
   else hideEditor();
 }
 
@@ -1811,6 +1813,7 @@ function wireUp() {
   wireSeal();
   wireQuickAgent();
   wireSuit();
+  wirePowers();
   wirePolish();
   wireSessionControls();
   $('#btn-stamp').addEventListener('click', stampMission);
@@ -3265,6 +3268,7 @@ function codeMove(event) {
    from this list is logged by its own id, so a new one is never silent. */
 const STROKE_WHERE = {
   'own-canvas': 'own_card',      // the shared ✏️ "draw it or say it" sheet
+  'powers-canvas': 'power',      // ⚡ Powers: "Make up a power" (v3 §7.1)
   'm3-canvas':  'feeling_code',  // v1 Mission 3 (retired)
   'draw-canvas': 'rule'          // v1 Mission 6's drawing sheet (retired)
 };
@@ -6456,4 +6460,952 @@ function wireSuit() {
   // hear it and make a new one.
   $('#handshake-say').addEventListener('click', () => speakLine(
     state.agent && state.agent.handshake ? 'nar-handshake-listen' : 'nar-handshake-make'));
+}
+
+
+/* ===========================================================================
+   32. POWERS (v3 §7, P5) - the heart of v3
+
+   One power is the aim; up to three are allowed. The agent stands BIG in
+   the middle and does the power (Filip, 3 November), and each step has a
+   short icon heading, because a loud room cannot rely on the voice.
+
+   ✨ MAKE UP A POWER (§7.1). A blank canvas and 🎤 - nothing else. The six
+      doors are NOT EVEN BUILT until the child has drawn, recorded or tapped
+      💡 Need ideas?, and `powers_ideas_open` records whether they invented
+      first. A child who draws and then picks a card keeps the drawing as
+      that power's picture.
+   🚪 IDEAS (§7.2). Six big doors in a fixed order; each holds its family's
+      power cards plus ✏️ My own. The families are a lens for the analysis,
+      not the children's words: on screen they are plain (Time, Turns…).
+   📝 THE SENTENCE (§7.3). 🕐 When · 👥 Who · 🔌 Switch on · 🎯 So that,
+      filled in any order. Then ⚡ Power on!: the agent does the power, and
+      the sentence reads itself back card by card, each slot lighting up as
+      it is read - so it can be followed in a loud room.
+   ⚡ MY POWERS. Fire one again, change one, remove one (two taps), or make
+      another - three at most.
+   ⏪ FROM LAST TIME (§7.4). A session-2 power is offered first as a card.
+
+   Each power is saved in agent.powers as soon as it is chosen, so nothing
+   is lost if the iPad is closed half-way through a sentence.
+   ======================================================================== */
+
+const MAX_POWERS = 3;
+
+/* Every card's label and stand-in emoji are written here as well as in the
+   asset guide, because the app must work with an empty assets/ folder - no
+   manifest, no labels - and these screens would be blank without them. */
+const POWER_CARDS = [
+  { id: 'pow-slow-everybody', emoji: '🐢', label: 'Slow everybody down' },
+  { id: 'pow-pause', emoji: '⏸️', label: 'Pause the world' },
+  { id: 'pow-hold-turn', emoji: '🎟️', label: 'Hold my turn' },
+  { id: 'pow-warn-me', emoji: '🔔', label: 'Warn me first' },
+  { id: 'pow-say-again', emoji: '🔁', label: 'Say it again' },
+  { id: 'pow-turn-down', emoji: '🔉', label: 'Turn the room down' },
+  { id: 'pow-dim-lights', emoji: '🌙', label: 'Dim the lights' },
+  { id: 'pow-quiet-bubble', emoji: '🫧', label: 'Quiet bubble' },
+  { id: 'pow-translator', emoji: '🔄', label: 'Translator' },
+  { id: 'pow-my-way', emoji: '🌀', label: 'Everyone talks my way' },
+  { id: 'pow-get-me', emoji: '💡', label: 'Get-what-I-mean ray' },
+  { id: 'pow-control-teachers', emoji: '🎮', label: 'Control teachers' },
+  { id: 'pow-question-swap', emoji: '🔀', label: 'Question swap' },
+  { id: 'pow-pass', emoji: '🛑', label: 'Pass' },
+  { id: 'pow-invisible', emoji: '👻', label: 'Invisibility cloak' },
+  { id: 'pow-control-displays', emoji: '📺', label: 'Control all displays' },
+  { id: 'pow-control-devices', emoji: '🎛️', label: 'Control devices' },
+  { id: 'pow-see-points', emoji: '⭐', label: 'See my points' },
+  { id: 'pow-change-rule', emoji: '📜', label: 'Change a rule' },
+  { id: 'pow-speak-for-friends', emoji: '💬', label: 'Speak for your friends' },
+  { id: 'pow-call-ally', emoji: '📣', label: 'Call an ally' },
+  { id: 'pow-team-up', emoji: '🤝', label: 'Team up' }
+];
+
+// §7.2: always in this order. DATA.md repeats it, for the analysis.
+const POWER_DOORS = [
+  { id: 'fam-time',     emoji: '⏳', label: 'Time',
+    powers: ['pow-slow-everybody', 'pow-pause', 'pow-hold-turn', 'pow-warn-me', 'pow-say-again'] },
+  { id: 'fam-senses',   emoji: '🔊', label: 'Sound and light',
+    powers: ['pow-turn-down', 'pow-dim-lights', 'pow-quiet-bubble'] },
+  { id: 'fam-language', emoji: '🗣️', label: 'Words',
+    powers: ['pow-translator', 'pow-my-way', 'pow-get-me'] },
+  { id: 'fam-floor',    emoji: '✋', label: 'Turns',
+    powers: ['pow-control-teachers', 'pow-question-swap', 'pow-pass', 'pow-invisible'] },
+  { id: 'fam-screens',  emoji: '📺', label: 'Screens',
+    powers: ['pow-control-displays', 'pow-control-devices', 'pow-see-points', 'pow-change-rule'] },
+  { id: 'fam-together', emoji: '🤝', label: 'Together',
+    powers: ['pow-speak-for-friends', 'pow-call-ally', 'pow-team-up'] }
+];
+
+// The session-2 situation ids, so power × situation can be compared across
+// sessions (§7.3).
+const SITUATION_CARDS = [
+  { id: 'sit-too-loud', emoji: '🔊', label: 'Too loud' },
+  { id: 'sit-not-understood', emoji: '❓', label: 'Nobody gets what I mean' },
+  { id: 'sit-waiting', emoji: '⏳', label: 'Waiting' },
+  { id: 'sit-did-well', emoji: '🏆', label: 'I did it!' },
+  { id: 'sit-asked-answer', emoji: '✋', label: 'Asked to answer' },
+  { id: 'sit-unkind', emoji: '💢', label: 'Someone is unkind' },
+  { id: 'sit-plans-change', emoji: '🔄', label: 'Plans change' },
+  { id: 'sit-new-place', emoji: '🚪', label: 'Somewhere new' },
+  { id: 'sit-playtime', emoji: '⚽', label: 'Playtime' },
+  { id: 'sit-tricky-work', emoji: '🧠', label: 'Tricky work' }
+];
+
+// who-teacher means ANY adult at school, teacher or assistant (§7.3).
+const WHO_CARDS = [
+  { id: 'who-me', emoji: '🙋', label: 'Me' },
+  { id: 'who-friend', emoji: '👫', label: 'A friend' },
+  { id: 'who-teacher', emoji: '🧑‍🏫', label: 'My teacher' },
+  { id: 'who-class', emoji: '🏫', label: 'My class' },
+  { id: 'who-everyone', emoji: '🌍', label: 'Everyone' },
+  { id: 'who-room', emoji: '💡', label: 'The room' }
+];
+
+// how-handshake opens the handshake sheet (section 31); how-word plays the
+// agent's secret word, if it has one. how-badge is the badge the club is
+// designing - which switches children want is design data.
+const HOW_CARDS = [
+  { id: 'how-badge', emoji: '🏷️', label: 'My badge' },
+  { id: 'how-handshake', emoji: '🤝', label: 'My secret handshake' },
+  { id: 'how-hand-sign', emoji: '✋', label: 'A hand sign' },
+  { id: 'how-word', emoji: '🗣️', label: 'A secret word' },
+  { id: 'how-drawing', emoji: '✏️', label: 'A drawing' },
+  { id: 'how-button', emoji: '🔘', label: 'A button' }
+];
+
+const POWER_SLOTS = [
+  { id: 'when',   icon: '🕐', title: 'When?',          say: 'nar-powers-when',
+    cards: SITUATION_CARDS, own: 'whenOwn', max: 3 },
+  { id: 'who',    icon: '👥', title: 'Who?',           say: 'nar-powers-who',
+    cards: WHO_CARDS, own: 'whoOwn' },
+  { id: 'how',    icon: '🔌', title: 'Switch on by…',  say: 'nar-powers-how',
+    cards: HOW_CARDS, own: 'howOwn' },
+  { id: 'sothat', icon: '🎯', title: 'So that…',       say: 'nar-powers-sothat' }
+];
+
+const powersUi = {
+  phase: 'make',
+  index: null,       // which agent.powers entry is being worked on
+  draft: null,       // the ✨ step before a power exists (newPowerDraft)
+  door: null,        // the open door's id, or null for all six
+  slot: 'when',
+  busy: false        // true while a power plays and reads itself back
+};
+let powersTimers = [];
+
+function powerCard(id) { return POWER_CARDS.find(c => c.id === id) || null; }
+function currentPower() {
+  return powersUi.index === null ? null : (state.agent.powers[powersUi.index] || null);
+}
+/* A session-2 power is anything the child made on the Power-up: a drawing,
+   a recording - or only an effect, which many children chose on its own. */
+function hasV2Power(agent) {
+  const v2 = agent.powerup && agent.powerup.power;
+  return Boolean(v2 && (v2.png || v2.audioId || v2.effect));
+}
+
+/* The words a kept power goes by, and what stands for it on screen. */
+function powerLabel(p) {
+  if (p.power === 'own') return 'My own power';
+  if (p.power === 'v2') return 'From last time';
+  const card = powerCard(p.power);
+  return card ? card.label : p.power;
+}
+function powerEmoji(p) {
+  if (p.power === 'own') return '✨';
+  if (p.power === 'v2') return '⏪';
+  const card = powerCard(p.power);
+  return card ? card.emoji : '⚡';
+}
+
+/* ---- entering, leaving, moving between steps ---- */
+
+function enterPowers() {
+  if (!state.agent) return;
+  hideEditor();
+  renderAgentView($('#powers-stage'), state.agent.cover, false);
+  clearPowerFx();
+  if (state.agent.powers.some(p => p.power)) startPowersPhase('mine');
+  else newPowerDraft();
+}
+
+/* Called by leaveCurrent(): no prop, timer or read-back follows the child
+   to the next screen. */
+function stopPowers() {
+  powersTimers.forEach(clearTimeout);
+  powersTimers = [];
+  clearTimeout(powerFxTimer);
+  powersUi.busy = false;
+  const panel = $('[data-mission="powers"]');
+  if (panel) panel.classList.remove('is-busy');
+  clearPowerFx();
+}
+
+/* A fresh ✨ step: a blank canvas, no recording, the doors locked again. */
+function newPowerDraft() {
+  if (state.agent.powers.length >= MAX_POWERS) { startPowersPhase('mine'); return; }
+  powersUi.index = null;
+  powersUi.door = null;
+  powersUi.draft = { drawn: false, audioId: null, ideasOpen: false, inventedFirst: null };
+  usePowersBrush();
+  coder.undoStack = [];
+  clearCodeCanvas();
+  startPowersPhase('make');
+}
+
+/* Point the shared brush at this screen's canvas. The ✏️ sheet borrows the
+   brush, so this runs every time the ✨ step is shown. */
+function usePowersBrush() {
+  coder.canvas = $('#powers-canvas');
+  coder.colour = coder.colour || CODE_COLOURS[0];
+  coder.width = 12;
+  coder.mirror = false;
+  coder.onStroke = onPowersStroke;
+  paintCodePalette('#powers-palette');
+}
+
+function startPowersPhase(phase) {
+  powersUi.phase = phase;
+  if (phase === 'make') {
+    if (!powersUi.draft) powersUi.draft = { drawn: false, audioId: null, ideasOpen: false, inventedFirst: null };
+    usePowersBrush();
+  }
+  paintPowers();
+}
+
+function goPowersPhase(phase, how) {
+  if (powersUi.busy || phase === powersUi.phase) return;
+  if (phase === 'doors') { openIdeas(); return; }
+  logEvent('powers_phase', { to: phase, how: how });
+  startPowersPhase(phase);
+}
+
+/* The doors unlock once the child has invented something or asked. */
+function doorsUnlocked() {
+  const d = powersUi.draft;
+  return Boolean(currentPower()) || Boolean(d && (d.drawn || d.audioId || d.ideasOpen));
+}
+
+function paintPowers() {
+  const phase = powersUi.phase;
+  const p = currentPower();
+  const tab = name => $('[data-powers-phase="' + name + '"]');
+  tab('doors').hidden = !doorsUnlocked();
+  tab('sentence').hidden = !(p && p.power);
+  tab('mine').hidden = !state.agent.powers.some(x => x.power);
+  $$('[data-powers-phase]').forEach(b =>
+    b.classList.toggle('is-on', b.dataset.powersPhase === phase));
+
+  ['make', 'doors', 'sentence', 'mine'].forEach(name => {
+    $('#powers-' + name).hidden = name !== phase;
+  });
+
+  let title = 'Make up a power';
+  if (phase === 'doors') {
+    const door = POWER_DOORS.find(d => d.id === powersUi.door);
+    title = door ? door.label : 'Pick a door';
+  }
+  if (phase === 'sentence') title = POWER_SLOTS.find(s => s.id === powersUi.slot).title;
+  if (phase === 'mine') title = 'My powers';
+  $('#powers-title').textContent = title;
+
+  if (phase === 'make') paintPowersMake();
+  if (phase === 'doors') paintDoors();
+  if (phase === 'sentence') paintSentence();
+  if (phase === 'mine') paintShelf();
+}
+
+/* ---- ✨ make up a power ---- */
+
+function paintPowersMake() {
+  const d = powersUi.draft;
+  const mic = $('#powers-mic');
+  mic.classList.toggle('has-clip', Boolean(d.audioId));
+  $('#powers-mine-go').hidden = !(powersCanvasHasInk() || d.audioId);
+
+  // ⏪ A power from session 2 comes first, as a card (§7.4) - unless it is
+  // already one of this agent's powers.
+  const box = $('#powers-lasttime');
+  box.innerHTML = '';
+  if (hasV2Power(state.agent) && !state.agent.powers.some(x => x.power === 'v2')) {
+    const v2 = state.agent.powerup.power;
+    const tile = document.createElement('button');
+    tile.className = 'when-own';
+    tile.innerHTML = (v2.png
+        ? '<img class="own-card-thumb" alt="" src="' + v2.png + '">'
+        : '<span class="when-own-icon">' + (v2.audioId ? '🎤' : '⚡') + '</span>') +
+      '<span class="when-own-label">⏪ From last time</span>';
+    tile.setAttribute('aria-label', 'Your power from last time');
+    tile.addEventListener('click', chooseLastTime);
+    box.appendChild(tile);
+  }
+}
+
+/* Does the ✨ canvas have any ink? The shared canvasHasInk() looks at
+   whichever canvas the brush is on, which may be the ✏️ sheet's. */
+function powersCanvasHasInk() {
+  const canvas = $('#powers-canvas');
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 3; i < data.length; i += 16) {
+    if (data[i] > 0) return true;
+  }
+  return false;
+}
+
+function onPowersStroke() {
+  const d = powersUi.draft;
+  if (d && !d.drawn) {
+    d.drawn = true;
+    logEvent('powers_draw', {});      // the first stroke of this power
+  }
+  paintPowers();
+}
+
+async function recordPowerVoice() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+  const mic = $('#powers-mic');
+  mic.classList.add('is-recording');
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    const d = powersUi.draft;
+    // A clip no power has taken yet is replaced, not kept as well.
+    if (d.audioId && !state.agent.powers.some(x => x.own && x.own.audioId === d.audioId)) {
+      Voice.forget(d.audioId);
+      await Storage.deleteAudio(d.audioId);
+    }
+    d.audioId = id;
+    logEvent('powers_record', { ms: Math.round(result.ms) });
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  mic.classList.remove('is-recording');
+  paintPowers();
+}
+
+/* 💡 Need ideas? - or the 🚪 button. `inventedFirst` is settled the first
+   time: did the child draw or say something before seeing any cards? */
+function openIdeas() {
+  const d = powersUi.draft;
+  if (d && !d.ideasOpen) {
+    d.ideasOpen = true;
+    d.inventedFirst = d.drawn || Boolean(d.audioId);
+    logEvent('powers_ideas_open', { inventedFirst: d.inventedFirst });
+  } else {
+    logEvent('powers_phase', { to: 'doors', how: 'tab' });
+  }
+  powersUi.door = null;
+  startPowersPhase('doors');
+}
+
+/* ---- 🚪 the six doors ---- */
+
+function paintDoors() {
+  const grid = $('#powers-door-grid');
+  const cards = $('#powers-door-cards');
+  grid.innerHTML = '';
+  cards.innerHTML = '';
+  const door = POWER_DOORS.find(d => d.id === powersUi.door);
+  grid.hidden = Boolean(door);
+  cards.hidden = !door;
+  $('#powers-door-back').hidden = !door;
+  const p = currentPower();
+  $('#powers-chosen-go').hidden = !(p && p.power);
+
+  if (!door) {
+    POWER_DOORS.forEach(d => {
+      const card = Assets.card(d.id, { fallback: d.emoji, label: d.label });
+      card.addEventListener('click', () => openDoor(d));
+      grid.appendChild(card);
+    });
+    return;
+  }
+
+  door.powers.forEach(id => {
+    cards.appendChild(modeCard(powerCard(id), Boolean(p && p.power === id),
+                               () => choosePower(id)));
+  });
+  cards.appendChild(ownCardButton(() => openOwnCard({
+    title: 'Make up a power',
+    say: 'nar-powers-make',
+    onKeep: card => chooseOwnPower(card)
+  })));
+}
+
+function openDoor(door) {
+  powersUi.door = door.id;
+  logEvent('powers_door_open', { family: door.id });
+  playSfx('sfx-door-open');
+  speakLine('nar-' + door.id);
+  paintPowers();
+}
+
+/* The drawing on the ✨ canvas, if there is one. */
+function powersCanvasPng() {
+  return powersCanvasHasInk() ? $('#powers-canvas').toDataURL('image/png') : null;
+}
+
+/* The power being worked on, made the first time something is chosen. */
+function ensurePower() {
+  let p = currentPower();
+  if (p) return p;
+  const d = powersUi.draft || {};
+  p = {
+    id: uuid().slice(0, 8),
+    power: null,
+    own: { png: null, audioId: null },
+    // Never opened the ideas = invented first.
+    inventedFirst: d.ideasOpen ? Boolean(d.inventedFirst) : true,
+    when: [], whenOwn: [], who: [], whoOwn: [], how: [], howOwn: [],
+    soThat: null,
+    skipped: [],
+    order: ['power']
+  };
+  state.agent.powers.push(p);
+  powersUi.index = state.agent.powers.length - 1;
+  return p;
+}
+
+/* A card from a door. Whatever the child drew or said first stays with it
+   as its picture (§7.1). */
+function choosePower(id) {
+  if (powersUi.busy) return;
+  const p = ensurePower();
+  p.power = id;
+  p.own = { png: powersCanvasPng(), audioId: (powersUi.draft && powersUi.draft.audioId) || null };
+  logEvent('powers_choose', { power: id });
+  speakLabel(id);
+  playPower(p);
+  paintPowers();
+  scheduleSave();
+}
+
+/* ✓ My power on the ✨ step, or ✏️ My own inside a door. */
+function chooseOwnPower(card) {
+  const p = ensurePower();
+  p.power = 'own';
+  p.own = card || { png: powersCanvasPng(), audioId: powersUi.draft.audioId };
+  logEvent('powers_choose', { power: 'own', drawn: Boolean(p.own.png), said: Boolean(p.own.audioId) });
+  playPower(p);
+  powersUi.slot = 'when';
+  startPowersPhase('sentence');
+  scheduleSave();
+}
+
+/* ⏪ From last time (§7.4). The session-2 drawing and recording are used,
+   never copied or moved: they still belong to powerup.power. */
+function chooseLastTime() {
+  const v2 = state.agent.powerup.power;
+  const p = ensurePower();
+  p.power = 'v2';
+  p.own = { png: v2.png || null, audioId: v2.audioId || null };
+  logEvent('powers_choose', { power: 'v2' });
+  playPower(p);
+  powersUi.slot = 'when';
+  startPowersPhase('sentence');
+  scheduleSave();
+}
+
+/* ---- 📝 the sentence ---- */
+
+function slotEmpty(p, slotId) {
+  if (slotId === 'sothat') return !p.soThat;
+  const slot = POWER_SLOTS.find(s => s.id === slotId);
+  return p[slotId].length === 0 && p[slot.own].length === 0;
+}
+
+/* The little picture of what is in a slot: up to three emoji, ✏️ for own. */
+function slotFill(p, slot) {
+  if (slot.id === 'sothat') return p.soThat ? '✏️' : '';
+  const emojis = p[slot.id].map(id => (slot.cards.find(c => c.id === id) || {}).emoji || '•');
+  p[slot.own].forEach(() => emojis.push('✏️'));
+  return emojis.slice(0, 3).join('') + (emojis.length > 3 ? '…' : '');
+}
+
+function paintSentence() {
+  const p = currentPower();
+  if (!p) return;
+  const strip = $('#powers-slots');
+  strip.innerHTML = '';
+  POWER_SLOTS.forEach(slot => {
+    const b = document.createElement('button');
+    b.className = 'btn powers-slot' + (slot.id === powersUi.slot ? ' is-here' : '');
+    b.dataset.slot = slot.id;
+    b.setAttribute('aria-label', slot.title);
+    b.innerHTML = '<span class="slot-icon">' + slot.icon + '</span>' +
+                  '<span class="slot-fill">' + slotFill(p, slot) + '</span>';
+    b.addEventListener('click', () => goSlot(slot.id, 'tab'));
+    strip.appendChild(b);
+  });
+
+  const slot = POWER_SLOTS.find(s => s.id === powersUi.slot);
+  const box = $('#powers-slot-cards');
+  box.innerHTML = '';
+
+  if (slot.id === 'sothat') {
+    if (p.soThat) {
+      box.appendChild(ownCardTile(p.soThat, 'sothat-' + p.id,
+        () => removeSoThat(), () => paintSentence()));
+    } else {
+      box.appendChild(ownCardButton(() => openOwnCard({
+        title: 'So that…',
+        say: 'nar-powers-sothat',
+        onKeep: card => {
+          p.soThat = card;
+          noteSlotOrder(p, 'sothat');
+          logEvent('powers_sothat', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
+          paintSentence();
+          scheduleSave();
+        }
+      })));
+    }
+  } else {
+    const full = slot.max && p[slot.id].length + p[slot.own].length >= slot.max;
+    slot.cards.forEach(card => {
+      const on = p[slot.id].indexOf(card.id) !== -1;
+      const button = modeCard(card, on, () => toggleSlotCard(slot, card));
+      if (full && !on) button.classList.add('is-full');
+      box.appendChild(button);
+    });
+    if (!full) {
+      box.appendChild(ownCardButton(() => openOwnCard({
+        title: slot.title,
+        say: slot.say,
+        onKeep: card => {
+          p[slot.own].push(card);
+          noteSlotOrder(p, slot.id);
+          logEvent('powers_slot', { slot: slot.id, value: 'own', on: true,
+                                    drawn: Boolean(card.png), said: Boolean(card.audioId) });
+          paintSentence();
+          scheduleSave();
+        }
+      })));
+    }
+    p[slot.own].forEach((card, i) => {
+      box.appendChild(ownCardTile(card, slot.id + '-' + p.id + '-' + i,
+        () => removeSlotOwn(slot, i), () => paintSentence()));
+    });
+  }
+
+  $('#powers-slot-next').hidden = slot.id === 'sothat';
+}
+
+/* `order` keeps the order in which the slots were first filled (§10). */
+function noteSlotOrder(p, slotId) {
+  if (p.order.indexOf(slotId) === -1) p.order.push(slotId);
+}
+
+function goSlot(slotId, how) {
+  if (powersUi.busy || slotId === powersUi.slot) return;
+  powersUi.slot = slotId;
+  logEvent('powers_slot_open', { slot: slotId, how: how });
+  paintPowers();
+}
+
+/* ➡️ on a slot. Going on from an EMPTY slot is a skip, and is logged. */
+function nextSlot() {
+  const p = currentPower();
+  const at = POWER_SLOTS.findIndex(s => s.id === powersUi.slot);
+  if (p && slotEmpty(p, powersUi.slot)) logEvent('powers_slot_skip', { slot: powersUi.slot });
+  const next = POWER_SLOTS[at + 1];
+  if (next) goSlot(next.id, 'next');
+}
+
+function toggleSlotCard(slot, card) {
+  if (powersUi.busy) return;
+  const p = currentPower();
+  const list = p[slot.id];
+  const at = list.indexOf(card.id);
+  const on = at === -1;
+  if (on && slot.max && list.length + p[slot.own].length >= slot.max) return;  // §7.3: up to 3
+
+  if (on) list.push(card.id);
+  else list.splice(at, 1);
+  if (on) noteSlotOrder(p, slot.id);
+  logEvent('powers_slot', { slot: slot.id, value: card.id, on: on });
+  if (on) speakLabel(card.id);
+  playSfx('sfx-pop');
+  paintSentence();
+  scheduleSave();
+
+  if (!on) return;
+  // 🤝 The handshake IS the switch: tapping it opens the handshake sheet,
+  // where a child taps one (or hears the one they have). 🗣️ plays the
+  // agent's own secret word, if it made one in "How my agent talks".
+  if (card.id === 'how-handshake') {
+    openHandshakeSheet(() => paintSentence());
+    if (state.agent.handshake) playHandshake(false);
+  }
+  if (card.id === 'how-word') playSecretWord();
+}
+
+async function removeSlotOwn(slot, index) {
+  const p = currentPower();
+  const card = p[slot.own][index];
+  if (!card) return;
+  if (card.audioId) { Voice.forget(card.audioId); await Storage.deleteAudio(card.audioId); }
+  p[slot.own].splice(index, 1);
+  logEvent('powers_slot', { slot: slot.id, value: 'own', on: false });
+  paintSentence();
+  scheduleSave();
+}
+
+async function removeSoThat() {
+  const p = currentPower();
+  if (!p || !p.soThat) return;
+  if (p.soThat.audioId) { Voice.forget(p.soThat.audioId); await Storage.deleteAudio(p.soThat.audioId); }
+  p.soThat = null;
+  logEvent('powers_sothat_remove', {});
+  paintSentence();
+  scheduleSave();
+}
+
+async function playSecretWord() {
+  const word = state.agent && state.agent.secretWord;
+  if (!word || state.muted) return;
+  Voice.unlock();
+  const row = await Storage.loadAudio(word.audioId);
+  if (row) Voice.play(word.audioId, row.blob, word.filter);
+}
+
+/* ---- ⚡ power on! ---- */
+
+/* The power plays on the agent, then the sentence reads itself back: the
+   power, then each slot in the strip's order, each card by its own
+   recorded line - and each slot lights up as it is read. */
+async function firePower(index) {
+  if (powersUi.busy) return;
+  const p = state.agent.powers[index];
+  if (!p || !p.power) return;
+
+  // §10: the sentence is saved with its skipped slots listed - every slot
+  // still empty when the power is switched on.
+  p.skipped = POWER_SLOTS.filter(s => slotEmpty(p, s.id)).map(s => s.id);
+  logEvent('powers_fire', { index: index });
+  scheduleSave();
+
+  powersUi.busy = true;
+  const panel = $('[data-mission="powers"]');
+  panel.classList.add('is-busy');
+  Voice.unlock();
+
+  await Promise.all([sayAndPause('nar-powers-fire'), playPower(p)]);
+  if (!powersUi.busy) return;                       // the child left
+
+  // The power itself: its own line, or the child's own recording.
+  if (p.own && p.own.audioId && (p.power === 'own' || p.power === 'v2')) {
+    await playOwnClip(p.own.audioId);
+  } else if (p.power !== 'own' && p.power !== 'v2') {
+    await sayAndPause('nar-' + p.power);
+  }
+
+  for (const slot of POWER_SLOTS) {
+    if (!powersUi.busy) return;
+    if (slotEmpty(p, slot.id)) continue;
+    markReading(slot.id, true);
+    if (slot.id === 'sothat') {
+      if (p.soThat.audioId) await playOwnClip(p.soThat.audioId);
+      else await pause(900);
+    } else {
+      for (const id of p[slot.id]) await sayAndPause('nar-' + id);
+      for (const card of p[slot.own]) {
+        if (card.audioId) await playOwnClip(card.audioId);
+        else await pause(700);
+      }
+    }
+    markReading(slot.id, false);
+  }
+
+  powersUi.busy = false;
+  panel.classList.remove('is-busy');
+  startPowersPhase('mine');
+}
+
+/* A recorded line, and never less than a moment - so with the sound off a
+   read-back still steps through the slots at a pace a child can follow. */
+function sayAndPause(id) {
+  return Promise.all([
+    Assets.sayAndWait(id, { muted: state.muted }),
+    pause(700)
+  ]);
+}
+
+function pause(ms) {
+  return new Promise(resolve => { powersTimers.push(setTimeout(resolve, ms)); });
+}
+
+async function playOwnClip(audioId) {
+  if (state.muted) { await pause(900); return; }
+  const row = await Storage.loadAudio(audioId);
+  if (!row) return;
+  await Promise.race([Voice.play(audioId, row.blob, 'normal'), pause(11000)]);
+}
+
+function markReading(slotId, on) {
+  const b = $('#powers-slots [data-slot="' + slotId + '"]');
+  if (b) b.classList.toggle('is-reading', on);
+}
+
+/* ---- ⚡ my powers ---- */
+
+function paintShelf() {
+  const shelf = $('#powers-shelf');
+  shelf.innerHTML = '';
+  state.agent.powers.forEach((p, index) => {
+    if (!p.power) return;
+    const card = document.createElement('div');
+    card.className = 'power-kept';
+    const art = p.own && p.own.png && (p.power === 'own' || p.power === 'v2')
+      ? '<img alt="" src="' + p.own.png + '">'
+      : powerEmoji(p);
+    const strip = POWER_SLOTS.map(s => slotFill(p, s)).join(' ');
+    card.innerHTML =
+      '<div class="power-kept-art">' + art + '</div>' +
+      '<div class="power-kept-label"></div>' +
+      '<div class="power-kept-strip" aria-hidden="true">' + strip + '</div>' +
+      '<div class="power-kept-tools"></div>';
+    card.querySelector('.power-kept-label').textContent = powerLabel(p);
+
+    const tools = card.querySelector('.power-kept-tools');
+    const fire = document.createElement('button');
+    fire.className = 'btn';
+    fire.setAttribute('aria-label', 'Power on');
+    fire.textContent = '⚡';
+    fire.addEventListener('click', () => { powersUi.index = index; firePower(index); });
+    const edit = document.createElement('button');
+    edit.className = 'btn';
+    edit.setAttribute('aria-label', 'Change it');
+    edit.textContent = '📝';
+    edit.addEventListener('click', () => {
+      powersUi.index = index;
+      powersUi.slot = 'when';
+      logEvent('powers_edit', { index: index });
+      startPowersPhase('sentence');
+    });
+    tools.appendChild(fire);
+    tools.appendChild(edit);
+    tools.appendChild(removePowerButton(index));
+    shelf.appendChild(card);
+  });
+  // §7: three is the limit.
+  $('#powers-new').hidden = state.agent.powers.length >= MAX_POWERS;
+}
+
+/* 🗑️ with the two-tap arm every kept thing has. */
+function removePowerButton(index) {
+  const key = 'power-' + index;
+  const b = document.createElement('button');
+  b.className = 'btn' + (ownRemoveArmed === key ? ' is-armed' : '');
+  b.setAttribute('aria-label', ownRemoveArmed === key ? 'Remove? Tap again' : 'Remove');
+  b.textContent = ownRemoveArmed === key ? '❓' : '🗑️';
+  b.addEventListener('click', () => {
+    clearTimeout(ownRemoveTimer);
+    if (ownRemoveArmed === key) { ownRemoveArmed = null; removePower(index); return; }
+    ownRemoveArmed = key;
+    playSfx('sfx-pop');
+    paintShelf();
+    ownRemoveTimer = setTimeout(() => { ownRemoveArmed = null; paintShelf(); }, 3000);
+  });
+  return b;
+}
+
+async function removePower(index) {
+  const p = state.agent.powers[index];
+  if (!p) return;
+  // Its recordings go with it - except a session-2 power's, which still
+  // belongs to powerup.power and must never be deleted.
+  const clips = [];
+  if (p.power !== 'v2' && p.own && p.own.audioId) clips.push(p.own.audioId);
+  if (p.soThat && p.soThat.audioId) clips.push(p.soThat.audioId);
+  ['whenOwn', 'whoOwn', 'howOwn'].forEach(k => p[k].forEach(c => { if (c.audioId) clips.push(c.audioId); }));
+  for (const id of clips) { Voice.forget(id); await Storage.deleteAudio(id); }
+
+  state.agent.powers.splice(index, 1);
+  powersUi.index = null;
+  logEvent('powers_remove', { index: index });
+  scheduleSave();
+  if (state.agent.powers.length === 0) newPowerDraft();
+  else startPowersPhase('mine');
+}
+
+/* ---- the power, on the stage ----
+   The five ★ powers from Filip's notes have their own scenes (§7.2). Four
+   more borrow v2's effects. Every other power pops its icon over the agent
+   with a sound, and can get its own scene later. In Calm and Off the props
+   still appear, standing still - they say what the power IS. */
+const POWER_CLASS_FX = {
+  'pow-pause':        ['fx-freeze', 'sfx-freeze'],
+  'pow-quiet-bubble': ['fx-shield', 'sfx-shield'],
+  'pow-my-way':       ['fx-thoughts', 'sfx-thoughts'],
+  'pow-invisible':    ['fx-fade', 'sfx-fade']
+};
+
+const STAGE_FX_CLASSES = ['pfx-slowmo', 'pfx-wash', 'pfx-bounce', 'fx-lightning', 'fx-freeze',
+  'fx-fade', 'fx-speed', 'fx-thoughts', 'fx-shield', 'fx-float', 'fx-stomp', 'fx-teleport', 'fx-grow'];
+
+function clearPowerFx() {
+  const layer = $('#powers-fx');
+  if (layer) layer.innerHTML = '';
+  const stageEl = $('#powers-stage');
+  if (stageEl) STAGE_FX_CLASSES.forEach(c => stageEl.classList.remove(c));
+}
+
+/* A prop on the layer over the agent, at x/y in % of the stage. */
+function prop(content, x, y, classes, size) {
+  const el = document.createElement('span');
+  el.className = 'pfx-prop ' + (classes || '');
+  el.style.left = x + '%';
+  el.style.top = y + '%';
+  if (size) el.style.fontSize = size + 'px';
+  if (typeof content === 'string') el.textContent = content;
+  else el.appendChild(content);
+  $('#powers-fx').appendChild(el);
+  return el;
+}
+
+/* A zap from one point to another. The stage is square, so % works for
+   both directions: the beam is turned to the right angle and stretched. */
+function beam(x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const wrap = document.createElement('div');
+  wrap.style.position = 'absolute';
+  wrap.style.left = x1 + '%';
+  wrap.style.top = y1 + '%';
+  wrap.style.width = Math.sqrt(dx * dx + dy * dy) + '%';
+  wrap.style.transform = 'rotate(' + Math.atan2(dy, dx) + 'rad)';
+  wrap.style.transformOrigin = 'left center';
+  const line = document.createElement('div');
+  line.className = 'pfx-beam';
+  line.style.width = '100%';
+  wrap.appendChild(line);
+  $('#powers-fx').appendChild(wrap);
+}
+
+function stageMove(cls) {
+  const stageEl = $('#powers-stage');
+  STAGE_FX_CLASSES.forEach(c => stageEl.classList.remove(c));
+  if (!fullMotion()) return;
+  void stageEl.offsetWidth;
+  stageEl.classList.add(cls);
+}
+
+/* Play a power. Resolves when its scene has finished.
+
+   It has its OWN timer. It used to clear every timer in powersTimers - and
+   ⚡ Power on! starts the "Power on!" line (whose pause lives there) at the
+   same moment as the scene, so the line's wait was cancelled, never ended,
+   and the read-back hung for good. */
+let powerFxTimer = null;
+function playPower(p) {
+  clearPowerFx();
+  clearTimeout(powerFxTimer);
+  let ms = 2200;
+  const id = p.power;
+
+  if (id === 'pow-slow-everybody') {
+    // ★ Everything on the stage slows for 4 s: the agent sways in slow
+    // motion, a tortoise crosses, and a clock sits by the agent's head.
+    ms = 4000;
+    prop('🐢', 50, 88, 'pfx-walk', 46);
+    prop('⏳', 80, 18, 'pfx-pop');
+    stageMove('pfx-slowmo');
+    playSfx('sfx-slow');
+  } else if (id === 'pow-control-teachers') {
+    // ★ A remote-control zap, and the grown-up hops.
+    prop('🎮', 70, 70, 'pfx-pop', 44);
+    beam(72, 64, 88, 34);
+    prop('🧑‍🏫', 88, 28, 'pfx-pop pfx-hop', 56);
+    playSfx('sfx-lightning');
+    ms = 2600;
+  } else if (id === 'pow-control-displays') {
+    // ★ A zap at a screen, and the whole scene washes with colour once.
+    prop('🎮', 70, 70, 'pfx-pop', 44);
+    beam(72, 64, 88, 30);
+    prop('📺', 88, 26, 'pfx-pop', 56);
+    stageMove('pfx-wash');
+    playSfx('sfx-lightning');
+    ms = 2600;
+  } else if (id === 'pow-control-devices') {
+    // ★ Lightning, and a light, a speaker and a board switch on and off -
+    // twice and a half a second at most.
+    prop('💡', 14, 20, 'pfx-pop pfx-blink');
+    prop('🔊', 86, 20, 'pfx-pop pfx-blink');
+    prop('📋', 86, 76, 'pfx-pop pfx-blink');
+    stageMove('fx-lightning');
+    playSfx('sfx-lightning');
+    ms = 2600;
+  } else if (id === 'pow-speak-for-friends') {
+    // ★ A friend joins, and two speech bubbles rise.
+    prop('🧑', 16, 66, 'pfx-pop', 60);
+    prop('💬', 44, 24, 'pfx-rise', 48);
+    prop('💬', 20, 38, 'pfx-rise', 40);
+    stageMove('pfx-bounce');
+    playSfx('sfx-thoughts');
+    ms = 2600;
+  } else if (id === 'own' || id === 'v2') {
+    // The child's own power: their drawing pops up by the agent, or 🎤 if
+    // they said it. A session-2 power plays its session-2 effect too.
+    if (p.own && p.own.png) {
+      const img = document.createElement('img');
+      img.src = p.own.png;
+      img.alt = '';
+      prop(img, 78, 22, 'pfx-pop');
+    } else {
+      prop(id === 'v2' ? '⚡' : '🎤', 78, 22, 'pfx-pop');
+    }
+    const v2fx = id === 'v2' && state.agent.powerup.power.effect;
+    stageMove(v2fx || 'pfx-bounce');
+    playSfx('sfx-powerup');
+  } else {
+    // Every other power: its icon pops over the agent, with a sound.
+    const card = powerCard(id);
+    prop(card ? card.emoji : '⚡', 50, 12, 'pfx-pop', 60);
+    const fx = POWER_CLASS_FX[id];
+    stageMove(fx ? fx[0] : 'pfx-bounce');
+    playSfx(fx ? fx[1] : 'sfx-powerup');
+  }
+
+  return new Promise(resolve => {
+    // When the scene ends, its props go too: a remote and a zap left on
+    // the stage look like part of the NEXT thing on screen.
+    powerFxTimer = setTimeout(() => {
+      clearPowerFx();
+      resolve();
+    }, ms);
+  });
+}
+
+function wirePowers() {
+  attachBrush($('#powers-canvas'));
+  $('#powers-undo').addEventListener('click', () => { undoCode(); paintPowers(); });
+  $('#powers-clear').addEventListener('click', () => { clearCode(); paintPowers(); });
+  $('#powers-mic').addEventListener('click', recordPowerVoice);
+  $('#powers-mine-go').addEventListener('click', () => chooseOwnPower(null));
+  $('#powers-ideas').addEventListener('click', openIdeas);
+  $('#powers-door-back').addEventListener('click', () => {
+    powersUi.door = null;
+    paintPowers();
+  });
+  $('#powers-chosen-go').addEventListener('click', () => {
+    powersUi.slot = 'when';
+    goPowersPhase('sentence', 'next');
+  });
+  $('#powers-slot-next').addEventListener('click', nextSlot);
+  $('#powers-fire').addEventListener('click', () => firePower(powersUi.index));
+  $('#powers-new').addEventListener('click', () => {
+    logEvent('powers_new', {});
+    newPowerDraft();
+  });
+  $$('[data-powers-phase]').forEach(b =>
+    b.addEventListener('click', () => goPowersPhase(b.dataset.powersPhase, 'tab')));
+  $('#powers-say').addEventListener('click', () => {
+    const phase = powersUi.phase;
+    if (phase === 'make') speakLine('nar-powers-make');
+    else if (phase === 'doors') speakLine('nar-powers-ideas');
+    else if (phase === 'sentence') speakLine(POWER_SLOTS.find(s => s.id === powersUi.slot).say);
+    else speakLine('nar-powers-more');
+  });
 }
