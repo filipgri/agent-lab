@@ -1820,8 +1820,8 @@
       "id": "sfx-handshake-tap",
       "file": "audio/sfx/sfx-handshake-tap.mp3",
       "fallback": "pop",
-      "prompt": "One soft knock on a wooden table.",
-      "seconds": "0.3",
+      "prompt": "One soft, very short knock on a wooden table, right at the start, then silence.",
+      "seconds": "0.5",
       "tier": "◻️"
     },
     {

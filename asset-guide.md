@@ -531,7 +531,7 @@ The "stand-in" column is the generated sound the app plays until your file arriv
 | sfx-file-open | Card or dossier opens | A paper folder opening, pages rustling. | 1 | whoosh | ⭐ |
 | sfx-seal | Sealing the file | A wax seal pressed down, a soft squish and click. | 0.8 | stamp | ⭐ |
 | sfx-new | New stickers have arrived | A cheerful two-note chime. | 0.7 | sparkle | ⭐ |
-| sfx-handshake-tap | A handshake tap | One soft knock on a wooden table. | 0.3 | pop | ◻️ |
+| sfx-handshake-tap | A handshake tap | One soft, very short knock on a wooden table, right at the start, then silence. | 0.5 | pop | ◻️ |
 | sfx-door-open | A power door opens | A small wooden door creaking open, short and friendly. | 0.7 | whoosh | ◻️ |
 | sfx-slow | Slow everybody down | A gentle sound slowing down and dropping in pitch, like a toy winding down. | 1.5 | whoosh | ◻️ |
 | sfx-bottle-drop | An item drops into the bottle | A small object dropping into a glass bottle, one soft clink. | 0.6 | pop | ◻️ |
