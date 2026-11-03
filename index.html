@@ -388,11 +388,51 @@
              The HQ panel above is kept on purpose. It is no longer a mission,
              but v3 §6 builds Safe place out of its layout. -->
 
+        <!-- 🗣️ HOW MY AGENT TALKS (v3 §5, P3). Three steps on one screen,
+             scrolling together:
+               1. How does your agent like to talk?      -> suit.likes
+               2. How does school want your agent to talk? -> suit.school
+               3. A secret handshake                     -> handshake
+             Every card makes the agent act it out (the thumbnail on the
+             left) and says its label. The app NEVER compares the two lists:
+             the gap between them is for the analysis, not for the child. -->
         <article class="mission-panel" data-mission="suit">
-          <div class="soon-wrap">
-            <span class="soon-icon">🗣️</span>
-            <p class="soon-text">How your agent talks is being built.</p>
-            <p class="soon-note">Coming soon</p>
+          <div class="power-steps suit-steps">
+
+            <section class="power-step">
+              <div class="power-head">
+                <h2 class="power-title">How does your agent like to talk?</h2>
+                <button class="btn btn-icon-only" data-say="nar-suit-likes" aria-label="Hear this">🔊</button>
+              </div>
+              <div id="suit-likes" class="power-when suit-cards"></div>
+            </section>
+
+            <section class="power-step">
+              <div class="power-head">
+                <h2 class="power-title">How does school want your agent to talk?</h2>
+                <button class="btn btn-icon-only" data-say="nar-suit-school" aria-label="Hear this">🔊</button>
+              </div>
+              <div id="suit-school" class="power-when suit-cards"></div>
+            </section>
+
+            <!-- A rhythm of up to 8 taps. It ends 1.5 s after the last tap,
+                 at the 8th tap, or 6 s after the first, then plays straight
+                 back as pulses. Tapping the pad again makes a new one. -->
+            <section class="power-step">
+              <div class="power-head">
+                <h2 class="power-title">Tap a secret handshake</h2>
+                <button id="handshake-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+              </div>
+              <div class="handshake-row">
+                <button id="handshake-pad" class="handshake-pad" aria-label="Handshake pad">🤝</button>
+                <div class="handshake-side">
+                  <!-- One dot per tap: a picture of the rhythm, with no numbers. -->
+                  <div id="handshake-dots" class="handshake-dots" aria-hidden="true"></div>
+                  <button id="handshake-replay" class="btn" hidden>▶️ Play it</button>
+                </div>
+              </div>
+            </section>
+
           </div>
         </article>
 

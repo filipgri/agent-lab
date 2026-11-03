@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P2** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P3** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -159,8 +159,8 @@ milestone first writes each one; until then it keeps its default.
 |---|---|---|---|
 | `likeMe` | `null` | `"likeme-like"` / `"likeme-bit"` / `"likeme-else"` — "Is your agent like you?". The LAST answer; every answer, including changes of mind, is in the log (`like_me`). `null` if never answered — `like_me_skip` says if it was asked and skipped. | P2 ✅ |
 | `base` | `null` | `"base-1"` … `"base-8"` (a ready agent from `Parts.BASES` in `parts.js`), or `"blank"`. Which one the child started from. The cover's `shapes` start as a copy of that base and change from there. `null` on agents made before v3. | P2 ✅ |
-| `suit` | `{ likes: [], likesOwn: [], school: [], schoolOwn: [] }` | How the agent likes to talk, and how school asks it to. `likes` / `school`: card ids. `…Own`: `{ png, audioId }` cards. | P3 |
-| `handshake` | `null` | `{ taps: [0, 310, 620] }` — milliseconds from the first tap. | P3 |
+| `suit` | `{ likes: [], likesOwn: [], school: [], schoolOwn: [] }` | 🗣️ How my agent talks. `likes`: how the agent likes to talk; `school`: how school wants it to talk. Each a list of card ids, **in the order they were turned on** (a card turned off is taken out). Cards: `mode-talk`, `mode-hands`, `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures`, `mode-write`, `mode-device`, and — on `school` only — `mode-hand-up`, `mode-quiet`. `likesOwn` / `schoolOwn`: the child's ✏️ My own cards, each `{ png, audioId }`. The app never compares the two lists. | P3 ✅ |
+| `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). | P3 ✅ |
 | `safe` | `{ talk: null, stops: null }` | Each `{ id, png }`: an HQ place id or `"safe-nowhere"`, or a drawn place. | P4 |
 | `powers` | `[]` | Up to 3 powers. Shape below. | P5 |
 | `bottles` | `[]` | Up to 3 bottles. Shape below. | P6 |
@@ -294,6 +294,20 @@ The "v3" column says whether the current app can still log the event.
 | `like_me` | A card was tapped. A second tap on another card is another `like_me`, so changes of mind are kept. | `{ answer }` — `"likeme-like"`, `"likeme-bit"`, `"likeme-else"` | ✅ |
 | `like_me_skip` | ➡️ with no card chosen. | `{}` | ✅ |
 
+### 4.3b How my agent talks (v3 P3)
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `suit_toggle` | A card turned on or off. | `{ step: "likes"/"school", mode, on }` | ✅ |
+| `suit_own` | A ✏️ My own card was kept. | `{ step, drawn, said }` | ✅ |
+| `suit_own_remove` | A ✏️ card was removed (second tap of two). | `{ step }` | ✅ |
+| `handshake_make` | A handshake was finished: 1.5 s after the last tap, at the 8th tap, or 6 s after the first. | `{ taps, ms }` — `taps` is the whole rhythm (ms from the first tap), `ms` its length | ✅ |
+| `handshake_redo` | The pad was tapped again when a handshake already existed, starting a new one. | `{}` | ✅ |
+| `handshake_replay` | ▶️ Play it. (The automatic play-back after making one is not logged.) | `{}` | ✅ |
+
+Every card tap is also a `label_speak` (the card says its label). Turning a
+card ON also makes the agent act it out on the thumbnail; that is not logged.
+
 ### 4.4 Drawing and the ✏️ My own sheet
 
 | Action | When | `detail` | v3 |
@@ -310,7 +324,8 @@ The "v3" column says whether the current app can still log the event.
 > My own sheet, so **`where: "rule"` in session-2 data means a stroke on the
 > ✏️ sheet**, not a rule. The event's `mission` (`powerup` or `hq`) and the
 > keep event that follows (`power_draw`, `power_when_own`, `hq_draw`) say
-> which ✏️ it was. From v3 `where` is `"own_card"` for that sheet.
+> which ✏️ it was. From v3 `where` is `"own_card"` for that sheet, and the
+> `mission` says which screen it was on (e.g. `suit`).
 
 ### 4.5 Adult panel
 

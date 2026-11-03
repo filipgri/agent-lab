@@ -25,6 +25,8 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
 - **P2 — built.** A new agent starts from one of eight ready agents (or
   blank), and every agent is asked "Is your agent like you?" once. Review the
   eight in `tools/parts-sheet.html` → **Ready agents**.
+- **P3 — built.** 🗣️ How my agent talks: how the agent likes to talk, how
+  school wants it to, and a secret handshake tapped on a big pad.
 
 The rest of this section describes session 2.
 

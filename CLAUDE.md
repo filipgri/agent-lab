@@ -409,7 +409,26 @@ to the start. No card screen.
   - **"Is your agent like you?"** after Make is stamped, or on opening an
     agent whose Make is not `todo`. **Asked once:** the `like_me_ask` event
     is the record. ➡️ always carries on; no answer logs `like_me_skip`.
-- **Next: P3** — How my agent talks (§5).
+- **P3 — built (3 November 2026), on branch `v3`.** 🗣️ How my agent talks
+  (§5). Section 31 of `app.js`; the panel reuses the Power-up's step and
+  card styles (`.power-steps`, `.power-when`, `.when-own`), which P5 will
+  want too.
+  - Two card steps (`suit.likes`, `suit.school`; the school step adds Hand
+    up and Being quiet) and ✏️ My own on each. A card turned on makes the
+    agent act it out — a class on `#preview-art` and an emoji popping up
+    from `.agent-preview` (not inside `.preview-art`, which clips) — Full
+    motion only, cleaned up by timers.
+  - **Shared helpers for every later screen:** `modeCard()` (a picture card
+    with its emoji stand-in), `ownCardButton()` and `ownCardTile()` (a kept
+    ✏️ card with the two-tap remove). The v2 copies went with the Power-up.
+  - **The handshake pad listens on `pointerdown`**, not click — a click
+    arrives on lift and would smear a fast rhythm. The pad's light is a
+    colour change, not an animation, so it still shows with Motion Off.
+    For half a second after an 8-tap finish the pad ignores taps: a child
+    drumming past the 8th would otherwise start a new handshake at once
+    and replace the one just made. `leaveCurrent()` keeps a rhythm still
+    being tapped (`stopHandshake()`).
+- **Next: P4** — Safe place (§6), reusing the HQ screen.
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

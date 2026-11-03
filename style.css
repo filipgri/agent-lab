@@ -3142,3 +3142,84 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   .sheet-bases { width: min(470px, 100%); padding: 18px; gap: 12px; }
   .base-grid { gap: 10px; }
 }
+
+/* ============================================================
+   HOW MY AGENT TALKS (v3 §5, P3)
+   The step layout and the cards reuse the Power-up's styles
+   (.power-steps, .power-step, .power-when, .when-own).
+   ============================================================ */
+.suit-cards .pic-card { width: 128px; }
+.suit-cards .pic-card-art { min-height: 92px; }
+.suit-cards .when-own { width: 128px; }
+
+/* The secret handshake pad: big and round, and it lights up on every tap
+   and every played-back pulse. The light is a colour change, not an
+   animation, so it still shows with Motion set to Off - it is feedback. */
+.handshake-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.handshake-pad {
+  width: 180px;
+  height: 180px;
+  border: none;
+  border-radius: 50%;
+  background: var(--navy-3);
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.12);
+  font-size: 72px;
+  cursor: pointer;
+  touch-action: manipulation;       /* no double-tap zoom between taps */
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color 60ms linear;
+}
+.handshake-pad.is-lit { background: var(--accent); }
+.handshake-pad.is-recording { box-shadow: inset 0 0 0 4px var(--accent); }
+.handshake-side { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.handshake-dots { display: flex; gap: 8px; min-height: 22px; }
+.handshake-dots span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.18);
+}
+.handshake-dots span.is-on { background: var(--accent); }
+
+/* Tapping a card makes the agent act it out (v3 §5): a small movement on the
+   thumbnail, and the card's emoji popping up above it. Full motion only. */
+/* The pop sits on .agent-preview, not inside .preview-art, which clips. */
+.agent-preview { position: relative; }
+.act-pop {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  font-size: 44px;
+  pointer-events: none;
+  transform: translate(-50%, 0);
+  animation: act-pop 1100ms ease-out forwards;
+  z-index: 3;
+}
+@keyframes act-pop {
+  0%   { opacity: 0; transform: translate(-50%, 10px) scale(.6); }
+  25%  { opacity: 1; transform: translate(-50%, -26px) scale(1.15); }
+  70%  { opacity: 1; transform: translate(-50%, -40px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -54px) scale(.9); }
+}
+.preview-art.act-wiggle { animation: act-wiggle 700ms ease-in-out; }
+.preview-art.act-jump   { animation: act-jump 700ms cubic-bezier(.34,1.56,.64,1); }
+.preview-art.act-hush   { animation: act-hush 900ms ease-in-out; }
+.preview-art.act-rise   { animation: act-rise 800ms ease-out; }
+@keyframes act-wiggle {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-6deg); }  40% { transform: rotate(6deg); }
+  60% { transform: rotate(-4deg); }  80% { transform: rotate(3deg); }
+}
+@keyframes act-jump {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-16px) scale(1.04); }
+}
+@keyframes act-hush {
+  0%, 100% { transform: scale(1); }
+  40%, 60% { transform: scale(.94); }
+}
+@keyframes act-rise {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-10px); }
+}

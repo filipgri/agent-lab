@@ -1158,6 +1158,8 @@ function leaveCurrent() {
   if (typeof Voice !== 'undefined') { Voice.stop(); Voice.stopPlayback(); }
   // v2 §4.1: sweep up any drag preview stranded on <body>.
   if (typeof clearDragLeftovers === 'function') clearDragLeftovers();
+  // v3 §5: keep a handshake being tapped, and stop one playing back.
+  if (typeof stopHandshake === 'function') stopHandshake();
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -1191,6 +1193,7 @@ function goToMission(index, reasonAction) {
      they just put the editor away; each gets its own enter function when its
      milestone builds it (suit P3, safe P4, powers P5, bottle P6). */
   if (mission.id === 'make') enterMake();
+  else if (mission.id === 'suit') enterSuit();
   else hideEditor();
 }
 
@@ -1794,6 +1797,7 @@ function wireUp() {
   wireOwnCard();
   wireSeal();
   wireQuickAgent();
+  wireSuit();
   wirePolish();
   wireSessionControls();
   $('#btn-stamp').addEventListener('click', stampMission);
@@ -5753,4 +5757,344 @@ function closeLikeMe() {
 
 function wireQuickAgent() {
   $('#btn-likeme-go').addEventListener('click', closeLikeMe);
+}
+
+
+/* ===========================================================================
+   31. HOW MY AGENT TALKS (v3 §5, P3)
+
+   Three steps on one screen, scrolling together:
+     1. "How does your agent like to talk?"        -> agent.suit.likes
+     2. "How does school want your agent to talk?" -> agent.suit.school
+        (the same cards, plus Hand up and Being quiet, which only appear here)
+     3. A secret handshake                          -> agent.handshake
+
+   - Any number of cards, plus ✏️ My own (the shared sheet, openOwnCard).
+   - Tapping a card turns it on or off, says its label, and - when it turns
+     on - makes the agent act it out on the thumbnail (Full motion only).
+   - THE APP NEVER COMPARES THE TWO LISTS. A child who likes drawing and
+     whose school wants hands up is told nothing about it: that gap is for
+     the analysis and for next session's questions, never for a reaction.
+   - A kept ✏️ card is removed only on a second tap (ownCardTile).
+   ======================================================================== */
+
+// `act` is how the agent acts the card out: a wiggle, a jump, rising up a
+// little, or going small and quiet (style.css, .act-*).
+const TALK_MODES = [
+  { id: 'mode-talk',      emoji: '🗣️', label: 'Talking',          act: 'jump' },
+  { id: 'mode-hands',     emoji: '✋', label: 'Hands',            act: 'wiggle' },
+  { id: 'mode-handshake', emoji: '🤝', label: 'Secret handshake', act: 'wiggle' },
+  { id: 'mode-draw',      emoji: '✏️', label: 'Drawing',          act: 'wiggle' },
+  { id: 'mode-act',       emoji: '🎭', label: 'Acting it out',    act: 'jump' },
+  { id: 'mode-pictures',  emoji: '🖼️', label: 'Pictures',         act: 'rise' },
+  { id: 'mode-write',     emoji: '📝', label: 'Writing',          act: 'wiggle' },
+  { id: 'mode-device',    emoji: '📱', label: 'A device',         act: 'rise' }
+];
+
+// v3 §5: these two appear only on step 2, the school's way.
+const SCHOOL_ONLY_MODES = [
+  { id: 'mode-hand-up', emoji: '🙋', label: 'Hand up',     act: 'rise' },
+  { id: 'mode-quiet',   emoji: '🤫', label: 'Being quiet', act: 'hush' }
+];
+
+const SUIT_STEPS = {
+  likes: {
+    box: '#suit-likes', modes: TALK_MODES, own: 'likesOwn',
+    title: 'How does your agent like to talk?', say: 'nar-suit-likes'
+  },
+  school: {
+    box: '#suit-school', modes: TALK_MODES.concat(SCHOOL_ONLY_MODES), own: 'schoolOwn',
+    title: 'How does school want your agent to talk?', say: 'nar-suit-school'
+  }
+};
+
+function enterSuit() {
+  hideEditor();
+  paintSuitStep('likes');
+  paintSuitStep('school');
+  paintHandshake();
+}
+
+/* ---- cards ---- */
+
+/* A picture card: Filip's picture if it has arrived, the emoji until then
+   (the emoji stays underneath, so a slow picture never flickers). */
+function modeCard(mode, on, onTap) {
+  const button = document.createElement('button');
+  button.className = 'pic-card' + (on ? ' is-on' : '');
+  button.setAttribute('aria-pressed', on ? 'true' : 'false');
+  button.innerHTML =
+    '<span class="pic-card-art"><span class="pic-card-emoji">' + mode.emoji + '</span></span>' +
+    '<span class="pic-card-label">' + mode.label + '</span>';
+  Assets.image(mode.id).then(img => {
+    if (!img) return;
+    const pic = document.createElement('img');
+    pic.className = 'pic-card-img';
+    pic.alt = '';
+    pic.src = img.src;
+    button.querySelector('.pic-card-art').appendChild(pic);
+    button.classList.add('has-image');
+  });
+  button.addEventListener('click', onTap);
+  return button;
+}
+
+/* A kept ✏️ My own card, shared by every screen that has them. One tap arms
+   it (it turns red and says "Remove?"), a second within three seconds
+   removes it, and it disarms itself otherwise - a child's own drawing never
+   vanishes on one stray tap (CLAUDE.md). `key` names this card uniquely so
+   only one is armed at a time; `repaint` redraws whatever shows it. */
+function ownCardTile(card, key, onRemove, repaint) {
+  const tile = document.createElement('button');
+  tile.className = 'when-own is-on';
+  tile.innerHTML = (card.png
+      ? '<img class="own-card-thumb" alt="" src="' + card.png + '">'
+      : '<span class="when-own-icon">🎤</span>') +
+    '<span class="when-own-label">My own</span>';
+  tile.setAttribute('aria-label', 'My own card');
+  if (ownRemoveArmed === key) {
+    tile.classList.add('is-armed');
+    tile.querySelector('.when-own-label').textContent = 'Remove?';
+  }
+  tile.addEventListener('click', () => {
+    clearTimeout(ownRemoveTimer);
+    if (ownRemoveArmed === key) {
+      ownRemoveArmed = null;
+      onRemove();
+      return;
+    }
+    ownRemoveArmed = key;
+    playSfx('sfx-pop');
+    repaint();
+    ownRemoveTimer = setTimeout(() => { ownRemoveArmed = null; repaint(); }, 3000);
+  });
+  return tile;
+}
+
+/* ✏️ My own: the button that opens the shared sheet. */
+function ownCardButton(onTap) {
+  const own = document.createElement('button');
+  own.className = 'when-own';
+  own.setAttribute('aria-label', 'Make your own card');
+  own.innerHTML = '<span class="when-own-icon">✏️</span>' +
+                  '<span class="when-own-label">My own</span>';
+  own.addEventListener('click', onTap);
+  return own;
+}
+
+function paintSuitStep(step) {
+  const conf = SUIT_STEPS[step];
+  const box = $(conf.box);
+  if (!box || !state.agent) return;
+  box.innerHTML = '';
+
+  const chosen = state.agent.suit[step];
+  conf.modes.forEach(mode => {
+    box.appendChild(modeCard(mode, chosen.indexOf(mode.id) !== -1,
+                             () => toggleSuit(step, mode)));
+  });
+
+  box.appendChild(ownCardButton(() => openOwnCard({
+    title: conf.title,
+    say: conf.say,
+    onKeep: card => {
+      state.agent.suit[conf.own].push(card);
+      logEvent('suit_own', { step: step, drawn: Boolean(card.png), said: Boolean(card.audioId) });
+      paintSuitStep(step);
+      scheduleSave();
+    }
+  })));
+
+  state.agent.suit[conf.own].forEach((card, index) => {
+    box.appendChild(ownCardTile(card, step + '-' + index,
+      () => removeSuitOwn(step, index),
+      () => paintSuitStep(step)));
+  });
+}
+
+function toggleSuit(step, mode) {
+  const list = state.agent.suit[step];
+  const at = list.indexOf(mode.id);
+  const on = at === -1;
+  if (on) list.push(mode.id);       // the list keeps the order they were chosen
+  else list.splice(at, 1);
+
+  logEvent('suit_toggle', { step: step, mode: mode.id, on: on });
+  speakLabel(mode.id);
+  playSfx('sfx-pop');
+  if (on) actOut(mode);
+  paintSuitStep(step);
+  scheduleSave();
+}
+
+async function removeSuitOwn(step, index) {
+  const list = state.agent.suit[SUIT_STEPS[step].own];
+  const card = list[index];
+  if (!card) return;
+  if (card.audioId) { Voice.forget(card.audioId); await Storage.deleteAudio(card.audioId); }
+  list.splice(index, 1);
+  logEvent('suit_own_remove', { step: step });
+  paintSuitStep(step);
+  scheduleSave();
+}
+
+/* The agent acts the card out: its thumbnail moves, and the card's emoji
+   pops up above it. Decoration, so Full motion only (§5a). The clean-up is
+   a timer, not animationend (CLAUDE.md: animationend does not always fire). */
+let actTimer = null;
+function actOut(mode) {
+  if (!fullMotion()) return;
+  const art = $('#preview-art');
+  const holder = art && art.parentElement;
+  if (!art || !holder) return;
+
+  ['act-wiggle', 'act-jump', 'act-hush', 'act-rise'].forEach(c => art.classList.remove(c));
+  void art.offsetWidth;                       // restart the animation
+  art.classList.add('act-' + mode.act);
+  clearTimeout(actTimer);
+  actTimer = setTimeout(() => art.classList.remove('act-' + mode.act), 1000);
+
+  const pop = document.createElement('span');
+  pop.className = 'act-pop';
+  pop.textContent = mode.emoji;
+  holder.appendChild(pop);
+  setTimeout(() => pop.remove(), 1200);
+}
+
+/* ---- the secret handshake ---- */
+
+const HANDSHAKE_MAX_TAPS = 8;      // v3 §5: up to 8 taps
+const HANDSHAKE_GAP_MS = 1500;     // it ends 1.5 s after the last tap…
+const HANDSHAKE_MAX_MS = 6000;     // …or 6 s after the first
+const HANDSHAKE_PULSE_MS = 140;    // how long the pad lights for each tap
+const HANDSHAKE_SETTLE_MS = 500;   // taps ignored just after the 8th (below)
+
+const handshake = {
+  recording: false,
+  start: 0,          // performance.now() at the first tap
+  taps: [],          // ms from the first tap
+  endTimer: null,
+  capTimer: null,
+  playTimers: [],
+  quietUntil: 0      // see HANDSHAKE_SETTLE_MS
+};
+
+/* pointerdown, not click: a click arrives only when the finger lifts, which
+   would smear a fast rhythm. preventDefault stops the iPad treating two
+   quick taps as a double-tap zoom. */
+function handshakeTap(event) {
+  event.preventDefault();
+  if (!state.agent) return;
+  stopHandshakePlayback();
+
+  const now = performance.now();
+  /* A child drumming on the pad goes past the 8th tap. Without a short
+     pause those extra taps would start a NEW handshake straight away and
+     replace the one just made, so for half a second after an 8-tap finish
+     the pad listens to nothing. */
+  if (!handshake.recording && now < handshake.quietUntil) return;
+  if (!handshake.recording) {
+    // Tapping the pad again starts a new one (v3 §5).
+    if (state.agent.handshake) logEvent('handshake_redo', {});
+    handshake.recording = true;
+    handshake.start = now;
+    handshake.taps = [];
+    handshake.capTimer = setTimeout(finishHandshake, HANDSHAKE_MAX_MS);
+    $('#handshake-pad').classList.add('is-recording');
+  }
+
+  handshake.taps.push(Math.round(now - handshake.start));
+  lightPad();
+  playSfx('sfx-handshake-tap');
+  paintHandshakeDots(handshake.taps, handshake.taps.length);
+
+  clearTimeout(handshake.endTimer);
+  if (handshake.taps.length >= HANDSHAKE_MAX_TAPS) {
+    handshake.quietUntil = now + HANDSHAKE_SETTLE_MS;
+    finishHandshake();
+    return;
+  }
+  handshake.endTimer = setTimeout(finishHandshake, HANDSHAKE_GAP_MS);
+}
+
+function finishHandshake() {
+  if (!handshake.recording) return;
+  clearTimeout(handshake.endTimer);
+  clearTimeout(handshake.capTimer);
+  handshake.recording = false;
+  $('#handshake-pad').classList.remove('is-recording');
+  if (!state.agent || handshake.taps.length === 0) return;
+
+  const taps = handshake.taps.slice();
+  state.agent.handshake = { taps: taps };
+  // The whole rhythm goes in the log as well as the field, so a handshake
+  // that is later replaced by a new one is still in the research record.
+  logEvent('handshake_make', { taps: taps, ms: taps[taps.length - 1] });
+  scheduleSave();
+  paintHandshake();
+  // It plays straight back, after a short breath (v3 §5).
+  handshake.playTimers.push(setTimeout(() => playHandshake(false), 450));
+}
+
+/* Play the saved rhythm back as pulses of light and sound. */
+function playHandshake(isReplay) {
+  const saved = state.agent && state.agent.handshake;
+  if (!saved || !saved.taps || !saved.taps.length) return;
+  stopHandshakePlayback();
+  if (isReplay) logEvent('handshake_replay', {});
+  saved.taps.forEach((t, i) => {
+    handshake.playTimers.push(setTimeout(() => {
+      lightPad();
+      playSfx('sfx-handshake-tap');
+      paintHandshakeDots(saved.taps, i + 1);
+    }, t));
+  });
+}
+
+function stopHandshakePlayback() {
+  handshake.playTimers.forEach(clearTimeout);
+  handshake.playTimers = [];
+}
+
+/* Called by leaveCurrent(): a rhythm being tapped when the child leaves is
+   kept rather than lost, and nothing goes on playing on the next screen. */
+function stopHandshake() {
+  if (handshake.recording) finishHandshake();
+  stopHandshakePlayback();
+}
+
+function lightPad() {
+  const pad = $('#handshake-pad');
+  pad.classList.add('is-lit');
+  setTimeout(() => pad.classList.remove('is-lit'), HANDSHAKE_PULSE_MS);
+}
+
+/* The dots are a picture of the rhythm: spaced by the time between taps, so
+   a quick-quick-slow handshake LOOKS quick-quick-slow. No numbers. The
+   first `lit` dots are lit, which is how playback shows where it is. */
+function paintHandshakeDots(taps, lit) {
+  const box = $('#handshake-dots');
+  box.innerHTML = '';
+  taps.forEach((t, i) => {
+    const dot = document.createElement('span');
+    if (i < lit) dot.className = 'is-on';
+    if (i > 0) dot.style.marginLeft = Math.min(48, Math.round((t - taps[i - 1]) / 25)) + 'px';
+    box.appendChild(dot);
+  });
+}
+
+function paintHandshake() {
+  const saved = state.agent && state.agent.handshake;
+  const taps = saved && saved.taps ? saved.taps : [];
+  paintHandshakeDots(taps, 0);
+  $('#handshake-replay').hidden = taps.length === 0;
+}
+
+function wireSuit() {
+  $('#handshake-pad').addEventListener('pointerdown', handshakeTap);
+  $('#handshake-replay').addEventListener('click', () => playHandshake(true));
+  // Before a handshake exists the 🔊 says how to make one; after, how to
+  // hear it and make a new one.
+  $('#handshake-say').addEventListener('click', () => speakLine(
+    state.agent && state.agent.handshake ? 'nar-handshake-listen' : 'nar-handshake-make'));
 }
