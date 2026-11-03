@@ -385,7 +385,31 @@ to the start. No card screen.
     step and was not done on this Mac.
   - This Mac's local hostname is `KCLYM40H56Y9W`, not `tact-display`. The
     README gives both routes: rename it, or use `kclym40h56y9w.local`.
-- **Next: P2** — quick agent: the 8 bases and "Is your agent like you?" (§4).
+- **P2 — built (3 November 2026), on branch `v3`.** Quick agent (§4).
+  - **`Parts.BASES` in `parts.js`: eight ready agents** as `cover.shapes`
+    lists. They were placed by the app's own `placementFor()` (generated in
+    the browser, then pasted in as data), so a part a child adds lands where
+    a tap would put it. Skin tones from `#ffe0c4` to `#331e11`; afro puffs,
+    straight, curls, locs, box braids, crop; hijab, turban, cap; round and
+    square glasses, hearing aids, a cochlear processor. No names, no labels.
+  - **Lessons from drawing them:** on the darkest skins, line-drawn eyes and
+    a dark mouth vanish — those bases use eyes with whites and a mouth with
+    teeth. `body-1/2/3` take the SKIN palette and in a skin colour read as a
+    bare torso — every base wears a clothing colour. `ears-big` on a brown
+    face drifts towards an old caricature — not used.
+  - **`Parts.transform()` and `Parts.drawOrder()`** now hold the part
+    transform and the layer order, so `tools/parts-sheet.html` (new **Ready
+    agents** button) draws exactly what the app draws. `shapeTransform()`
+    and `layerOrder()` in `app.js` call them.
+  - **Section 30 of `app.js`.** Make offers the ready agents when the agent
+    has `base === null` and nothing on its cover (`shouldOfferBases()`), in
+    a 3×3 sheet, **shuffled each time**, Start blank always last. A pick is
+    a deep copy, undoable, and opens on Hair (Hats if the head is covered)
+    with its colours showing.
+  - **"Is your agent like you?"** after Make is stamped, or on opening an
+    agent whose Make is not `todo`. **Asked once:** the `like_me_ask` event
+    is the record. ➡️ always carries on; no answer logs `like_me_skip`.
+- **Next: P3** — How my agent talks (§5).
 
 
 ## Audio: `tools/make_audio.py` (v2 §10, T1)

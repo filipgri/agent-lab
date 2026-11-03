@@ -7,7 +7,7 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P1** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v3 P2** (3 November 2026). `schemaVersion` is now **3**.
 
 ---
 
@@ -152,13 +152,13 @@ from v1, where `moodCodes` and `rules` can carry v1 work.
 
 ### 3.7 v3 fields (agent-lab-v3-spec.md §10)
 
-Added at P0 with their empty defaults. **Nothing writes to them yet;** each
-milestone that does will say so here.
+Added at P0 with their empty defaults. The "Milestone" column says which
+milestone first writes each one; until then it keeps its default.
 
 | Field | Default | Will hold | Milestone |
 |---|---|---|---|
-| `likeMe` | `null` | `"likeme-like"` / `"likeme-bit"` / `"likeme-else"` — "Is your agent like you?" | P2 |
-| `base` | `null` | `"base-1"` … `"base-8"` or `"blank"` — the ready agent the child started from. | P2 |
+| `likeMe` | `null` | `"likeme-like"` / `"likeme-bit"` / `"likeme-else"` — "Is your agent like you?". The LAST answer; every answer, including changes of mind, is in the log (`like_me`). `null` if never answered — `like_me_skip` says if it was asked and skipped. | P2 ✅ |
+| `base` | `null` | `"base-1"` … `"base-8"` (a ready agent from `Parts.BASES` in `parts.js`), or `"blank"`. Which one the child started from. The cover's `shapes` start as a copy of that base and change from there. `null` on agents made before v3. | P2 ✅ |
 | `suit` | `{ likes: [], likesOwn: [], school: [], schoolOwn: [] }` | How the agent likes to talk, and how school asks it to. `likes` / `school`: card ids. `…Own`: `{ png, audioId }` cards. | P3 |
 | `handshake` | `null` | `{ taps: [0, 310, 620] }` — milliseconds from the first tap. | P3 |
 | `safe` | `{ talk: null, stops: null }` | Each `{ id, png }`: an HQ place id or `"safe-nowhere"`, or a drawn place. | P4 |
@@ -284,6 +284,15 @@ The "v3" column says whether the current app can still log the event.
 | `paint` | Pixel door: one finger-lift of painting. | `{ tool, colour, cells }` | ✅ (old agents) |
 | `undo` | Undo. | `{}` in the editor; `{ where }` on a drawing canvas | ✅ |
 | `clear` | Clear. | `{ door }` in the editor; `{ where }` on a drawing canvas | ✅ |
+
+### 4.3a Quick agent (v3 P2)
+
+| Action | When | `detail` | v3 |
+|---|---|---|---|
+| `base_choose` | A ready agent or Start blank was picked, when Make opened on an empty new agent. | `{ base, position }` — `base` is `"base-1"`…`"base-8"` or `"blank"`; `position` is where it was on the 3×3 grid (1–9, reading order). The eight are **shuffled** each time and Start blank is always 9th, so `position` is what the child saw, not a fixed order. | ✅ |
+| `like_me_ask` | "Is your agent like you?" was shown. Once per agent. | `{ when: "stamp" / "open" }` — straight after Make was stamped, or on opening an agent whose Make was already finished | ✅ |
+| `like_me` | A card was tapped. A second tap on another card is another `like_me`, so changes of mind are kept. | `{ answer }` — `"likeme-like"`, `"likeme-bit"`, `"likeme-else"` | ✅ |
+| `like_me_skip` | ➡️ with no card chosen. | `{}` | ✅ |
 
 ### 4.4 Drawing and the ✏️ My own sheet
 

@@ -655,6 +655,37 @@ const Parts = (function () {
     return LAYER[part.cat] === undefined ? LAYER.extras : LAYER[part.cat];
   }
 
+  /* Where a part sits, as one SVG transform. A part is drawn in a 100x100
+     box with its middle at 50,50, so it is moved into place, turned, mirrored
+     if flipX, scaled, and finally shifted back by half its box.
+
+     It lives HERE, beside the parts, so the app and tools/parts-sheet.html
+     draw a part with the same sum. Two copies of one transform drift apart:
+     a hand-built copy once left off the last translate and every part jumped
+     half its size under the child's finger (see CLAUDE.md). */
+  function transform(shape) {
+    const flip = shape.flipX ? ' scale(-1,1)' : '';
+    return 'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
+           'rotate(' + (shape.rotation || 0) + ')' + flip +
+           ' scale(' + (shape.size || 1) + ') translate(-50,-50)';
+  }
+
+  /* v2 §5.3.1: the order to draw a list of shapes in - a body behind a head,
+     a head behind ears, hair over the lot - unless the child used Front or
+     Back, which sets an explicit `z`. Ties keep the order they were added.
+     Returns [{ shape, index }], so a caller still knows each one's place in
+     the original list. */
+  function drawOrder(shapes) {
+    return shapes
+      .map(function (shape, index) { return { shape: shape, index: index }; })
+      .sort(function (a, b) {
+        const za = a.shape.z === undefined ? layerOf(a.shape.type) : a.shape.z;
+        const zb = b.shape.z === undefined ? layerOf(b.shape.type) : b.shape.z;
+        if (za !== zb) return za - zb;
+        return a.index - b.index;
+      });
+  }
+
   function paletteFor(part) {
     if (!part) return PALETTES.any;
     return PALETTES[part.palette] || PALETTES.any;
@@ -680,7 +711,114 @@ const Parts = (function () {
     return CAT_DEFAULT[part.cat] || '#4cc9f0';
   }
 
+  /* --------------------------------------------------------------------------
+     THE READY AGENTS (v3 §4, P2)
+     Eight complete agents a child can start from instead of a blank stage.
+     Each is a `cover.shapes` list, exactly what the editor saves, so picking
+     one is a plain copy and the child can change every part of it.
+
+     Together they cover: skin tones from very light to very dark; afro puffs,
+     straight hair, curls, locs, box braids and a short crop; a hijab, a
+     turban and a cap; round and square glasses, hearing aids and a cochlear
+     implant processor. None is "the default" and none has a label - a child
+     picks the one that looks right to them, and the ids are only numbers.
+
+     These were placed by the app's own placementFor() - the same sum a tap
+     on the parts tray uses - so a part a child adds afterwards lands where it
+     would on any other head. Review them all in tools/parts-sheet.html.
+
+     Two lessons from drawing them:
+     - On the darkest skin tones, eyes drawn as lines and a dark mouth vanish.
+       Those bases use eyes with whites and a mouth that shows teeth.
+     - body-1/2/3 take the skin palette, and in a skin colour they read as a
+       bare torso. Every base wears a clothing colour.
+     ----------------------------------------------------------------------- */
+  const BASES = [
+    { id: 'base-1', shapes: [
+      { type: 'body-hoodie', x: 0.5, y: 0.62, size: 0.46, rotation: 0, colour: '#f77f00', flipX: false },
+      { type: 'head-round', x: 0.5, y: 0.4, size: 0.4, rotation: 0, colour: '#4e2f1b', flipX: false },
+      { type: 'nose-button', x: 0.5, y: 0.424, size: 0.08, rotation: 0, colour: '#331e11', flipX: false },
+      { type: 'eyes-round', x: 0.5, y: 0.376, size: 0.248, rotation: 0, colour: '#4a2f1b', flipX: false },
+      { type: 'brows-neutral', x: 0.5, y: 0.332, size: 0.24, rotation: 0, colour: '#1b1b1f', flipX: false },
+      { type: 'mouth-grin', x: 0.5, y: 0.472, size: 0.184, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'hair-afro-puffs', x: 0.5, y: 0.296, size: 0.52, rotation: 0, colour: '#1b1b1f', flipX: false }
+    ] },
+    { id: 'base-2', shapes: [
+      { type: 'body-1', x: 0.5, y: 0.62, size: 0.44, rotation: 0, colour: '#4cc9f0', flipX: false },
+      { type: 'head-oval', x: 0.5, y: 0.4, size: 0.4, rotation: 0, colour: '#f3bd8f', flipX: false },
+      { type: 'ears-round', x: 0.5, y: 0.408, size: 0.4, rotation: 0, colour: '#f3bd8f', flipX: false },
+      { type: 'nose-dot', x: 0.5, y: 0.424, size: 0.056, rotation: 0, colour: '#e0a372', flipX: false },
+      { type: 'eyes-round', x: 0.5, y: 0.376, size: 0.248, rotation: 0, colour: '#2f5f9e', flipX: false },
+      { type: 'brows-raised', x: 0.5, y: 0.328, size: 0.24, rotation: 0, colour: '#5a3b26', flipX: false },
+      { type: 'mouth-smile', x: 0.5, y: 0.472, size: 0.168, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'hair-long', x: 0.5, y: 0.344, size: 0.464, rotation: 0, colour: '#5a3b26', flipX: false },
+      { type: 'extra-glasses-round', x: 0.5, y: 0.376, size: 0.312, rotation: 0, colour: '#2b2b3a', flipX: false }
+    ] },
+    { id: 'base-3', shapes: [
+      { type: 'body-2', x: 0.5, y: 0.62, size: 0.44, rotation: 0, colour: '#ffd23f', flipX: false },
+      { type: 'head-oval', x: 0.5, y: 0.4, size: 0.4, rotation: 0, colour: '#a96f42', flipX: false },
+      { type: 'nose-button', x: 0.5, y: 0.424, size: 0.08, rotation: 0, colour: '#8a5631', flipX: false },
+      { type: 'eyes-wide', x: 0.5, y: 0.372, size: 0.28, rotation: 0, colour: '#4a2f1b', flipX: false },
+      { type: 'brows-neutral', x: 0.5, y: 0.332, size: 0.24, rotation: 0, colour: '#1b1b1f', flipX: false },
+      { type: 'mouth-smile', x: 0.5, y: 0.472, size: 0.168, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'wear-hijab', x: 0.5, y: 0.344, size: 0.52, rotation: 0, colour: '#43aa8b', flipX: false }
+    ] },
+    { id: 'base-4', shapes: [
+      { type: 'body-super', x: 0.5, y: 0.62, size: 0.46, rotation: 0, colour: '#4361ee', flipX: false },
+      { type: 'head-square', x: 0.5, y: 0.4, size: 0.4, rotation: 0, colour: '#c98a5b', flipX: false },
+      { type: 'ears-round', x: 0.5, y: 0.408, size: 0.4, rotation: 0, colour: '#c98a5b', flipX: false },
+      { type: 'nose-triangle', x: 0.5, y: 0.424, size: 0.088, rotation: 0, colour: '#a96f42', flipX: false },
+      { type: 'eyes-determined', x: 0.5, y: 0.376, size: 0.264, rotation: 0, colour: '#4a2f1b', flipX: false },
+      { type: 'brows-neutral', x: 0.5, y: 0.332, size: 0.24, rotation: 0, colour: '#1b1b1f', flipX: false },
+      { type: 'mouth-smile', x: 0.5, y: 0.472, size: 0.168, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'wear-turban', x: 0.5, y: 0.304, size: 0.472, rotation: 0, colour: '#b5179e', flipX: false }
+    ] },
+    { id: 'base-5', shapes: [
+      { type: 'body-3', x: 0.5, y: 0.62, size: 0.44, rotation: 0, colour: '#e63946', flipX: false },
+      { type: 'head-round', x: 0.5, y: 0.4, size: 0.4, rotation: 0, colour: '#6b4226', flipX: false },
+      { type: 'ears-hearing-aid', x: 0.5, y: 0.4, size: 0.42, rotation: 0, colour: '#4cc9f0', flipX: false },
+      { type: 'nose-dot', x: 0.5, y: 0.424, size: 0.056, rotation: 0, colour: '#4e2f1b', flipX: false },
+      { type: 'eyes-round', x: 0.5, y: 0.376, size: 0.248, rotation: 0, colour: '#4a2f1b', flipX: false },
+      { type: 'brows-raised', x: 0.5, y: 0.328, size: 0.24, rotation: 0, colour: '#1b1b1f', flipX: false },
+      { type: 'mouth-laugh', x: 0.5, y: 0.472, size: 0.184, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'hair-locs', x: 0.5, y: 0.332, size: 0.472, rotation: 0, colour: '#33231a', flipX: false }
+    ] },
+    { id: 'base-6', shapes: [
+      { type: 'body-hoodie', x: 0.5, y: 0.62, size: 0.46, rotation: 0, colour: '#43aa8b', flipX: false },
+      { type: 'head-bean', x: 0.5, y: 0.4, size: 0.42, rotation: 0, colour: '#ffe0c4', flipX: false },
+      { type: 'ears-cochlear', x: 0.5, y: 0.3832, size: 0.462, rotation: 0, colour: '#e63946', flipX: false },
+      { type: 'nose-button', x: 0.5, y: 0.4252, size: 0.084, rotation: 0, colour: '#f3bd8f', flipX: false },
+      { type: 'eyes-happy', x: 0.5, y: 0.379, size: 0.2604, rotation: 0, colour: '#2f6b4f', flipX: false },
+      { type: 'brows-wiggly', x: 0.5, y: 0.3286, size: 0.2604, rotation: 0, colour: '#b14b2a', flipX: false },
+      { type: 'mouth-tongue', x: 0.5, y: 0.4798, size: 0.1848, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'hair-curls', x: 0.5, y: 0.295, size: 0.462, rotation: 0, colour: '#b14b2a', flipX: false },
+      { type: 'extra-freckles', x: 0.5, y: 0.4252, size: 0.3024, rotation: 0, colour: '#c98a5b', flipX: false }
+    ] },
+    { id: 'base-7', shapes: [
+      { type: 'body-1', x: 0.5, y: 0.62, size: 0.44, rotation: 0, colour: '#8c9bab', flipX: false },
+      { type: 'head-round', x: 0.5, y: 0.4, size: 0.4, rotation: 0, colour: '#e0a372', flipX: false },
+      { type: 'ears-round', x: 0.5, y: 0.408, size: 0.4, rotation: 0, colour: '#e0a372', flipX: false },
+      { type: 'nose-button', x: 0.5, y: 0.424, size: 0.08, rotation: 0, colour: '#c98a5b', flipX: false },
+      { type: 'eyes-wink', x: 0.5, y: 0.376, size: 0.248, rotation: 0, colour: '#2f5f9e', flipX: false },
+      { type: 'brows-neutral', x: 0.5, y: 0.332, size: 0.24, rotation: 0, colour: '#33231a', flipX: false },
+      { type: 'mouth-grin', x: 0.5, y: 0.472, size: 0.184, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'hair-crop', x: 0.5, y: 0.304, size: 0.408, rotation: 0, colour: '#33231a', flipX: false },
+      { type: 'wear-cap', x: 0.5, y: 0.312, size: 0.48, rotation: 0, colour: '#e63946', flipX: false },
+      { type: 'extra-glasses-square', x: 0.5, y: 0.376, size: 0.32, rotation: 0, colour: '#2b2b3a', flipX: false }
+    ] },
+    { id: 'base-8', shapes: [
+      { type: 'body-2', x: 0.5, y: 0.62, size: 0.44, rotation: 0, colour: '#b5179e', flipX: false },
+      { type: 'head-long', x: 0.5, y: 0.4, size: 0.38, rotation: 0, colour: '#331e11', flipX: false },
+      { type: 'nose-button', x: 0.5, y: 0.4228, size: 0.076, rotation: 0, colour: '#4e2f1b', flipX: false },
+      { type: 'eyes-wide', x: 0.5, y: 0.3734, size: 0.266, rotation: 0, colour: '#4a2f1b', flipX: false },
+      { type: 'brows-raised', x: 0.5, y: 0.3316, size: 0.228, rotation: 0, colour: '#1b1b1f', flipX: false },
+      { type: 'mouth-grin', x: 0.5, y: 0.4684, size: 0.1748, rotation: 0, colour: '#a8392c', flipX: false },
+      { type: 'hair-box-braids', x: 0.5, y: 0.3392, size: 0.4484, rotation: 0, colour: '#8a4b2a', flipX: false }
+    ] }
+  ];
+
   return {
+    BASES: BASES,
     PALETTES: PALETTES,
     CATEGORIES: CATEGORIES,
     FACE_CATS: FACE_CATS,
@@ -689,6 +827,8 @@ const Parts = (function () {
     isPart: isPart,
     inCategory: inCategory,
     layerOf: layerOf,
+    transform: transform,
+    drawOrder: drawOrder,
     paletteFor: paletteFor,
     defaultColour: defaultColour,
     count: PARTS.length

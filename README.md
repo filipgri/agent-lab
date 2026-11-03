@@ -22,6 +22,9 @@ Session 2 ran on the version tagged **`session-2`** on GitHub (commit
 - **Spy words** replace the animals on the Start screen.
 - **P1 — built, waiting for a real iPad test.** The relay, a bare display, and
   the adult panel's Display link. See "The display and the relay" below.
+- **P2 — built.** A new agent starts from one of eight ready agents (or
+  blank), and every agent is asked "Is your agent like you?" once. Review the
+  eight in `tools/parts-sheet.html` → **Ready agents**.
 
 The rest of this section describes session 2.
 

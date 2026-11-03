@@ -823,6 +823,7 @@ async function openAgentFromGallery(id) {
     index = anyOpen === -1 ? 0 : anyOpen;
   }
   goToMission(index, 'mission_enter');
+  askLikeMeOnOpen();
 }
 
 // A brand new agent, shaped exactly like spec §8.
@@ -1127,6 +1128,7 @@ async function continueAgent() {
   if (index === -1) index = MISSIONS.findIndex(missionIsOpen);
   if (index === -1) index = 0;
   goToMission(index, 'mission_enter');
+  askLikeMeOnOpen();
 }
 
 // Decide whether to offer Continue, by checking for an unfinished agent.
@@ -1199,7 +1201,10 @@ function stampMission() {
   state.agent.missions[mission.id] = 'done';
   logEvent('stamp', { mission: mission.id });
   playStampFeedback();
-  advance();
+  // v3 §4: "Is your agent like you?" comes right after Make is stamped -
+  // once per agent. askLikeMe() carries straight on if it was asked before.
+  if (mission.id === 'make') askLikeMe('stamp', advance);
+  else advance();
 }
 
 // Pass : skip this mission, grey stamp, logged (spec §6).
@@ -1788,6 +1793,7 @@ function wireUp() {
 
   wireOwnCard();
   wireSeal();
+  wireQuickAgent();
   wirePolish();
   wireSessionControls();
   $('#btn-stamp').addEventListener('click', stampMission);
@@ -3000,6 +3006,8 @@ function enterMake() {
   }
   ensurePixels();
   openEditor('#m1-editor-mount', 'cover');
+  // v3 §4: a brand-new agent starts by picking a ready agent or blank.
+  if (shouldOfferBases()) openBasePicker();
 }
 
 
@@ -3792,14 +3800,9 @@ function make(tag, attrs) {
    ⬆️ or ⬇️, which sets an explicit `z`. The array order breaks ties, so two
    parts on the same layer stay in the order they were added. */
 function layerOrder(shapes) {
-  return shapes
-    .map((shape, index) => ({ shape, index }))
-    .sort((a, b) => {
-      const za = a.shape.z === undefined ? Parts.layerOf(a.shape.type) : a.shape.z;
-      const zb = b.shape.z === undefined ? Parts.layerOf(b.shape.type) : b.shape.z;
-      if (za !== zb) return za - zb;
-      return a.index - b.index;
-    });
+  // v3 P2: the sum lives in parts.js, so tools/parts-sheet.html can draw the
+  // ready-made agents in exactly the order the app does.
+  return Parts.drawOrder(shapes);
 }
 
 function renderShapes(svg, shapes, interactive) {
@@ -3842,11 +3845,13 @@ function renderShapes(svg, shapes, interactive) {
      be shifted back by half its box before being scaled into position.
    `flipX` mirrors a part, which is how one ear or one tail serves both sides. */
 function shapeTransform(shape, part) {
+  // A part's transform lives in parts.js (v3 P2), one copy for the app and
+  // the parts sheet. Only the seven v1 shapes are still worked out here.
+  if (part) return Parts.transform(shape);
   const flip = shape.flipX ? ' scale(-1,1)' : '';
-  const base = 'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
-               'rotate(' + (shape.rotation || 0) + ')' + flip;
-  if (!part) return base + ' scale(' + (shape.size || 1) + ')';
-  return base + ' scale(' + (shape.size || 1) + ') translate(-50,-50)';
+  return 'translate(' + (shape.x * 100) + ',' + (shape.y * 100) + ') ' +
+         'rotate(' + (shape.rotation || 0) + ')' + flip +
+         ' scale(' + (shape.size || 1) + ')';
 }
 
 
@@ -5548,4 +5553,204 @@ function wireDisplayLink() {
   $('#display-address').addEventListener('change', event => setDisplayAddress(event.target.value));
   $('#btn-display-test').addEventListener('click', testDisplayLink);
   $('#btn-display-send').addEventListener('click', sendTestBottle);
+}
+
+
+/* ===========================================================================
+   30. QUICK AGENT (v3 §4, P2)
+
+   Two things make a new agent quicker, and one question is asked of every
+   agent once:
+
+   1. START FROM A READY AGENT. When Make opens on an agent with nothing on
+      it, a sheet offers the eight ready agents from Parts.BASES and "Start
+      blank". Picking one COPIES its shapes into the cover - every part of
+      it can then be changed - and the editor opens on Hair (or on Hats, for
+      an agent whose head is covered), with the colours showing, because
+      changing the hair and the colours is what makes it the child's own.
+      The eight are shuffled each time, so none of them is "the first one".
+
+   2. IS YOUR AGENT LIKE YOU? Three equal cards. Asked once per agent: right
+      after Make is stamped, or - for an agent made before v3 - the first
+      time it is opened. One tap answers, another tap changes the answer, and
+      ➡️ carries on with or without one. The app never comments on it.
+
+   The log answers the research questions on its own: `base_choose` says
+   which agent a child started from (and where it was on the grid), and
+   `like_me_ask` / `like_me` / `like_me_skip` say when the question came and
+   what was chosen, including every change of mind.
+   ======================================================================== */
+
+const LIKE_ME = [
+  { id: 'likeme-like', emoji: '🪞', label: 'Like me' },
+  { id: 'likeme-bit',  emoji: '🌗', label: 'A bit like me' },
+  { id: 'likeme-else', emoji: '🎭', label: 'Someone else' }
+];
+
+/* ---- 1. The ready agents ---- */
+
+/* Offer them when Make opens on an agent that has never been offered them
+   and has nothing on it yet. That is every new agent - and also one whose
+   iPad was closed while the sheet was up, which then simply sees it again. */
+function shouldOfferBases() {
+  return Boolean(state.agent) && state.agent.base === null &&
+         !hasArt(state.agent.cover);
+}
+
+/* A new random order every time. The Fisher-Yates shuffle: walk backwards
+   through the list, swapping each item with a random one at or before it. */
+function shuffled(list) {
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function openBasePicker() {
+  const grid = $('#base-grid');
+  grid.innerHTML = '';
+
+  shuffled(Parts.BASES).forEach((base, i) => {
+    const button = document.createElement('button');
+    button.className = 'base-card';
+    // No name: "a ready agent" is all a screen reader says, as a child sees.
+    button.setAttribute('aria-label', 'Ready agent');
+    // Cropped to where the ready agents actually are (from the top of the
+    // tallest hair to the bottom of the body), so each one fills its tile.
+    const svg = make('svg', { viewBox: '12 2 76 86', 'aria-hidden': 'true' });
+    renderShapes(svg, base.shapes, false);
+    button.appendChild(svg);
+    button.addEventListener('click', () => chooseBase(base, i + 1));
+    grid.appendChild(button);
+  });
+
+  // Start blank, last: the same empty dashed agent as the Start screen.
+  const blank = document.createElement('button');
+  blank.className = 'base-card base-blank';
+  blank.innerHTML =
+    '<svg class="hero-outline" viewBox="0 0 100 120" aria-hidden="true">' +
+      '<circle cx="50" cy="32" r="24"/>' +
+      '<path d="M12 117 C12 84 29 64 50 64 C71 64 88 84 88 117 Z"/>' +
+    '</svg>' +
+    '<span class="base-blank-label">Start blank</span>';
+  blank.addEventListener('click', () => chooseBase(null, Parts.BASES.length + 1));
+  grid.appendChild(blank);
+
+  $('#base-overlay').hidden = false;
+}
+
+/* `base` is a Parts.BASES entry, or null for Start blank. `position` is
+   where it was on the grid (1-9), kept in the log because the order is
+   shuffled and a researcher may want to know whether position mattered. */
+function chooseBase(base, position) {
+  if (!state.agent) return;
+  $('#base-overlay').hidden = true;
+
+  if (!base) {
+    state.agent.base = 'blank';
+    logEvent('base_choose', { base: 'blank', position: position });
+    speakLabel('base-blank');
+    scheduleSave();
+    return;
+  }
+
+  pushUndo();                          // so ↩️ Undo can go back to blank
+  const cover = ensurePixels();
+  // A COPY, so nothing a child does can ever change the ready agent itself.
+  cover.shapes = JSON.parse(JSON.stringify(base.shapes));
+  state.agent.base = base.id;
+  logEvent('base_choose', { base: base.id, position: position });
+  playSfx('sfx-pop');
+
+  // v3 §4: open on the hair - or the hijab, turban or cap where there is one
+  // instead - with its colours showing.
+  const hasHair = cover.shapes.some(s => (Parts.get(s.type) || {}).cat === 'hair');
+  partsUi.cat = hasHair ? 'hair' : 'headwear';
+  selectPlacedPart(partsUi.cat);
+  buildPartsTray();
+  refreshAgentViews();
+  scheduleSave();
+}
+
+/* ---- 2. Is your agent like you? ---- */
+
+/* Asked once: the `like_me_ask` event is the record that it was. An answer
+   from before that event existed counts too. */
+function likeMeAsked(agent) {
+  return Boolean(agent) && (agent.likeMe !== null ||
+    (agent.events || []).some(e => e.action === 'like_me_ask'));
+}
+
+let likeMeThen = null;               // what to do once the sheet closes
+
+/* Ask the question if this agent has not been asked. `when` is 'stamp' or
+   'open', for the log. `then` runs after the sheet closes - or straight
+   away, if there is nothing to ask. */
+function askLikeMe(when, then) {
+  if (!state.agent || likeMeAsked(state.agent)) {
+    if (then) then();
+    return;
+  }
+  likeMeThen = then || null;
+  logEvent('like_me_ask', { when: when });
+  paintLikeMe();
+  $('#likeme-overlay').hidden = false;
+  scheduleSave();
+}
+
+function paintLikeMe() {
+  const box = $('#likeme-cards');
+  box.innerHTML = '';
+  LIKE_ME.forEach(card => {
+    const button = document.createElement('button');
+    button.className = 'pic-card' + (state.agent.likeMe === card.id ? ' is-on' : '');
+    button.setAttribute('aria-pressed', state.agent.likeMe === card.id ? 'true' : 'false');
+    button.innerHTML =
+      '<span class="pic-card-art"><span class="pic-card-emoji">' + card.emoji + '</span></span>' +
+      '<span class="pic-card-label">' + card.label + '</span>';
+    // Filip's picture covers the emoji once it has arrived (asset guide §3.9).
+    Assets.image(card.id).then(img => {
+      if (!img) return;
+      const pic = document.createElement('img');
+      pic.className = 'pic-card-img';
+      pic.alt = '';
+      pic.src = img.src;
+      button.querySelector('.pic-card-art').appendChild(pic);
+      button.classList.add('has-image');
+    });
+    button.addEventListener('click', () => chooseLikeMe(card.id));
+    box.appendChild(button);
+  });
+}
+
+function chooseLikeMe(id) {
+  if (!state.agent) return;
+  state.agent.likeMe = id;
+  logEvent('like_me', { answer: id });
+  speakLabel(id);
+  paintLikeMe();
+  scheduleSave();
+}
+
+/* v3 §4: "or the first time an agent without an answer is opened" - but
+   only an agent whose Make is finished. One that is still being made will
+   be asked when its Make is stamped, about an agent that exists. */
+function askLikeMeOnOpen() {
+  if (state.agent && state.agent.missions.make !== 'todo') askLikeMe('open');
+}
+
+function closeLikeMe() {
+  if (!state.agent) return;
+  if (state.agent.likeMe === null) logEvent('like_me_skip', {});
+  $('#likeme-overlay').hidden = true;
+  scheduleSave();
+  const then = likeMeThen;
+  likeMeThen = null;
+  if (then) then();
+}
+
+function wireQuickAgent() {
+  $('#btn-likeme-go').addEventListener('click', closeLikeMe);
 }

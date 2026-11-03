@@ -70,6 +70,14 @@
   .part-group .tint.tint-stroke { fill: var(--tint, #4cc9f0); stroke: var(--tint, #4cc9f0); }
 
   .swatches { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+
+  /* The ready agents: big enough to judge, and once more at the size a
+     child sees them on the iPad, because "clearly different at a glance"
+     has to be true at that size. */
+  .bases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .bases .cell svg { width: 100%; }
+  .bases-small { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .bases-small .cell { width: 96px; padding: 4px; }
   .swatches span { width: 14px; height: 14px; border-radius: 4px; }
 </style>
 </head>
@@ -86,6 +94,8 @@
   <select id="palette"></select>
   <button id="btn-all">Show every colour</button>
   <button id="btn-bg">Light background</button>
+  <!-- v3 P2: the eight ready agents a child can start from. -->
+  <button id="btn-bases">Ready agents</button>
   <span id="summary" class="sub" style="margin:0"></span>
 </div>
 
@@ -96,6 +106,58 @@
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var showAll = false;
   var light = false;
+  var showBases = false;
+
+  /* One whole agent from a list of shapes, drawn the way the app draws it:
+     Parts.drawOrder() for the layers and Parts.transform() for each place,
+     both from parts.js - so this is a true preview, not a copy. */
+  function agentSvg(shapes) {
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    Parts.drawOrder(shapes).forEach(function (item) {
+      var part = Parts.get(item.shape.type);
+      if (!part) return;
+      var g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('class', 'part-group');
+      g.setAttribute('transform', Parts.transform(item.shape));
+      g.innerHTML = part.svg;
+      g.style.setProperty('--tint', item.shape.colour);
+      svg.appendChild(g);
+    });
+    return svg;
+  }
+
+  function buildBases() {
+    var sheet = document.getElementById('sheet');
+    sheet.innerHTML = '';
+    var h = document.createElement('h2');
+    h.innerHTML = 'Ready agents <span class="count">' + Parts.BASES.length + '</span>';
+    sheet.appendChild(h);
+
+    var big = document.createElement('div');
+    big.className = 'bases';
+    var small = document.createElement('div');
+    small.className = 'bases-small';
+    Parts.BASES.forEach(function (base) {
+      [big, small].forEach(function (box) {
+        var cell = document.createElement('div');
+        cell.className = 'cell' + (light ? ' light' : '');
+        cell.appendChild(agentSvg(base.shapes));
+        var id = document.createElement('div');
+        id.className = 'id';
+        id.textContent = base.id;
+        cell.appendChild(id);
+        box.appendChild(cell);
+      });
+    });
+    sheet.appendChild(big);
+    var note = document.createElement('p');
+    note.className = 'sub';
+    note.textContent = 'The same eight at about the size a child sees them on the iPad:';
+    sheet.appendChild(note);
+    sheet.appendChild(small);
+    document.getElementById('summary').textContent = 'parts.js → BASES';
+  }
 
   // Every colour in the kit, de-duplicated, for the "show every colour" view.
   function allColours() {
@@ -120,6 +182,7 @@
   }
 
   function build() {
+    if (showBases) return buildBases();
     var sheet = document.getElementById('sheet');
     sheet.innerHTML = '';
 
@@ -209,6 +272,11 @@
   document.getElementById('btn-all').addEventListener('click', function () {
     showAll = !showAll;
     this.classList.toggle('on', showAll);
+    build();
+  });
+  document.getElementById('btn-bases').addEventListener('click', function () {
+    showBases = !showBases;
+    this.classList.toggle('on', showBases);
     build();
   });
   document.getElementById('btn-bg').addEventListener('click', function () {

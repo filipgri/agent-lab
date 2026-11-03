@@ -37,7 +37,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=77">
+  <link rel="stylesheet" href="./style.css?v=78">
 </head>
 <body>
 
@@ -705,14 +705,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=77"></script>
-<script src="./storage.js?v=77"></script>
-<script src="./audio.js?v=77"></script>
-<script src="./effects.js?v=77"></script>
-<script src="./assets.js?v=77"></script>
-<script src="./stickers.js?v=77"></script>
-<script src="./parts.js?v=77"></script>
-<script src="./app.js?v=77"></script>
+<script src="./boot-guard.js?v=78"></script>
+<script src="./storage.js?v=78"></script>
+<script src="./audio.js?v=78"></script>
+<script src="./effects.js?v=78"></script>
+<script src="./assets.js?v=78"></script>
+<script src="./stickers.js?v=78"></script>
+<script src="./parts.js?v=78"></script>
+<script src="./app.js?v=78"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->
@@ -728,6 +728,41 @@
 <!-- Three symbols, in order, from nine. Not security: a spy-themed -->
 <!-- privacy choice. A wrong try shakes and nothing locks out.      -->
 <!-- ============================================================ -->
+<!-- ======================================================================
+     QUICK AGENT (v3 §4, P2)
+     ====================================================================== -->
+
+<!-- START FROM A READY AGENT. Shown when Make opens on a brand-new agent:
+     eight ready agents and Start blank, all equal. The ready agents are drawn
+     from Parts.BASES by app.js and shuffled each time, so none of them is
+     "the first one" - and none has a name or a label. -->
+<div id="base-overlay" class="overlay" hidden>
+  <div class="sheet sheet-bases">
+    <div class="sheet-head">
+      <h3>Pick an agent to start from</h3>
+      <button class="btn btn-icon-only" data-say="nar-base-pick" aria-label="Hear this">🔊</button>
+    </div>
+    <div id="base-grid" class="base-grid"></div>
+  </div>
+</div>
+
+<!-- IS YOUR AGENT LIKE YOU? Asked once per agent: when Make is stamped, or
+     the first time an older agent is opened. Three equal cards; one tap
+     answers, another tap changes it, and ➡️ carries on with or without an
+     answer. The app never says anything about the answer (v2 §12). -->
+<div id="likeme-overlay" class="overlay" hidden>
+  <div class="sheet sheet-likeme">
+    <div class="sheet-head">
+      <h3>Is your agent like you?</h3>
+      <button class="btn btn-icon-only" data-say="nar-likeme-ask" aria-label="Hear this">🔊</button>
+    </div>
+    <div id="likeme-cards" class="likeme-cards"></div>
+    <div class="sheet-actions">
+      <button id="btn-likeme-go" class="btn btn-accent btn-big" aria-label="Carry on">➡️</button>
+    </div>
+  </div>
+</div>
+
 <div id="seal-overlay" class="overlay" hidden>
   <div class="sheet">
     <div class="sheet-head">
