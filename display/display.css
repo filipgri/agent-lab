@@ -67,16 +67,29 @@ body[data-motion="full"] .waves { animation: waves calc(6s * var(--slow)) ease-i
   background: #b98a55;
   box-shadow: inset 0 0 0 12px #8a6238, 0 14px 30px rgba(0,0,0,.35);
 }
-.board.has-img { background: center / 100% 100% no-repeat var(--board-img); box-shadow: none; }
-.pins { position: absolute; inset: 7% 5%; display: flex; flex-wrap: wrap; gap: 2%; align-content: flex-start; }
+/* With Filip's picture the board keeps the picture's own shape instead of
+   being stretched, and stands from near the top down to where the sand
+   begins. display.js measures the picture and sets the four variables;
+   the values after the commas are only used if it cannot. */
+.board.has-img {
+  left: 50%; right: auto; top: 8%; height: 61%;
+  aspect-ratio: var(--board-ratio, 1.27);
+  translate: -50% 0;
+  background: var(--board-pos, center) / var(--board-size, contain) no-repeat var(--board-img);
+  border-radius: 0; box-shadow: none;
+}
+/* gap is PIN_GAP in display.js; --pin-size is set by fitPins() there, so
+   the pins shrink as more arrive instead of spilling off the board. */
+.pins { position: absolute; inset: 7% 5%; display: flex; flex-wrap: wrap; gap: 12px; align-content: flex-start; }
+.board.has-img .pins { inset: var(--cork, 14% 10% 32% 10%); padding: 2.5% 2%; }
 .pin {
-  width: 15%; aspect-ratio: 1;
+  width: var(--pin-size, 15%); aspect-ratio: 1; box-sizing: border-box;
   background: #fff; border-radius: 8px; padding: 1%;
   box-shadow: 0 6px 12px rgba(0,0,0,.3);
   position: relative;
 }
 .pin img { width: 100%; height: 100%; object-fit: contain; }
-.pin .pin-emoji { font-size: 5vh; display: grid; place-items: center; height: 100%; }
+.pin .pin-emoji { font-size: calc(var(--pin-size, 9vh) * .55); display: grid; place-items: center; height: 100%; }
 .pin::before {
   content: ''; position: absolute; left: 50%; top: -6px; width: 12px; height: 12px;
   margin-left: -6px; border-radius: 50%; background: #e63946;

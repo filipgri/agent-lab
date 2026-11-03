@@ -94,6 +94,10 @@
     catch (err) { audioContext = null; }
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setMotion('calm');
     loadPictures();
+    // Pins are added, hidden, cleared and replayed in several places, so
+    // rather than remembering fitPins() in each, watch the board itself.
+    new MutationObserver(fitPins).observe($('#pins'), { childList: true });
+    new ResizeObserver(fitPins).observe($('#pins'));
     paintSettings();
     paintStatus();
     connect();
@@ -106,17 +110,92 @@
       $('#scene').style.setProperty('--shore-img', 'url("assets/img/display/disp-shore.jpg")');
       $('#scene').classList.add('has-shore');
     });
-    tryImage('assets/img/display/disp-board.png', () => {
-      $('#board').style.setProperty('--board-img', 'url("assets/img/display/disp-board.png")');
-      $('#board').classList.add('has-img');
-    });
+    tryImage('assets/img/display/disp-board.png', fitBoard);
     tryImage('assets/img/display/disp-bottle.png', () => { ui.pictures.bottle = true; });
     tryImage('assets/img/display/disp-teacher.png', () => { ui.pictures.teacher = true; });
   }
   function tryImage(src, onLoad) {
     const img = new Image();
-    img.onload = onLoad;
+    img.onload = () => onLoad(img);
     img.src = src;
+  }
+
+  /* The board picture is a noticeboard on posts in a SQUARE picture with
+     clear space round it, so stretching it to fill a wide box squashed it
+     flat and the pins landed below the cork. Instead this measures the
+     picture: where the board really is (its non-clear pixels), and where
+     the cork is (walking out from the middle until the colour changes).
+     The board then keeps its own shape and the pins go on the cork - for
+     whichever board picture is in the folder, so a remade one fits too. */
+  function fitBoard(img) {
+    const board = $('#board');
+    board.style.setProperty('--board-img', 'url("' + img.getAttribute('src') + '")');
+    const box = measureBoard(img);
+    if (box) {
+      const pct = n => (n * 100).toFixed(2) + '%';
+      board.style.setProperty('--board-ratio', String(box.w / box.h));
+      // Scale the picture so its board fills the element exactly...
+      board.style.setProperty('--board-size', pct(box.W / box.w) + ' ' + pct(box.H / box.h));
+      // ...and shift it so the clear margin falls outside. (A background
+      // position of p% lines up p% of the picture with p% of the box.)
+      board.style.setProperty('--board-pos',
+        pct(box.W > box.w ? box.x / (box.W - box.w) : 0) + ' ' +
+        pct(box.H > box.h ? box.y / (box.H - box.h) : 0));
+      if (box.cork) board.style.setProperty('--cork', box.cork.map(pct).join(' '));
+    }
+    board.classList.add('has-img');
+  }
+
+  /* Returns the board's box inside the picture, and the cork as insets
+     (top, right, bottom, left) as fractions of that box. null if the
+     picture cannot be read; cork is null if it does not look like a cork. */
+  function measureBoard(img) {
+    const W = img.naturalWidth, H = img.naturalHeight;
+    let data;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      data = ctx.getImageData(0, 0, W, H).data;
+    } catch (err) { return null; }
+
+    // Every pixel has four numbers (red, green, blue, alpha), so pixel
+    // (x, y) starts at (y * W + x) * 4 and its alpha is the fourth.
+    const at = (x, y) => (y * W + x) * 4;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        if (data[at(x, y) + 3] > 24) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+    }
+    if (x1 < 0) return null;                       // nothing but clear
+    const w = x1 - x0 + 1, h = y1 - y0 + 1;
+
+    // The cork: start a little above the middle (below it are the posts)
+    // and walk outwards until the colour differs a lot - that is the frame.
+    const cx = Math.round(x0 + w / 2), cy = Math.round(y0 + h * 0.4);
+    const start = at(cx, cy);
+    const differs = i => Math.abs(data[i] - data[start]) + Math.abs(data[i + 1] - data[start + 1]) +
+                         Math.abs(data[i + 2] - data[start + 2]) > 150 || data[i + 3] < 200;
+    let left = cx;   while (left > x0 && !differs(at(left - 1, cy))) left--;
+    let right = cx;  while (right < x1 && !differs(at(right + 1, cy))) right++;
+    let top = cy;    while (top > y0 && !differs(at(cx, top - 1))) top--;
+    let bottom = cy; while (bottom < y1 && !differs(at(cx, bottom + 1))) bottom++;
+
+    // A real cork is most of the board's width and a good part of its
+    // height. Anything smaller means the walk hit a mark on the cork, so
+    // the CSS keeps its own guess instead.
+    const corkOk = (right - left) > w * 0.5 && (bottom - top) > h * 0.3;
+    return {
+      W, H, x: x0, y: y0, w, h,
+      cork: corkOk ? [(top - y0) / h, (x1 - right) / w, (y1 - bottom) / h, (left - x0) / w] : null
+    };
   }
 
   /* A picture, or its emoji if the picture is not there. */
@@ -530,6 +609,33 @@
       if (item.type === 'item-power' && item.power === 'pow-hold-turn') pin(null, '🎟️', bottle, null);
     });
     if (!animate) document.querySelectorAll('.pin.is-new').forEach(p => p.classList.remove('is-new'));
+  }
+
+  /* However many drawings arrive, they all stay on the cork: the pins get
+     smaller rather than spilling off the bottom of the board. It tries
+     every number of columns and keeps whichever gives the biggest pins,
+     but never bigger than the size a few pins had before (15% of the
+     cork's width). Runs whenever a pin comes or goes, and whenever the
+     board changes size - see the two observers in start(). */
+  const PIN_GAP = 12;                        // px, the same as .pins in display.css
+  function fitPins() {
+    const box = $('#pins');
+    const count = box.children.length;
+    if (!count) return;
+    // getBoundingClientRect, not clientWidth: clientWidth rounds to whole
+    // pixels, and half a pixel too many was enough to wrap the last pin.
+    const style = getComputedStyle(box);
+    const rect = box.getBoundingClientRect();
+    const width = rect.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const height = rect.height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    let best = 0;
+    for (let cols = 1; cols <= count; cols++) {
+      const rows = Math.ceil(count / cols);
+      const size = Math.min((width - PIN_GAP * (cols - 1)) / cols,
+                            (height - PIN_GAP * (rows - 1)) / rows);
+      if (size > best) best = size;
+    }
+    box.style.setProperty('--pin-size', Math.floor(Math.min(best, width * 0.15)) + 'px');
   }
 
   function addToPost(bottle, animate) {

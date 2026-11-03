@@ -544,6 +544,21 @@ to the start. No card screen.
   to `../agent-lab-analysis` by default and warns if pointed inside the
   repo. The cards inline `parts.js` so agents are drawn by the app's own
   code. Every column is in DATA.md §8.
+- **Assets, v3 batch (3 November 2026).** 51 pictures brought in, plus three
+  the guide marks as copies (`mode-handshake` ← `how-handshake`,
+  `mode-device` ← `stk-aac-talker`, `who-teacher` ← `disp-teacher`). The
+  file named `disp-bottle` was the noticeboard, so it was filed as
+  `disp-board` — at 512px, because the tool had already converted it as a
+  sticker. Still to make: `disp-shore`, `disp-bottle`, `who-everyone`.
+  Seeing them in place showed four layout faults, all fixed:
+  - **The display board** used to stretch the picture into a wide box.
+    `fitBoard()` now measures the picture and the board keeps its own shape;
+    see the convention below.
+  - **Pins** spilled off the cork after about 18. `fitPins()` shrinks them
+    instead, and two observers call it.
+  - **Cut-outs** were cropped in 4:3 cards (`.is-cutout` → `contain`).
+  - **Power on! and ➡️** sat below the fold on a landscape iPad. Only the
+    cards scroll now.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -586,7 +601,13 @@ Then, by hand:
    under the wrong id is worse than leaving it in the inbox.
 2. **Check the sticker transparency warnings.** A painted checkerboard or a
    white box only shows up on the iPad, by which time it is too late.
-3. **Bump `CACHE_VERSION` in `sw.js` and every `?v=` in `index.html`,** or the
+   `hasAlpha: yes` is not proof: read the corner pixels in the browser.
+3. **Look at every picture beside its label.** The tool trusts filenames, and
+   a file saved under the wrong name in ChatGPT gets filed under that name.
+   On 3 November the noticeboard arrived as `disp-bottle`. The tool also
+   deletes the original, so a misfiled picture has already been converted
+   at the wrong size by the time anyone sees it.
+4. **Bump `CACHE_VERSION` in `sw.js` and every `?v=` in `index.html`,** or the
    iPads will not pick the new files up.
 
 **"Sync the asset list"** means `python3 tools/sync-assets.py`, which rebuilds
@@ -646,6 +667,26 @@ hand-edit the manifest, and never edit both.
 
 Many of these name screens v3 retired. They stay, because the lesson still
 applies (v3 §13).
+
+### v3 conventions (from the v3 pictures)
+
+- **A cut-out is shown whole; a photograph fills its card.** `Assets.card()`
+  marks a PNG `.is-cutout` (`object-fit: contain`); a JPEG keeps `cover`.
+  `bring-in-assets.py` makes scenes JPEG and stickers PNG, so the file type
+  is a reliable signal. With `cover`, a square picture in a 4:3 card lost
+  its top and bottom, including the speech bubble on Speak for your friends.
+- **The display measures its board picture rather than assuming a shape.**
+  ChatGPT draws squares, so a "wide noticeboard" arrives as a square
+  picture with clear space round it. `measureBoard()` finds the board's
+  pixels and walks out from the middle to find the cork. The board keeps
+  its own shape and the pins go on the cork, so a remade picture fits too.
+- **Use `getBoundingClientRect()` to measure anything that must fit.**
+  `clientWidth` rounds to whole pixels. Half a pixel was enough to wrap the
+  last pin onto a row of its own.
+- **A row of buttons beneath a list of cards sits outside the list's
+  scroller.** This is the Mission 3 rule again, for Powers: ➡️ and Power on!
+  were inside the scrolling column and fell below a landscape iPad's edge
+  as soon as the cards made two rows.
 
 ### v2 conventions (from V3)
 

@@ -2045,6 +2045,7 @@ body[data-motion="off"] .scanner { display: none; }
   background: linear-gradient(150deg, var(--navy-3), var(--navy-0));
 }
 .pic-card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pic-card-img.is-cutout { object-fit: contain; }
 .pic-card-emoji { font-size: 54px; line-height: 1; }
 /* Once the real picture loads it covers the emoji, so the emoji can stay in
    place rather than being removed - nothing flickers if the image is slow. */
@@ -3334,13 +3335,27 @@ body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-ou
 }
 .powers-door-grid[hidden] { display: none; }
 .powers-door-grid .pic-card { width: auto; }
-.powers-door-grid .pic-card-art { aspect-ratio: 3 / 4; min-height: 0; }
+/* Square, not door-shaped: the door pictures are square with the door in
+   the middle, and at 3:4 the second row fell below a landscape iPad's fold. */
+.powers-door-grid .pic-card-art { aspect-ratio: 1; min-height: 0; }
 .powers-cards { justify-content: center; }
 .powers-cards[hidden] { display: none; }
 .powers-cards .pic-card { width: 128px; }
 .powers-cards .pic-card-art { min-height: 88px; }
 .powers-cards .when-own { width: 128px; }
 .powers-cards .pic-card.is-full { opacity: .45; }
+/* ➡️ and Power on! must never scroll out of sight. With two rows of cards
+   (three for When) the whole column used to scroll, and on a landscape
+   iPad the buttons sat below its edge. Now only the cards scroll. Portrait
+   is left alone: there the whole screen scrolls instead (see .suit-main). */
+@media (orientation: landscape) {
+  /* A little tighter, so Who and How (seven cards, two rows) fit whole. */
+  #powers-sentence { overflow: hidden; gap: 10px; }
+  #powers-sentence .pic-card-art { aspect-ratio: 16 / 10; min-height: 0; }
+  #powers-sentence .pic-card-label { line-height: 1.25; }
+  #powers-sentence .powers-cards { flex: 0 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #powers-sentence .powers-door-tools { flex: 0 0 auto; }
+}
 .powers-door-tools { display: flex; gap: 12px; align-items: center; }
 
 /* The sentence strip: four slots in a row, each showing what is in it. */

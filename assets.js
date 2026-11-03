@@ -180,7 +180,11 @@ const Assets = (function () {
     image(id).then(function (img) {
       if (!img) return;
       const picture = document.createElement('img');
-      picture.className = 'pic-card-img';
+      // A photograph (JPEG) fills its card edge to edge; a cut-out (PNG,
+      // with a clear background) is shown whole, or a square picture in a
+      // 4:3 card loses its top and bottom - a power's speech bubble did.
+      const cutout = /\.png$/i.test((entry && entry.file) || '');
+      picture.className = 'pic-card-img' + (cutout ? ' is-cutout' : '');
       picture.alt = '';
       picture.src = img.src;
       art.insertBefore(picture, art.firstChild);
