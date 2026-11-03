@@ -3524,3 +3524,19 @@ body[data-motion="full"] .bottle-art.is-flying {
 /* Long item names ("Something I can't live without") wrap inside the token. */
 .bottle-token .btn-label { white-space: normal; text-align: center; line-height: 1.2; }
 .bottle-wrap[hidden] { display: none; }
+
+/* ============================================================
+   THE FINISH (v3 §3)
+   ============================================================ */
+.sheet-finish { width: min(420px, 100%); align-items: center; }
+.finish-wrap { position: relative; }
+.finish-stage { width: min(300px, 70vw); height: auto; aspect-ratio: 1; }
+.finish-stamp {
+  position: absolute; right: -6%; bottom: -6%; z-index: 2;
+  font-size: 88px; line-height: 1;
+}
+body[data-motion="full"] .finish-stamp { animation: finish-stamp 600ms cubic-bezier(.34,1.56,.64,1) 300ms both; }
+@keyframes finish-stamp { from { transform: scale(2.4) rotate(-20deg); opacity: 0; } to { transform: rotate(-8deg); opacity: 1; } }
+.finish-powers { display: flex; gap: 14px; font-size: 44px; min-height: 44px; }
+.finish-powers img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; background: #fff; }
+.finish-actions { width: 100%; justify-content: space-between; }

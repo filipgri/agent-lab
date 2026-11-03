@@ -500,8 +500,11 @@ to the start. No card screen.
   - Item-power refers to its power by index (§10) AND by `powerId`;
     `removePower()` shifts the indices.
   - **Not built:** dragging a token into the bottle (tapping does it — §8
-    asks for tap OR drag), and the short finish after the bottle (§3) —
-    finishing still goes straight back to the start.
+    asks for tap OR drag).
+  - **The short finish (§3)** after the last mission: `showFinish()` — the
+    agent big in its place, its powers' icons, the ✅ stamp (outside the
+    agent's frame, which clips) and `nar-card-finish`; 🏠 then
+    `finishSession()` as before.
 - **P7 — built (3 November 2026), on branch `v3`.** The display (§9.5),
   `display/index.html`, `display.css`, `display.js`.
   - The scene: shore, board, post shelf, queue along the top. Filip's

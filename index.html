@@ -1009,6 +1009,29 @@
   </div>
 </div>
 
+<!-- THE FINISH (v3 §3): after the bottle, a short moment - the agent, big,
+     with its powers' icons, and the stamp - then back to the start. There
+     is no card screen in v3. -->
+<div id="finish-overlay" class="overlay" hidden>
+  <div class="sheet sheet-finish">
+    <!-- The stamp sits OUTSIDE the agent's frame, which clips. -->
+    <div class="finish-wrap">
+      <div id="finish-stage" class="agent-view finish-stage">
+        <canvas class="agent-pixels" width="16" height="16"></canvas>
+        <img class="agent-drawing" alt="" hidden>
+        <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
+        <div class="sticker-layer"></div>
+      </div>
+      <span id="finish-stamp" class="finish-stamp" aria-hidden="true">✅</span>
+    </div>
+    <div id="finish-powers" class="finish-powers" aria-hidden="true"></div>
+    <div class="sheet-actions finish-actions">
+      <button id="finish-say" class="btn btn-icon-only" data-say="nar-card-finish" aria-label="Hear this">🔊</button>
+      <button id="finish-home" class="btn btn-accent btn-big" aria-label="Back to the start">🏠</button>
+    </div>
+  </div>
+</div>
+
 <div id="seal-overlay" class="overlay" hidden>
   <div class="sheet">
     <div class="sheet-head">

@@ -1243,8 +1243,43 @@ function advance() {
   for (let i = state.missionIndex + 1; i < MISSIONS.length; i++) {
     if (missionIsOpen(MISSIONS[i])) { goToMission(i, 'mission_enter'); return; }
   }
-  /* v3 §3: there is no card screen any more. P6 adds a short finish after
-     the bottle; until then the last mission simply returns to the start. */
+  /* v3 §3: there is no card screen any more - a short finish, then back to
+     the start. */
+  showFinish();
+}
+
+/* THE FINISH (v3 §3): the agent, big, with its powers' icons, and the
+   stamp; "Mission complete. Well done, agent." Then 🏠 to the start. */
+function showFinish() {
+  if (!state.agent) { finishSession(); return; }
+  renderAgentView($('#finish-stage'), state.agent.cover, false);
+  const row = $('#finish-powers');
+  row.innerHTML = '';
+  state.agent.powers.forEach(p => {
+    if (!p.power) return;
+    if (p.own && p.own.png && (p.power === 'own' || p.power === 'v2')) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = p.own.png;
+      row.appendChild(img);
+    } else {
+      const span = document.createElement('span');
+      span.textContent = powerEmoji(p);
+      row.appendChild(span);
+    }
+  });
+  // The stamp lands again each time (the animation restarts).
+  const stamp = $('#finish-stamp');
+  stamp.style.animation = 'none';
+  void stamp.offsetWidth;
+  stamp.style.animation = '';
+  $('#finish-overlay').hidden = false;
+  playSfx('sfx-stamp');
+  speakLine('nar-card-finish');
+}
+
+function closeFinish() {
+  $('#finish-overlay').hidden = true;
   finishSession();
 }
 
@@ -1818,6 +1853,7 @@ function wireUp() {
   wireSuit();
   wirePowers();
   wireBottle();
+  $('#finish-home').addEventListener('click', closeFinish);
   wirePolish();
   wireSessionControls();
   $('#btn-stamp').addEventListener('click', stampMission);
