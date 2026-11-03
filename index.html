@@ -401,50 +401,72 @@
              The HQ panel above is kept on purpose. It is no longer a mission,
              but v3 §6 builds Safe place out of its layout. -->
 
-        <!-- 🗣️ HOW MY AGENT TALKS (v3 §5, P3). Three steps on one screen,
-             scrolling together:
-               1. How does your agent like to talk?      -> suit.likes
-               2. How does school want your agent to talk? -> suit.school
-               3. A secret handshake                     -> handshake
-             Every card makes the agent act it out (the thumbnail on the
-             left) and says its label. The app NEVER compares the two lists:
-             the gap between them is for the analysis, not for the child. -->
+        <!-- 🗣️ HOW MY AGENT TALKS (v3 §5, P3; redesigned after Filip's
+             first try, 3 November 2026). The room is loud, so nothing here
+             depends on hearing or reading: the agent stands big in the
+             middle and ACTS OUT each card, one card at a time, and the
+             child sorts it - 👍 🤷 👎 - the way a Talking Mat works.
+               🗣️ My agent likes…   every card, one at a time
+               ⭐ Which is best?    one card from the 👍 pile
+               🏫 School wants…     the same cards, plus Hand up and Quiet
+               🤫 A secret word     said with 🎤, in a spy voice
+             The app NEVER compares the piles. The gap between how an agent
+             likes to talk and what school wants is for the analysis. -->
         <article class="mission-panel" data-mission="suit">
-          <div class="power-steps suit-steps">
+          <div class="suit-wrap">
 
-            <section class="power-step">
-              <div class="power-head">
-                <h2 class="power-title">How does your agent like to talk?</h2>
-                <button class="btn btn-icon-only" data-say="nar-suit-likes" aria-label="Hear this">🔊</button>
+            <header class="power-head suit-head">
+              <!-- Which part is showing. Icons, not numbers. -->
+              <div class="suit-phases seg-group">
+                <button class="btn seg" data-suit-phase="likes" aria-label="My agent likes">🗣️</button>
+                <button class="btn seg" data-suit-phase="best" aria-label="Which is best">⭐</button>
+                <button class="btn seg" data-suit-phase="school" aria-label="School wants">🏫</button>
+                <button class="btn seg" data-suit-phase="word" aria-label="Secret word">🤫</button>
               </div>
-              <div id="suit-likes" class="power-when suit-cards"></div>
-            </section>
+              <h2 id="suit-title" class="power-title">My agent likes…</h2>
+              <button id="suit-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+            </header>
 
-            <section class="power-step">
-              <div class="power-head">
-                <h2 class="power-title">How does school want your agent to talk?</h2>
-                <button class="btn btn-icon-only" data-say="nar-suit-school" aria-label="Hear this">🔊</button>
-              </div>
-              <div id="suit-school" class="power-when suit-cards"></div>
-            </section>
-
-            <!-- A rhythm of up to 8 taps. It ends 1.5 s after the last tap,
-                 at the 8th tap, or 6 s after the first, then plays straight
-                 back as pulses. Tapping the pad again makes a new one. -->
-            <section class="power-step">
-              <div class="power-head">
-                <h2 class="power-title">Tap a secret handshake</h2>
-                <button id="handshake-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
-              </div>
-              <div class="handshake-row">
-                <button id="handshake-pad" class="handshake-pad" aria-label="Handshake pad">🤝</button>
-                <div class="handshake-side">
-                  <!-- One dot per tap: a picture of the rhythm, with no numbers. -->
-                  <div id="handshake-dots" class="handshake-dots" aria-hidden="true"></div>
-                  <button id="handshake-replay" class="btn" hidden>▶️ Play it</button>
+            <div class="suit-main">
+              <!-- The agent, big, acting out whatever card is showing. -->
+              <div class="suit-stage-wrap">
+                <div id="suit-stage" class="agent-view suit-stage">
+                  <canvas class="agent-pixels" width="16" height="16"></canvas>
+                  <img class="agent-drawing" alt="" hidden>
+                  <svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>
+                  <div class="sticker-layer"></div>
                 </div>
+                <span id="suit-act" class="suit-act" aria-hidden="true"></span>
               </div>
-            </section>
+
+              <!-- SORTING: one card, three piles. -->
+              <div id="suit-sort" class="suit-side">
+                <div id="suit-card" class="suit-card-slot"></div>
+                <div class="suit-piles">
+                  <button class="btn suit-pile" data-pile="yes"><span class="pile-icon">👍</span><span class="btn-label">Yes</span></button>
+                  <button class="btn suit-pile" data-pile="unsure"><span class="pile-icon">🤷</span><span class="btn-label">Not sure</span></button>
+                  <button class="btn suit-pile" data-pile="no"><span class="pile-icon">👎</span><span class="btn-label">No</span></button>
+                </div>
+                <div class="suit-progress">
+                  <button id="suit-back" class="btn tool" aria-label="Back one card">↩️</button>
+                  <!-- One dot per card, filled once it is sorted. No numbers. -->
+                  <div id="suit-dots" class="suit-dots" aria-hidden="true"></div>
+                </div>
+                <div id="suit-own-row" class="power-when suit-own-row"></div>
+              </div>
+
+              <!-- WHICH IS BEST: the 👍 cards, pick one. -->
+              <div id="suit-best" class="suit-side" hidden>
+                <div id="suit-best-cards" class="power-when suit-best-cards"></div>
+                <button id="suit-best-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+              </div>
+
+              <!-- A SECRET WORD: say it, then give it a spy voice. -->
+              <div id="suit-word" class="suit-side" hidden>
+                <button id="word-mic" class="btn btn-big word-mic" aria-label="Record your secret word">🎤</button>
+                <div id="word-voices" class="word-voices" hidden></div>
+              </div>
+            </div>
 
           </div>
         </article>
@@ -804,6 +826,32 @@
     <div id="likeme-cards" class="likeme-cards"></div>
     <div class="sheet-actions">
       <button id="btn-likeme-go" class="btn btn-accent btn-big" aria-label="Carry on">➡️</button>
+    </div>
+  </div>
+</div>
+
+<!-- THE SECRET HANDSHAKE (v3 §5). Moved off the "How my agent talks"
+     screen on 3 November 2026: there it had no purpose a child could see.
+     It now opens from Powers, when a child picks 🤝 as the way a power
+     switches on - so the handshake IS the switch. Up to 8 taps; it ends
+     1.5 s after the last tap, at the 8th, or 6 s after the first, and plays
+     straight back. Tapping the pad again makes a new one. -->
+<div id="handshake-overlay" class="overlay" hidden>
+  <div class="sheet sheet-handshake">
+    <div class="sheet-head">
+      <h3>Tap a secret handshake</h3>
+      <button id="handshake-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
+    </div>
+    <div class="handshake-row">
+      <button id="handshake-pad" class="handshake-pad" aria-label="Handshake pad">🤝</button>
+      <div class="handshake-side">
+        <!-- One dot per tap: a picture of the rhythm, with no numbers. -->
+        <div id="handshake-dots" class="handshake-dots" aria-hidden="true"></div>
+        <button id="handshake-replay" class="btn" hidden>▶️ Play it</button>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button id="handshake-done" class="btn btn-accent btn-big" aria-label="Done">✓</button>
     </div>
   </div>
 </div>

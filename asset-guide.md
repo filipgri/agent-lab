@@ -253,11 +253,11 @@ Stickers project. The emoji are fine until these arrive.
 | likeme-bit | A bit like me | 🌗 | 👤 | A bean figure looking into a mirror; the reflection is the same shape, but one half is a different colour. |
 | likeme-else | Someone else | 🎭 | | A colourful masquerade mask on a stick. |
 | mode-talk | Talking | 🗣️ | | A speech bubble with sound waves coming from it. |
-| mode-hands | Hands | ✋ | 👤 | Two grey-lilac mitten hands moving, with motion lines, as if signing. |
+| mode-hands | Signing | 🤟 | 👤 | One bean figure signing: both grey-lilac mitten hands up in front of its chest making a clear sign shape, small curved motion lines beside each hand. The hands do NOT touch each other and there is no second figure, so it cannot read as a high five or a clap. |
 | mode-handshake | Secret handshake | 🤝 | | Copy of `how-handshake`. |
 | mode-draw | Drawing | ✏️ | | A pencil drawing a sun on a sheet of paper. |
 | mode-act | Acting it out | 🎭 | 👤 | A bean figure in a big dramatic pose on a small stage under a spotlight. |
-| mode-pictures | Pictures | 🖼️ | | Four picture cards in a grid, showing a cup, a ball, a house and a star. |
+| mode-pictures | Picture cards | 🎴 | 👤 | A bean figure holding up one picture card (a cup) and pointing at it with a mitten hand, with three more picture cards (a ball, a house, a star) fanned beside it. The cards have thick white borders, like communication picture cards. |
 | mode-write | Writing | 📝 | | A pencil writing wavy lines, not letters, on lined paper. |
 | mode-device | A device | 📱 | | Copy of `stk-aac-talker`. |
 | mode-hand-up | Hand up | 🙋 | 👤 | A bean figure with one mitten hand raised high. |
@@ -412,6 +412,9 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-suit-school | Talking, step 2 | How does school want your agent to talk? |
 | nar-handshake-make | Handshake | Tap a secret handshake for your agent. |
 | nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
+| nar-suit-best | Talking: which is best | Which way does your agent like best? |
+| nar-word-make | Secret word | Make up a secret word. Tap the microphone and say it. |
+| nar-word-voice | Secret word: spy voice | Now pick a spy voice for it. |
 | nar-safe-talk | Safe place, step 1 | Where does your agent feel safe to talk? |
 | nar-safe-stops | Safe place, step 2 | Where does your agent's power stop working? |
 | nar-powers-make | Powers start | Make up a power. Draw it or say it. |
@@ -440,11 +443,11 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-likeme-bit | A bit like me. |
 | nar-likeme-else | Someone else. |
 | nar-mode-talk | Talking. |
-| nar-mode-hands | Hands. |
+| nar-mode-hands | Signing. |
 | nar-mode-handshake | Secret handshake. |
 | nar-mode-draw | Drawing. |
 | nar-mode-act | Acting it out. |
-| nar-mode-pictures | Pictures. |
+| nar-mode-pictures | Picture cards. |
 | nar-mode-write | Writing. |
 | nar-mode-device | A device. |
 | nar-mode-hand-up | Hand up. |

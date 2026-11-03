@@ -694,11 +694,11 @@
     {
       "id": "mode-hands",
       "file": "img/cards/mode-hands.png",
-      "label": "Hands",
-      "fallback": "✋",
+      "label": "Signing",
+      "fallback": "🤟",
       "kind": "sticker",
       "people": true,
-      "prompt": "Two grey-lilac mitten hands moving, with motion lines, as if signing."
+      "prompt": "One bean figure signing: both grey-lilac mitten hands up in front of its chest making a clear sign shape, small curved motion lines beside each hand. The hands do NOT touch each other and there is no second figure, so it cannot read as a high five or a clap."
     },
     {
       "id": "mode-handshake",
@@ -730,11 +730,11 @@
     {
       "id": "mode-pictures",
       "file": "img/cards/mode-pictures.png",
-      "label": "Pictures",
-      "fallback": "🖼️",
+      "label": "Picture cards",
+      "fallback": "🎴",
       "kind": "sticker",
-      "people": false,
-      "prompt": "Four picture cards in a grid, showing a cup, a ball, a house and a star."
+      "people": true,
+      "prompt": "A bean figure holding up one picture card (a cup) and pointing at it with a mitten hand, with three more picture cards (a ball, a house, a star) fanned beside it. The cards have thick white borders, like communication picture cards."
     },
     {
       "id": "mode-write",
@@ -1253,6 +1253,21 @@
       "text": "Listen. Tap again to make a new one."
     },
     {
+      "id": "nar-suit-best",
+      "file": "audio/narrator/nar-suit-best.mp3",
+      "text": "Which way does your agent like best?"
+    },
+    {
+      "id": "nar-word-make",
+      "file": "audio/narrator/nar-word-make.mp3",
+      "text": "Make up a secret word. Tap the microphone and say it."
+    },
+    {
+      "id": "nar-word-voice",
+      "file": "audio/narrator/nar-word-voice.mp3",
+      "text": "Now pick a spy voice for it."
+    },
+    {
       "id": "nar-safe-talk",
       "file": "audio/narrator/nar-safe-talk.mp3",
       "text": "Where does your agent feel safe to talk?"
@@ -1370,7 +1385,7 @@
     {
       "id": "nar-mode-hands",
       "file": "audio/narrator/nar-mode-hands.mp3",
-      "text": "Hands."
+      "text": "Signing."
     },
     {
       "id": "nar-mode-handshake",
@@ -1390,7 +1405,7 @@
     {
       "id": "nar-mode-pictures",
       "file": "audio/narrator/nar-mode-pictures.mp3",
-      "text": "Pictures."
+      "text": "Picture cards."
     },
     {
       "id": "nar-mode-write",

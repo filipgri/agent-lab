@@ -3144,13 +3144,106 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 }
 
 /* ============================================================
-   HOW MY AGENT TALKS (v3 §5, P3)
-   The step layout and the cards reuse the Power-up's styles
-   (.power-steps, .power-step, .power-when, .when-own).
+   HOW MY AGENT TALKS (v3 §5, P3) - one card at a time
+   The agent stands big on the left (top, in portrait) and acts out the
+   card; the card and the three piles sit beside it.
    ============================================================ */
-.suit-cards .pic-card { width: 128px; }
-.suit-cards .pic-card-art { min-height: 92px; }
-.suit-cards .when-own { width: 128px; }
+.suit-wrap { display: flex; flex-direction: column; gap: 14px; height: 100%; min-height: 0; }
+.suit-head .suit-phases { flex: 0 0 auto; }
+.suit-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+.suit-stage-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(340px, 38vw);
+}
+.suit-stage { width: 100%; height: auto; aspect-ratio: 1; }
+.suit-side {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.suit-side[hidden] { display: none; }
+
+/* The one card being sorted: big, and tappable to see it acted out again. */
+.suit-card-slot .pic-card { width: 200px; }
+.suit-card-slot .pic-card-art { min-height: 112px; }
+.suit-card-slot .pic-card-emoji { font-size: 64px; }
+.suit-card-slot .pic-card-label { font-size: 22px; }
+/* Every card is sorted: a calm tick where the card was. */
+.suit-card-done { font-size: 72px; line-height: 1; padding: 30px 0; }
+
+.suit-piles { display: flex; gap: 14px; }
+.suit-pile {
+  min-width: 108px;
+  min-height: 88px;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 17px;
+}
+.suit-pile .pile-icon { font-size: 38px; line-height: 1; }
+/* The pile this card is already on, when a child comes back to re-sort. */
+.suit-pile.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+.suit-progress { display: flex; align-items: center; gap: 14px; }
+.suit-dots { display: flex; gap: 7px; flex-wrap: wrap; max-width: 260px; }
+.suit-dots span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.18);
+}
+.suit-dots span.is-on { background: var(--accent); }
+.suit-dots span.is-here { box-shadow: 0 0 0 3px rgba(255,255,255,.7); }
+.suit-own-row { justify-content: center; }
+.suit-own-row .when-own { width: 120px; }
+.suit-best-cards { justify-content: center; }
+.suit-best-cards .pic-card, .suit-best-cards .when-own { width: 136px; }
+
+/* The secret word. */
+.word-mic { min-width: 150px; min-height: 120px; font-size: 64px; }
+.word-mic.is-recording { animation: record-pulse 1s ease-in-out infinite; }
+.word-voices { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.word-voices[hidden] { display: none; }
+.word-voice { min-width: 96px; min-height: 84px; flex-direction: column; gap: 4px; font-size: 15px; }
+.word-voice .voice-icon { font-size: 34px; line-height: 1; }
+.word-voice.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+/* The agent acting the card out: the card's emoji appears by its head like
+   a speech bubble, and the agent moves. The emoji is MEANING, not just
+   decoration - it says what the agent is doing - so it shows in Calm and
+   Off too, standing still; only the movement needs Full motion. */
+.suit-act {
+  position: absolute;
+  right: -4%;
+  top: -2%;
+  font-size: 68px;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 3;
+}
+.suit-act.is-showing { opacity: 1; }
+body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-out both; }
+
+/* Portrait: the agent on top, the card and piles underneath. */
+@media (orientation: portrait) {
+  .suit-main { flex-direction: column; align-items: center; overflow-y: auto; }
+  .suit-stage-wrap { width: min(260px, 52vw); }
+  .suit-side { max-height: none; overflow: visible; }
+}
 
 /* The secret handshake pad: big and round, and it lights up on every tap
    and every played-back pulse. The light is a colour change, not an
@@ -3182,30 +3275,18 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 }
 .handshake-dots span.is-on { background: var(--accent); }
 
-/* Tapping a card makes the agent act it out (v3 §5): a small movement on the
-   thumbnail, and the card's emoji popping up above it. Full motion only. */
-/* The pop sits on .agent-preview, not inside .preview-art, which clips. */
-.agent-preview { position: relative; }
-.act-pop {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  font-size: 44px;
-  pointer-events: none;
-  transform: translate(-50%, 0);
-  animation: act-pop 1100ms ease-out forwards;
-  z-index: 3;
-}
+/* The agent acting out a card: one of four movements on the big stage. */
+/* The emoji pops in and then STAYS, because it says what the agent is
+   doing (see .suit-act). */
 @keyframes act-pop {
-  0%   { opacity: 0; transform: translate(-50%, 10px) scale(.6); }
-  25%  { opacity: 1; transform: translate(-50%, -26px) scale(1.15); }
-  70%  { opacity: 1; transform: translate(-50%, -40px) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -54px) scale(.9); }
+  0%   { opacity: 0; transform: translateY(14px) scale(.6); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.12); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.preview-art.act-wiggle { animation: act-wiggle 700ms ease-in-out; }
-.preview-art.act-jump   { animation: act-jump 700ms cubic-bezier(.34,1.56,.64,1); }
-.preview-art.act-hush   { animation: act-hush 900ms ease-in-out; }
-.preview-art.act-rise   { animation: act-rise 800ms ease-out; }
+.suit-stage.act-wiggle { animation: act-wiggle 700ms ease-in-out; }
+.suit-stage.act-jump   { animation: act-jump 700ms cubic-bezier(.34,1.56,.64,1); }
+.suit-stage.act-hush   { animation: act-hush 900ms ease-in-out; }
+.suit-stage.act-rise   { animation: act-rise 800ms ease-out; }
 @keyframes act-wiggle {
   0%, 100% { transform: rotate(0); }
   20% { transform: rotate(-6deg); }  40% { transform: rotate(6deg); }
@@ -3223,3 +3304,6 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   0%, 100% { transform: translateY(0); }
   45% { transform: translateY(-10px); }
 }
+
+/* The handshake sheet (opened from Powers). */
+.sheet-handshake { width: min(560px, 100%); }

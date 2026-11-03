@@ -409,25 +409,30 @@ to the start. No card screen.
   - **"Is your agent like you?"** after Make is stamped, or on opening an
     agent whose Make is not `todo`. **Asked once:** the `like_me_ask` event
     is the record. ➡️ always carries on; no answer logs `like_me_skip`.
-- **P3 — built (3 November 2026), on branch `v3`.** 🗣️ How my agent talks
-  (§5). Section 31 of `app.js`; the panel reuses the Power-up's step and
-  card styles (`.power-steps`, `.power-when`, `.when-own`), which P5 will
-  want too.
-  - Two card steps (`suit.likes`, `suit.school`; the school step adds Hand
-    up and Being quiet) and ✏️ My own on each. A card turned on makes the
-    agent act it out — a class on `#preview-art` and an emoji popping up
-    from `.agent-preview` (not inside `.preview-art`, which clips) — Full
-    motion only, cleaned up by timers.
-  - **Shared helpers for every later screen:** `modeCard()` (a picture card
-    with its emoji stand-in), `ownCardButton()` and `ownCardTile()` (a kept
-    ✏️ card with the two-tap remove). The v2 copies went with the Power-up.
-  - **The handshake pad listens on `pointerdown`**, not click — a click
-    arrives on lift and would smear a fast rhythm. The pad's light is a
-    colour change, not an animation, so it still shows with Motion Off.
-    For half a second after an 8-tap finish the pad ignores taps: a child
-    drumming past the 8th would otherwise start a new handshake at once
-    and replace the one just made. `leaveCurrent()` keeps a rhythm still
-    being tapped (`stopHandshake()`).
+- **P3 — built, then redesigned (3 November 2026), on branch `v3`.**
+  🗣️ How my agent talks (§5). Section 31 of `app.js`. Filip tried the first
+  version (two grids of cards and a handshake pad) and found the questions
+  too long for a loud room, the act-out lost on the thumbnail, Hands and
+  Pictures unclear, and the handshake pointless there. Now:
+  - **One card at a time, Talking-Mats style:** the agent stands BIG in the
+    middle and acts the card out (it moves in Full motion; the card's emoji
+    sits by its head always, because it carries the meaning), and the child
+    sorts it 👍 🤷 👎. Four parts, short icon headings: 🗣️ My agent likes…
+    · ⭐ Which is best? (exactly one, from the 👍 pile) · 🏫 School wants…
+    · 🤫 a secret word (🎤 + one of the six spy voices).
+  - **Data (approved by Filip):** `suit.likesUnsure/likesNot`,
+    `suit.schoolUnsure/schoolNot`, `suit.best`, top-level `secretWord`.
+  - Hands → **Signing** 🤟, Pictures → **Picture cards** 🎴, with sharper
+    ChatGPT prompts. `nar-mode-hands` and `nar-mode-pictures` must be
+    remade (`--force`); `nar-suit-best`, `nar-word-make` and
+    `nar-word-voice` are new.
+  - **The handshake moved to a sheet** (`#handshake-overlay`,
+    `openHandshakeSheet(onDone)`), which Powers opens when a child picks 🤝
+    as a power's switch — there the handshake has a purpose.
+  - **Shared helpers:** `modeCard()`, `ownCardButton()`, `ownCardTile()`.
+    They live at the top of the section's helpers — a rewrite of the
+    section once deleted them and broke three screens, which the
+    undefined-call check would have caught: run it after every rewrite.
 - **P4 — built (3 November 2026), on branch `v3`.** 📍 Safe place (§6).
   - **Section 27 is now Safe place**, built on the v2 HQ screen and panel
     (the panel's `data-mission` is `safe`; the element ids stay `hq-…`).
@@ -495,6 +500,11 @@ hand-edit the manifest, and never edit both.
 
 ## Settled decisions
 
+- **"How my agent talks" is a Talking Mat, not a form (3 November 2026).**
+  Filip's first try: a loud room means nothing may depend on hearing or
+  reading, and the agent must be big and do the thing. One card at a time,
+  sorted 👍 🤷 👎, then one favourite. This departs from v3 §5 (any number
+  of cards, and a handshake on this screen).
 - **Spy words, not animals (3 November 2026).** A big dolphin on the Start
   screen promised children they would be working with a dolphin, and nothing
   in the app ever mentioned it again. The second reel is now a spy word that

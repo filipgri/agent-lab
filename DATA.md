@@ -152,15 +152,18 @@ from v1, where `moodCodes` and `rules` can carry v1 work.
 
 ### 3.7 v3 fields (agent-lab-v3-spec.md §10)
 
-Added at P0 with their empty defaults. The "Milestone" column says which
+Added at P0 with their empty defaults. **The three-pile sort, `suit.best` and
+`secretWord` were added on 3 November 2026, after Filip tried the first
+version of P3** (approved then). The "Milestone" column says which
 milestone first writes each one; until then it keeps its default.
 
 | Field | Default | Will hold | Milestone |
 |---|---|---|---|
 | `likeMe` | `null` | `"likeme-like"` / `"likeme-bit"` / `"likeme-else"` — "Is your agent like you?". The LAST answer; every answer, including changes of mind, is in the log (`like_me`). `null` if never answered — `like_me_skip` says if it was asked and skipped. | P2 ✅ |
 | `base` | `null` | `"base-1"` … `"base-8"` (a ready agent from `Parts.BASES` in `parts.js`), or `"blank"`. Which one the child started from. The cover's `shapes` start as a copy of that base and change from there. `null` on agents made before v3. | P2 ✅ |
-| `suit` | `{ likes: [], likesOwn: [], school: [], schoolOwn: [] }` | 🗣️ How my agent talks. `likes`: how the agent likes to talk; `school`: how school wants it to talk. Each a list of card ids, **in the order they were turned on** (a card turned off is taken out). Cards: `mode-talk`, `mode-hands`, `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures`, `mode-write`, `mode-device`, and — on `school` only — `mode-hand-up`, `mode-quiet`. `likesOwn` / `schoolOwn`: the child's ✏️ My own cards, each `{ png, audioId }`. The app never compares the two lists. | P3 ✅ |
-| `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). | P3 ✅ |
+| `suit` | see right | 🗣️ How my agent talks. Every card is sorted onto ONE of three piles, Talking-Mats style: 👍 Yes / 🤷 Not sure / 👎 No. **"My agent likes…"**: `likes` (👍), `likesUnsure` (🤷), `likesNot` (👎). **"School wants…"**: `school`, `schoolUnsure`, `schoolNot`. Each is a list of card ids, in the order they were put there. Cards: `mode-talk` (Talking), `mode-hands` (Signing), `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures` (Picture cards), `mode-write`, `mode-device`, and — in "School wants…" only — `mode-hand-up`, `mode-quiet`. `likesOwn` / `schoolOwn`: the child's ✏️ My own cards, each `{ png, audioId }`, which count as 👍. **`best`**: the one way the agent likes most — a card id from `likes`, or `"own-0"`, `"own-1"`… for an own card — or `null`. A card not yet sorted is on no pile. The app never compares the piles. Default `{ likes: [], likesUnsure: [], likesNot: [], likesOwn: [], school: [], schoolUnsure: [], schoolNot: [], schoolOwn: [], best: null }`. | P3 ✅ |
+| `secretWord` | `null` | 🤫 An invented word the child said: `{ audioId, filter }`. `filter` is one of the six spy voices (`normal`, `squeaky`, `deep`, `robot`, `radio`, `echo` — `Voice.FILTERS` in `audio.js`). A new recording replaces the old one (the old clip is deleted) and keeps the chosen voice. | P3 ✅ |
+| `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). Made on the handshake sheet, which Powers opens (P5). | P5 |
 | `safe` | `{ talk: null, stops: null }` | 📍 Safe place. `talk`: "Where does your agent feel safe to talk?" `stops`: "Where does your agent's power stop working?" Each is `null` (not answered) or `{ id, png }`: `id` is one of the twelve HQ place ids or `"safe-nowhere"` (Nowhere, an equal choice); or `id: null` with `png` (a drawn place) and/or `audioId` (a place the child said) from the ✏️ sheet. The agent stands in `safe.talk` on every screen when it is a real place. Off in the session-3 preset. | P4 ✅ |
 | `powers` | `[]` | Up to 3 powers. Shape below. | P5 |
 | `bottles` | `[]` | Up to 3 bottles. Shape below. | P6 |
@@ -298,15 +301,22 @@ The "v3" column says whether the current app can still log the event.
 
 | Action | When | `detail` | v3 |
 |---|---|---|---|
-| `suit_toggle` | A card turned on or off. | `{ step: "likes"/"school", mode, on }` | ✅ |
+| `suit_sort` | A card was put on a pile. Putting it on another pile later (coming back, or ↩️) is another `suit_sort`, so changes of mind are kept. | `{ step: "likes"/"school", mode, pile: "yes"/"unsure"/"no" }` | ✅ |
+| `suit_back` | ↩️ — back one card. | `{ step }` | ✅ |
+| `suit_phase` | Another part opened. | `{ to: "likes"/"best"/"school"/"word", how: "auto"/"next"/"tab" }` — `auto` after the last card, `next` is ➡️, `tab` the 🗣️ ⭐ 🏫 🤫 buttons | ✅ |
+| `suit_best` | ⭐ A card was picked as the best one. | `{ best }` — a card id or `"own-0"`… | ✅ |
 | `suit_own` | A ✏️ My own card was kept. | `{ step, drawn, said }` | ✅ |
 | `suit_own_remove` | A ✏️ card was removed (second tap of two). | `{ step }` | ✅ |
-| `handshake_make` | A handshake was finished: 1.5 s after the last tap, at the 8th tap, or 6 s after the first. | `{ taps, ms }` — `taps` is the whole rhythm (ms from the first tap), `ms` its length | ✅ |
-| `handshake_redo` | The pad was tapped again when a handshake already existed, starting a new one. | `{}` | ✅ |
-| `handshake_replay` | ▶️ Play it. (The automatic play-back after making one is not logged.) | `{}` | ✅ |
+| `secret_word_record` | 🎤 A secret word was recorded. | `{ ms, again }` — `again` if it replaced one | ✅ |
+| `secret_word_voice` | A spy voice was picked for it. | `{ filter }` | ✅ |
+| `handshake_open` | The handshake sheet was opened (from Powers). | `{}` | P5 |
+| `handshake_make` | A handshake was finished: 1.5 s after the last tap, at the 8th tap, or 6 s after the first. | `{ taps, ms }` — `taps` is the whole rhythm (ms from the first tap), `ms` its length | P5 |
+| `handshake_redo` | The pad was tapped again when a handshake already existed, starting a new one. | `{}` | P5 |
+| `handshake_replay` | ▶️ Play it. (The automatic play-back after making one is not logged.) | `{}` | P5 |
 
-Every card tap is also a `label_speak` (the card says its label). Turning a
-card ON also makes the agent act it out on the thumbnail; that is not logged.
+Each card says its label as it appears (not logged); a TAP on the card is a
+`label_speak`. The agent acts every card out — it moves (Full motion), and
+the card's emoji appears by its head (always) — and that is not logged.
 
 ### 4.3c Safe place (v3 P4)
 

@@ -1041,7 +1041,15 @@ function fillDefaults(agent) {
        had and a fresh export still carries all of it. ---- */
     likeMe: null,          // 'likeme-like' | 'likeme-bit' | 'likeme-else'
     base: null,            // 'base-1' … 'base-8' | 'blank'
-    suit: { likes: [], likesOwn: [], school: [], schoolOwn: [] },
+    // 🗣️ How my agent talks. Each card goes on ONE of three piles per step:
+    // likes / likesUnsure / likesNot, and school / schoolUnsure / schoolNot
+    // (👍 🤷 👎). `best` is the one the agent likes most. The three-pile
+    // sort, `best` and `secretWord` were added on 3 November 2026, at
+    // Filip's request after he tried P3 (see DATA.md).
+    suit: { likes: [], likesUnsure: [], likesNot: [], likesOwn: [],
+            school: [], schoolUnsure: [], schoolNot: [], schoolOwn: [],
+            best: null },
+    secretWord: null,      // { audioId, filter } - an invented word, said
     handshake: null,       // { taps: [0, 310, 620] }  ms from the first tap
     safe: { talk: null, stops: null },
     powers: [],            // up to 3; see DATA.md for the shape of one
@@ -1057,9 +1065,11 @@ function fillDefaults(agent) {
 
   // A v3 object that exists but is missing a key - from a half-finished
   // import, say - gets the missing key and keeps everything it had.
-  ['likes', 'likesOwn', 'school', 'schoolOwn'].forEach(k => {
+  ['likes', 'likesUnsure', 'likesNot', 'likesOwn',
+   'school', 'schoolUnsure', 'schoolNot', 'schoolOwn'].forEach(k => {
     if (!Array.isArray(agent.suit[k])) agent.suit[k] = [];
   });
+  if (agent.suit.best === undefined) agent.suit.best = null;
   if (agent.safe.talk === undefined) agent.safe.talk = null;
   if (agent.safe.stops === undefined) agent.safe.stops = null;
   if (!Array.isArray(agent.powers)) agent.powers = [];
@@ -1158,8 +1168,10 @@ function leaveCurrent() {
   if (typeof Voice !== 'undefined') { Voice.stop(); Voice.stopPlayback(); }
   // v2 §4.1: sweep up any drag preview stranded on <body>.
   if (typeof clearDragLeftovers === 'function') clearDragLeftovers();
-  // v3 §5: keep a handshake being tapped, and stop one playing back.
+  // v3 §5: keep a handshake being tapped, and stop one playing back; and
+  // let no "next part" timer from How my agent talks fire on another screen.
   if (typeof stopHandshake === 'function') stopHandshake();
+  if (typeof stopSuit === 'function') stopSuit();
   if (state.screen === 'mission' || state.onReveal) logEvent('mission_leave', {});
 }
 
@@ -5818,59 +5830,71 @@ function wireQuickAgent() {
 /* ===========================================================================
    31. HOW MY AGENT TALKS (v3 §5, P3)
 
-   Three steps on one screen, scrolling together:
-     1. "How does your agent like to talk?"        -> agent.suit.likes
-     2. "How does school want your agent to talk?" -> agent.suit.school
-        (the same cards, plus Hand up and Being quiet, which only appear here)
-     3. A secret handshake                          -> agent.handshake
+   Redesigned on 3 November 2026, after Filip tried the first version: the
+   questions were too long, the room is too loud to rely on the voice, and
+   the agent acting a card out on a small thumbnail was easy to miss. So:
 
-   - Any number of cards, plus ✏️ My own (the shared sheet, openOwnCard).
-   - Tapping a card turns it on or off, says its label, and - when it turns
-     on - makes the agent act it out on the thumbnail (Full motion only).
-   - THE APP NEVER COMPARES THE TWO LISTS. A child who likes drawing and
-     whose school wants hands up is told nothing about it: that gap is for
-     the analysis and for next session's questions, never for a reaction.
-   - A kept ✏️ card is removed only on a second tap (ownCardTile).
+   - ONE CARD AT A TIME. The agent stands big in the middle and ACTS OUT the
+     card - it moves, and the card's emoji appears by its head - and the
+     child sorts it onto one of three piles: 👍 Yes · 🤷 Not sure · 👎 No.
+     This is how a Talking Mat works (Murphy, University of Stirling), a
+     method built for children who find talking about talking hard.
+   - Four parts, each a short heading with an icon:
+       🗣️ My agent likes…   suit.likes / likesUnsure / likesNot
+       ⭐ Which is best?    suit.best - one card from the 👍 pile
+       🏫 School wants…     suit.school / schoolUnsure / schoolNot
+                            (the same cards, plus Hand up and Being quiet)
+       🤫 A secret word     secretWord - an invented word, said with 🎤,
+                            given one of the six spy voices from session 2
+   - ✏️ My own sits under the piles in both sorting parts, and a kept own
+     card counts as 👍 (it can be the best one too).
+   - THE APP NEVER COMPARES THE PILES. A child who likes drawing and whose
+     school wants hands up is told nothing about it: that gap is for the
+     analysis and for next session's questions, never for a reaction.
+   - The secret handshake moved to a sheet that Powers opens (see below).
    ======================================================================== */
 
 // `act` is how the agent acts the card out: a wiggle, a jump, rising up a
 // little, or going small and quiet (style.css, .act-*).
 const TALK_MODES = [
   { id: 'mode-talk',      emoji: '🗣️', label: 'Talking',          act: 'jump' },
-  { id: 'mode-hands',     emoji: '✋', label: 'Hands',            act: 'wiggle' },
+  // "Hands" looked like a high five (Filip, 3 November): it means signing.
+  { id: 'mode-hands',     emoji: '🤟', label: 'Signing',          act: 'wiggle' },
   { id: 'mode-handshake', emoji: '🤝', label: 'Secret handshake', act: 'wiggle' },
   { id: 'mode-draw',      emoji: '✏️', label: 'Drawing',          act: 'wiggle' },
   { id: 'mode-act',       emoji: '🎭', label: 'Acting it out',    act: 'jump' },
-  { id: 'mode-pictures',  emoji: '🖼️', label: 'Pictures',         act: 'rise' },
+  // "Pictures" was not clear either: it means picture cards to point at.
+  { id: 'mode-pictures',  emoji: '🎴', label: 'Picture cards',    act: 'rise' },
   { id: 'mode-write',     emoji: '📝', label: 'Writing',          act: 'wiggle' },
   { id: 'mode-device',    emoji: '📱', label: 'A device',         act: 'rise' }
 ];
 
-// v3 §5: these two appear only on step 2, the school's way.
+// v3 §5: these two appear only in "School wants…".
 const SCHOOL_ONLY_MODES = [
   { id: 'mode-hand-up', emoji: '🙋', label: 'Hand up',     act: 'rise' },
   { id: 'mode-quiet',   emoji: '🤫', label: 'Being quiet', act: 'hush' }
 ];
 
-const SUIT_STEPS = {
-  likes: {
-    box: '#suit-likes', modes: TALK_MODES, own: 'likesOwn',
-    title: 'How does your agent like to talk?', say: 'nar-suit-likes'
-  },
-  school: {
-    box: '#suit-school', modes: TALK_MODES.concat(SCHOOL_ONLY_MODES), own: 'schoolOwn',
-    title: 'How does school want your agent to talk?', say: 'nar-suit-school'
-  }
+// The three piles of each sorting part, and where each is saved.
+const SUIT_PILES = {
+  likes:  { yes: 'likes',  unsure: 'likesUnsure',  no: 'likesNot' },
+  school: { yes: 'school', unsure: 'schoolUnsure', no: 'schoolNot' }
 };
 
-function enterSuit() {
-  hideEditor();
-  paintSuitStep('likes');
-  paintSuitStep('school');
-  paintHandshake();
-}
+const SUIT_PHASES = {
+  likes:  { title: 'My agent likes…', say: 'nar-suit-likes',
+            modes: TALK_MODES, own: 'likesOwn' },
+  best:   { title: 'Which is best?', say: 'nar-suit-best' },
+  school: { title: 'School wants…', say: 'nar-suit-school',
+            modes: TALK_MODES.concat(SCHOOL_ONLY_MODES), own: 'schoolOwn' },
+  word:   { title: 'Make up a secret word', say: 'nar-word-make' }
+};
+const SUIT_ORDER = ['likes', 'best', 'school', 'word'];
 
-/* ---- cards ---- */
+const suitUi = { phase: 'likes', index: 0 };
+let suitTimer = null;                 // the short pause before the next part
+
+/* ---- shared card helpers (used by Quick agent, Safe place and Powers) ---- */
 
 /* A picture card that can be on or off. Assets.card() draws it: Filip's
    picture if it has arrived, the emoji until then (v2 §5.0). The emoji and
@@ -5926,83 +5950,339 @@ function ownCardButton(onTap) {
   return own;
 }
 
-function paintSuitStep(step) {
-  const conf = SUIT_STEPS[step];
-  const box = $(conf.box);
-  if (!box || !state.agent) return;
-  box.innerHTML = '';
+function modeById(id) {
+  return TALK_MODES.concat(SCHOOL_ONLY_MODES).find(m => m.id === id) || null;
+}
 
-  const chosen = state.agent.suit[step];
-  conf.modes.forEach(mode => {
-    box.appendChild(modeCard(mode, chosen.indexOf(mode.id) !== -1,
-                             () => toggleSuit(step, mode)));
+/* Which pile a card is on in one sorting part: 'yes', 'unsure', 'no', or
+   null if it has not been sorted yet. */
+function pileOf(step, modeId) {
+  const piles = SUIT_PILES[step];
+  return Object.keys(piles).find(pile =>
+    state.agent.suit[piles[pile]].indexOf(modeId) !== -1) || null;
+}
+
+/* The cards that can be "best": everything on the 👍 pile, and the child's
+   own cards. An own card is named "own-0", "own-1"… by its place. */
+function bestChoices() {
+  const suit = state.agent.suit;
+  return suit.likes.map(id => ({ id: id, mode: modeById(id) }))
+    .concat(suit.likesOwn.map((card, i) => ({ id: 'own-' + i, card: card })));
+}
+
+/* Has the child finished this part? Used to decide where to start when the
+   screen opens, so a child coming back carries on where they stopped. */
+function suitPhaseDone(phase) {
+  const suit = state.agent.suit;
+  if (phase === 'best') return suit.best !== null || bestChoices().length === 0;
+  if (phase === 'word') return Boolean(state.agent.secretWord);
+  return SUIT_PHASES[phase].modes.every(m => pileOf(phase, m.id));
+}
+
+function enterSuit() {
+  if (!state.agent) return;
+  hideEditor();
+  renderAgentView($('#suit-stage'), state.agent.cover, false);
+  startSuitPhase(SUIT_ORDER.find(p => !suitPhaseDone(p)) || 'likes');
+}
+
+/* Called by leaveCurrent(): nothing carries on into the next screen. */
+function stopSuit() {
+  clearTimeout(suitTimer);
+  clearTimeout(actTimer);
+}
+
+function startSuitPhase(phase) {
+  clearTimeout(suitTimer);
+  // Nothing on the 👍 pile means there is nothing to choose from.
+  if (phase === 'best' && bestChoices().length === 0) phase = 'school';
+  suitUi.phase = phase;
+
+  const conf = SUIT_PHASES[phase];
+  if (conf.modes) {
+    // Start at the first card not yet sorted - or at the beginning, to
+    // look again, if every card already is.
+    const first = conf.modes.findIndex(m => !pileOf(phase, m.id));
+    suitUi.index = first === -1 ? 0 : first;
+  }
+  paintSuit();
+  if (conf.modes) presentCard();
+  if (phase === 'word') actOut({ emoji: '🤫', act: 'hush' });
+}
+
+/* Move to another part: ⭐ 🏫 … at the top, ➡️, or automatically after the
+   last card. `how` says which, for the log. */
+function goSuitPhase(phase, how) {
+  if (phase === suitUi.phase) return;
+  logEvent('suit_phase', { to: phase, how: how });
+  startSuitPhase(phase);
+}
+
+function paintSuit() {
+  const phase = suitUi.phase;
+  $('#suit-title').textContent = SUIT_PHASES[phase].title;
+  $$('[data-suit-phase]').forEach(b => {
+    b.classList.toggle('is-on', b.dataset.suitPhase === phase);
+    // ⭐ only makes sense once something is on the 👍 pile.
+    b.disabled = b.dataset.suitPhase === 'best' && bestChoices().length === 0;
+  });
+  $('#suit-sort').hidden = !SUIT_PHASES[phase].modes;
+  $('#suit-best').hidden = phase !== 'best';
+  $('#suit-word').hidden = phase !== 'word';
+  if (SUIT_PHASES[phase].modes) paintSort();
+  if (phase === 'best') paintBest();
+  if (phase === 'word') paintWord();
+}
+
+/* ---- sorting ---- */
+
+function paintSort() {
+  const phase = suitUi.phase;
+  const modes = SUIT_PHASES[phase].modes;
+  const mode = modes[suitUi.index];
+
+  const slot = $('#suit-card');
+  slot.innerHTML = '';
+  if (mode) {
+    // Tapping the card shows it acted out again, and says its label.
+    slot.appendChild(modeCard(mode, false, () => { actOut(mode); speakLabel(mode.id); }));
+  } else {
+    slot.innerHTML = '<div class="suit-card-done" aria-label="All sorted">✓</div>';
+  }
+
+  const current = mode ? pileOf(phase, mode.id) : null;
+  $$('.suit-pile').forEach(b => {
+    b.hidden = !mode;
+    b.classList.toggle('is-on', b.dataset.pile === current);
+  });
+  $('#suit-back').hidden = suitUi.index === 0;
+
+  const dots = $('#suit-dots');
+  dots.innerHTML = '';
+  modes.forEach((m, i) => {
+    const dot = document.createElement('span');
+    if (pileOf(phase, m.id)) dot.classList.add('is-on');
+    if (i === suitUi.index) dot.classList.add('is-here');
+    dots.appendChild(dot);
   });
 
+  paintSuitOwn();
+}
+
+/* The card on screen: the agent acts it out, and the card says its label.
+   Not logged - the child did nothing yet. A tap on the card is logged. */
+function presentCard() {
+  const mode = SUIT_PHASES[suitUi.phase].modes[suitUi.index];
+  if (!mode) return;
+  actOut(mode);
+  speakLine('nar-' + mode.id);
+}
+
+function sortCard(pile) {
+  const step = suitUi.phase;
+  const modes = SUIT_PHASES[step].modes;
+  const mode = modes && modes[suitUi.index];
+  if (!mode) return;
+
+  const suit = state.agent.suit;
+  const piles = SUIT_PILES[step];
+  // A card lives on one pile at a time: take it off wherever it was.
+  Object.keys(piles).forEach(p => {
+    const at = suit[piles[p]].indexOf(mode.id);
+    if (at !== -1) suit[piles[p]].splice(at, 1);
+  });
+  suit[piles[pile]].push(mode.id);
+  // The best one has to be a 👍 card.
+  if (step === 'likes' && pile !== 'yes' && suit.best === mode.id) suit.best = null;
+
+  logEvent('suit_sort', { step: step, mode: mode.id, pile: pile });
+  playSfx('sfx-pop');
+  scheduleSave();
+
+  suitUi.index += 1;
+  paintSort();
+  if (suitUi.index < modes.length) { presentCard(); return; }
+
+  // The last card: a tick, a breath, and on to the next part.
+  suitTimer = setTimeout(() => {
+    const next = step === 'likes' ? 'best' : 'word';
+    logEvent('suit_phase', { to: next, how: 'auto' });
+    startSuitPhase(next);
+  }, 900);
+}
+
+function suitBack() {
+  if (suitUi.index === 0) return;
+  clearTimeout(suitTimer);
+  suitUi.index -= 1;
+  logEvent('suit_back', { step: suitUi.phase });
+  paintSort();
+  presentCard();
+}
+
+/* ✏️ My own, under the piles. A kept card counts as 👍. */
+function paintSuitOwn() {
+  const step = suitUi.phase;
+  const ownKey = SUIT_PHASES[step].own;
+  const box = $('#suit-own-row');
+  box.innerHTML = '';
   box.appendChild(ownCardButton(() => openOwnCard({
-    title: conf.title,
-    say: conf.say,
+    title: SUIT_PHASES[step].title,
+    say: SUIT_PHASES[step].say,
     onKeep: card => {
-      state.agent.suit[conf.own].push(card);
+      state.agent.suit[ownKey].push(card);
       logEvent('suit_own', { step: step, drawn: Boolean(card.png), said: Boolean(card.audioId) });
-      paintSuitStep(step);
+      paintSuit();
       scheduleSave();
     }
   })));
-
-  state.agent.suit[conf.own].forEach((card, index) => {
+  state.agent.suit[ownKey].forEach((card, index) => {
     box.appendChild(ownCardTile(card, step + '-' + index,
       () => removeSuitOwn(step, index),
-      () => paintSuitStep(step)));
+      () => paintSuitOwn()));
   });
 }
 
-function toggleSuit(step, mode) {
-  const list = state.agent.suit[step];
-  const at = list.indexOf(mode.id);
-  const on = at === -1;
-  if (on) list.push(mode.id);       // the list keeps the order they were chosen
-  else list.splice(at, 1);
-
-  logEvent('suit_toggle', { step: step, mode: mode.id, on: on });
-  speakLabel(mode.id);
-  playSfx('sfx-pop');
-  if (on) actOut(mode);
-  paintSuitStep(step);
-  scheduleSave();
-}
-
 async function removeSuitOwn(step, index) {
-  const list = state.agent.suit[SUIT_STEPS[step].own];
+  const suit = state.agent.suit;
+  const list = suit[SUIT_PHASES[step].own];
   const card = list[index];
   if (!card) return;
   if (card.audioId) { Voice.forget(card.audioId); await Storage.deleteAudio(card.audioId); }
   list.splice(index, 1);
+  // Own cards are named by their place, so the best one may have moved.
+  if (step === 'likes' && suit.best && suit.best.indexOf('own-') === 0) {
+    const was = Number(suit.best.slice(4));
+    if (was === index) suit.best = null;
+    else if (was > index) suit.best = 'own-' + (was - 1);
+  }
   logEvent('suit_own_remove', { step: step });
-  paintSuitStep(step);
+  paintSuit();
   scheduleSave();
 }
 
-/* The agent acts the card out: its thumbnail moves, and the card's emoji
-   pops up above it. Decoration, so Full motion only (§5a). The clean-up is
-   a timer, not animationend (CLAUDE.md: animationend does not always fire). */
+/* ---- ⭐ which is best ---- */
+
+function paintBest() {
+  const box = $('#suit-best-cards');
+  box.innerHTML = '';
+  const best = state.agent.suit.best;
+  bestChoices().forEach(choice => {
+    if (choice.mode) {
+      box.appendChild(modeCard(choice.mode, best === choice.id, () => chooseBest(choice)));
+      return;
+    }
+    // One of the child's own cards: its drawing, or 🎤 if it was said.
+    const tile = document.createElement('button');
+    tile.className = 'when-own' + (best === choice.id ? ' is-on' : '');
+    tile.innerHTML = (choice.card.png
+        ? '<img class="own-card-thumb" alt="" src="' + choice.card.png + '">'
+        : '<span class="when-own-icon">🎤</span>') +
+      '<span class="when-own-label">My own</span>';
+    tile.addEventListener('click', () => chooseBest(choice));
+    box.appendChild(tile);
+  });
+  // ➡️ appears once one is chosen: this part asks for exactly one.
+  $('#suit-best-go').hidden = !best;
+}
+
+function chooseBest(choice) {
+  state.agent.suit.best = choice.id;
+  logEvent('suit_best', { best: choice.id });
+  if (choice.mode) { actOut(choice.mode); speakLabel(choice.mode.id); }
+  else playSfx('sfx-pop');
+  paintBest();
+  scheduleSave();
+}
+
+/* ---- 🤫 a secret word ---- */
+
+function paintWord() {
+  const word = state.agent.secretWord;
+  $('#word-mic').textContent = Voice.isRecording() ? '⏹️' : '🎤';
+  const box = $('#word-voices');
+  box.hidden = !word;
+  box.innerHTML = '';
+  if (!word) return;
+  Voice.FILTERS.forEach(filter => {
+    const button = document.createElement('button');
+    button.className = 'btn word-voice' + (word.filter === filter.id ? ' is-on' : '');
+    button.innerHTML = '<span class="voice-icon">' + filter.icon + '</span>' +
+                       '<span class="btn-label">' + filter.label + '</span>';
+    button.addEventListener('click', () => chooseWordVoice(filter.id));
+    box.appendChild(button);
+  });
+}
+
+async function recordWord() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+
+  const mic = $('#word-mic');
+  mic.classList.add('is-recording');
+  mic.textContent = '⏹️';
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    const old = state.agent.secretWord;
+    if (old && old.audioId) { Voice.forget(old.audioId); await Storage.deleteAudio(old.audioId); }
+    // A new recording keeps the spy voice already chosen.
+    state.agent.secretWord = { audioId: id, filter: (old && old.filter) || 'normal' };
+    logEvent('secret_word_record', { ms: Math.round(result.ms), again: Boolean(old) });
+    scheduleSave();
+    playWord();
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  mic.classList.remove('is-recording');
+  paintWord();
+}
+
+function chooseWordVoice(filterId) {
+  if (!state.agent.secretWord) return;
+  state.agent.secretWord.filter = filterId;
+  logEvent('secret_word_voice', { filter: filterId });
+  paintWord();
+  playWord();
+  scheduleSave();
+}
+
+async function playWord() {
+  const word = state.agent && state.agent.secretWord;
+  if (!word || state.muted) return;
+  Voice.unlock();
+  const row = await Storage.loadAudio(word.audioId);
+  if (!row) return;
+  actOut({ emoji: '🤫', act: 'jump' });
+  Voice.play(word.audioId, row.blob, word.filter);
+}
+
+/* ---- the agent acting it out ---- */
+
+/* The card's emoji appears by the agent's head and STAYS while the card is
+   on screen, because it says what the agent is doing - so it shows in Calm
+   and Off as well. The movement is decoration, so Full motion only, and
+   its clean-up is a timer, not animationend (CLAUDE.md). */
 let actTimer = null;
 function actOut(mode) {
-  if (!fullMotion()) return;
-  const art = $('#preview-art');
-  const holder = art && art.parentElement;
-  if (!art || !holder) return;
+  const stageEl = $('#suit-stage');
+  const act = $('#suit-act');
+  if (!stageEl || !act) return;
 
-  ['act-wiggle', 'act-jump', 'act-hush', 'act-rise'].forEach(c => art.classList.remove(c));
-  void art.offsetWidth;                       // restart the animation
-  art.classList.add('act-' + mode.act);
+  act.textContent = mode.emoji;
+  act.classList.remove('is-showing');
+  void act.offsetWidth;                       // restart the pop
+  act.classList.add('is-showing');
+
+  const moves = ['act-wiggle', 'act-jump', 'act-hush', 'act-rise'];
+  moves.forEach(c => stageEl.classList.remove(c));
+  if (!fullMotion() || !mode.act) return;
+  void stageEl.offsetWidth;
+  stageEl.classList.add('act-' + mode.act);
   clearTimeout(actTimer);
-  actTimer = setTimeout(() => art.classList.remove('act-' + mode.act), 1000);
-
-  const pop = document.createElement('span');
-  pop.className = 'act-pop';
-  pop.textContent = mode.emoji;
-  holder.appendChild(pop);
-  setTimeout(() => pop.remove(), 1200);
+  actTimer = setTimeout(() => moves.forEach(c => stageEl.classList.remove(c)), 1000);
 }
 
 /* ---- the secret handshake ---- */
@@ -6134,9 +6414,44 @@ function paintHandshake() {
   $('#handshake-replay').hidden = taps.length === 0;
 }
 
+/* The handshake sheet. Powers (P5) opens it when a child picks 🤝 as the way
+   a power switches on, so the handshake IS the switch; `onDone` hears the
+   rhythm (or null) when the sheet closes. */
+let handshakeDone = null;
+function openHandshakeSheet(onDone) {
+  handshakeDone = onDone || null;
+  paintHandshake();
+  $('#handshake-overlay').hidden = false;
+  logEvent('handshake_open', {});
+}
+
+function closeHandshakeSheet() {
+  stopHandshake();
+  $('#handshake-overlay').hidden = true;
+  const done = handshakeDone;
+  handshakeDone = null;
+  if (done) done(state.agent && state.agent.handshake);
+}
+
 function wireSuit() {
+  $$('[data-suit-phase]').forEach(b =>
+    b.addEventListener('click', () => goSuitPhase(b.dataset.suitPhase, 'tab')));
+  $$('.suit-pile').forEach(b =>
+    b.addEventListener('click', () => sortCard(b.dataset.pile)));
+  $('#suit-back').addEventListener('click', suitBack);
+  $('#suit-best-go').addEventListener('click', () => goSuitPhase('school', 'next'));
+  $('#word-mic').addEventListener('click', recordWord);
+  // The 🔊: the part's question - or, once a secret word exists, the line
+  // that asks for a spy voice.
+  $('#suit-say').addEventListener('click', () => {
+    const phase = suitUi.phase;
+    speakLine(phase === 'word' && state.agent && state.agent.secretWord
+      ? 'nar-word-voice' : SUIT_PHASES[phase].say);
+  });
+
   $('#handshake-pad').addEventListener('pointerdown', handshakeTap);
   $('#handshake-replay').addEventListener('click', () => playHandshake(true));
+  $('#handshake-done').addEventListener('click', closeHandshakeSheet);
   // Before a handshake exists the 🔊 says how to make one; after, how to
   // hear it and make a new one.
   $('#handshake-say').addEventListener('click', () => speakLine(
