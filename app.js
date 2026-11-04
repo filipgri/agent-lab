@@ -6727,8 +6727,9 @@ function wireSuit() {
    🔋 CHARGE THE POWER. A battery under the agent, one cell per question:
       📜 which rules (only for "Change a school rule") · 🎛️ which devices
       (only for "Control school devices") · 👥 Who · 🔌 Switch on ·
-      🎯 What happens then. (🕐 When was removed in v89, to keep the
-      session short - Filip: "for later, or asking them".) One at a time,
+      (🕐 When was removed in v89, to keep the session short - Filip: "for
+      later, or asking them" - and 🎯 What happens then? in v94: "too
+      abstract for kids". `soThat` stays in the data, empty.) One at a time,
       said aloud; each card picked sends a spark into its cell, which
       lights up with a rising note. Then ⚡ Power on!: the cells light one
       by one, the agent does the power, and the sentence reads itself back
@@ -6881,8 +6882,7 @@ const POWER_SLOTS = [
   { id: 'who',    icon: '👥', title: 'Who does your power work on?',  say: 'nar-powers-who',
     cards: WHO_CARDS, own: 'whoOwn' },
   { id: 'how',    icon: '🔌', title: 'How do you switch it on?',      say: 'nar-powers-how',
-    cards: HOW_CARDS, own: 'howOwn' },
-  { id: 'sothat', icon: '🎯', title: 'What happens then?',            say: 'nar-powers-then' }
+    cards: HOW_CARDS, own: 'howOwn' }
 ];
 
 const powersUi = {
@@ -7201,7 +7201,6 @@ function chooseLastTime() {
 /* ---- 🔋 charging the power ---- */
 
 function slotEmpty(p, slotId) {
-  if (slotId === 'sothat') return !p.soThat;
   const slot = slotById(slotId);
   return (p[slotId] || []).length === 0 && ownList(p, slot).length === 0;
 }
@@ -7215,7 +7214,6 @@ function firstOpenSlot(p) {
 
 /* The little picture of what is in a cell: up to three emoji, ✏️ for own. */
 function slotFill(p, slot) {
-  if (slot.id === 'sothat') return p.soThat ? '✏️' : '';
   const emojis = (p[slot.id] || []).map(id => (slot.cards.find(c => c.id === id) || {}).emoji || '•');
   ownList(p, slot).forEach(() => emojis.push('✏️'));
   return emojis.slice(0, 3).join('') + (emojis.length > 3 ? '…' : '');
@@ -7277,62 +7275,35 @@ function paintSentence() {
   const deal = powersUi.dealNext;
   powersUi.dealNext = false;
 
-  if (slot.id === 'sothat') {
-    if (p.soThat) {
-      box.appendChild(ownCardTile(p.soThat, 'sothat-' + p.id,
-        () => removeSoThat(), () => paintSentence()));
-    } else {
-      // One big button: draw it, or say it.
-      const make = document.createElement('button');
-      make.className = 'when-own powers-then';
-      make.setAttribute('aria-label', 'Draw it or say it');
-      make.innerHTML = '<span class="when-own-icon">✏️ 🎤</span>' +
-                       '<span class="when-own-label">Draw it or say it</span>';
-      make.addEventListener('click', () => openOwnCard({
-        title: slot.title,
-        say: slot.say,
-        onKeep: card => {
-          p.soThat = card;
-          noteSlotOrder(p, 'sothat');
-          logEvent('powers_sothat', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
-          chargeCell('sothat', null);
-          paintPowers();
-          scheduleSave();
-        }
-      }));
-      box.appendChild(make);
-    }
-  } else {
-    const list = p[slot.id] || [];
-    const full = slot.max && list.length + ownList(p, slot).length >= slot.max;
-    slot.cards.forEach((card, i) => {
-      const on = list.indexOf(card.id) !== -1;
-      const button = modeCard(card, on, () => toggleSlotCard(slot, card, button));
-      if (full && !on) button.classList.add('is-full');
-      if (deal) dealCard(button, i);
-      box.appendChild(button);
-    });
-    if (slot.own && !full) {
-      box.appendChild(ownCardButton(() => openOwnCard({
-        title: slot.title,
-        say: slot.say,
-        onKeep: card => {
-          if (!p[slot.own]) p[slot.own] = [];
-          p[slot.own].push(card);
-          noteSlotOrder(p, slot.id);
-          logEvent('powers_slot', { slot: slot.id, value: 'own', on: true,
-                                    drawn: Boolean(card.png), said: Boolean(card.audioId) });
-          chargeCell(slot.id, null);
-          paintPowers();
-          scheduleSave();
-        }
-      })));
-    }
-    ownList(p, slot).forEach((card, i) => {
-      box.appendChild(ownCardTile(card, slot.id + '-' + p.id + '-' + i,
-        () => removeSlotOwn(slot, i), () => paintSentence()));
-    });
+  const list = p[slot.id] || [];
+  const full = slot.max && list.length + ownList(p, slot).length >= slot.max;
+  slot.cards.forEach((card, i) => {
+    const on = list.indexOf(card.id) !== -1;
+    const button = modeCard(card, on, () => toggleSlotCard(slot, card, button));
+    if (full && !on) button.classList.add('is-full');
+    if (deal) dealCard(button, i);
+    box.appendChild(button);
+  });
+  if (slot.own && !full) {
+    box.appendChild(ownCardButton(() => openOwnCard({
+      title: slot.title,
+      say: slot.say,
+      onKeep: card => {
+        if (!p[slot.own]) p[slot.own] = [];
+        p[slot.own].push(card);
+        noteSlotOrder(p, slot.id);
+        logEvent('powers_slot', { slot: slot.id, value: 'own', on: true,
+                                  drawn: Boolean(card.png), said: Boolean(card.audioId) });
+        chargeCell(slot.id, null);
+        paintPowers();
+        scheduleSave();
+      }
+    })));
   }
+  ownList(p, slot).forEach((card, i) => {
+    box.appendChild(ownCardTile(card, slot.id + '-' + p.id + '-' + i,
+      () => removeSlotOwn(slot, i), () => paintSentence()));
+  });
 
   // ➡️ to the next question - it glows once this one has an answer. On the
   // last question ⚡ Power on! takes over, glowing.
@@ -7472,16 +7443,6 @@ async function removeSlotOwn(slot, index) {
   scheduleSave();
 }
 
-async function removeSoThat() {
-  const p = currentPower();
-  if (!p || !p.soThat) return;
-  if (p.soThat.audioId) { Voice.forget(p.soThat.audioId); await Storage.deleteAudio(p.soThat.audioId); }
-  p.soThat = null;
-  logEvent('powers_sothat_remove', {});
-  paintPowers();
-  scheduleSave();
-}
-
 async function playSecretWord() {
   const word = state.agent && state.agent.secretWord;
   if (!word || state.muted) return;
@@ -7546,18 +7507,13 @@ async function firePower(index, opts) {
     if (!powersUi.busy) return;
     if (slotEmpty(p, slot.id)) continue;
     markReading(slot.id, true);
-    if (slot.id === 'sothat') {
-      if (p.soThat.audioId) await playOwnClip(p.soThat.audioId);
-      else await pause(900);
-    } else {
-      for (const id of p[slot.id]) {
-        const card = slot.cards.find(c => c.id === id);
-        await sayAndPause('nar-' + id, card ? card.label + '.' : '');
-      }
-      for (const card of ownList(p, slot)) {
-        if (card.audioId) await playOwnClip(card.audioId);
-        else await pause(700);
-      }
+    for (const id of p[slot.id]) {
+      const card = slot.cards.find(c => c.id === id);
+      await sayAndPause('nar-' + id, card ? card.label + '.' : '');
+    }
+    for (const card of ownList(p, slot)) {
+      if (card.audioId) await playOwnClip(card.audioId);
+      else await pause(700);
     }
     markReading(slot.id, false);
   }

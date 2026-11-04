@@ -3550,8 +3550,12 @@ body[data-motion="full"] .pic-card.is-dealing::after {
 }
 .powers-door-tools { display: flex; gap: 12px; align-items: center; }
 .powers-door-tools[hidden] { display: none; }
-/* 🚪 back to all the doors: as big as ✓ This one beside it. */
-#powers-door-back { min-width: 96px; min-height: 72px; font-size: 44px; line-height: 1; }
+/* 🚪 back to all the doors: as tall as ✓ This one beside it, the door
+   big and the words at button size. (v90 added the words to what had been
+   an icon-only 44px button, and they came out at 44px too - spilling far
+   outside it on the iPad. Only the icon is big now.) */
+#powers-door-back { min-height: 72px; padding: 0 18px; gap: 8px; }
+#powers-door-back .door-back-icon { font-size: 36px; line-height: 1; }
 
 /* ---- 🔋 the battery ----
    Under the agent: one cell per question, and a ⚡ cap. A cell with an
@@ -3632,8 +3636,6 @@ body[data-motion="full"] .powers-fire.is-ready { animation: ready-pulse 1.8s eas
   50%      { box-shadow: 0 0 0 10px rgba(255, 210, 63, 0); }
 }
 /* "What happens then?": one big inviting button. */
-.powers-then { width: 220px; min-height: 150px; }
-.powers-then .when-own-icon { font-size: 44px; }
 
 /* My powers: one card per power, up to three. */
 .powers-shelf { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }

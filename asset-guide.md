@@ -523,7 +523,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-powers-how | How slot | How does your agent switch it on? A badge? A secret word? |
 | nar-powers-devices | Devices cell | Which ones does your agent control? Pick as many as you like. |
 | nar-powers-rules | Rules cell | Which school rule does your agent change? Pick as many as you like. |
-| nar-powers-then | What-happens cell | And then what happens? Draw it, or say it. |
 | nar-powers-fire | Power fires | Power on! |
 | nar-powers-more | After a power | Your power is ready. Make another, or Stamp it. |
 | nar-bottle-intro | Bottle | This is your agent's message bottle! Put things inside. Then pick who at school gets it! |
@@ -881,6 +880,7 @@ longer played; files already made stay where they are.
 | nar-story-sit-playtime | Playtime! Out in the playground, the power is on. | v89: removed to keep the session short |
 | nar-story-sit-tricky-work | Tricky work! When it gets hard, the power helps. | v89: removed to keep the session short |
 | nar-powers-when | When does your agent use this power? Pick up to three. | v89: removed to keep the session short |
+| nar-powers-then | And then what happens? Draw it, or say it. | v94: "What happens then?" removed - too abstract for kids |
 | nar-school-frame | School wants us to… | v87: "School wants us to…" removed |
 | nar-story-school-talk-lot | Talk a lot! Lots of talking, all day long. | v87: "School wants us to…" removed |
 | nar-story-school-only-talk | Only talk! Words out loud, and nothing else. | v87: "School wants us to…" removed |

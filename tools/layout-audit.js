@@ -17,6 +17,9 @@
      scroll-list   in a list that scrolls; "(faded)" when the list shows the
                    fade that says "more below" - fine for a long list
      UNDER BAR     hidden behind Pass / Stamp it
+     SPILLS        its own words or icon reach outside it (v94: "Other
+                   doors" at 44px ran far out of its button on the iPad,
+                   and nothing above looks inside a button)
    Check every screen at 1180×734 AND 820×1180 (CLAUDE.md). */
 
 window.__audit = function (label) {
@@ -49,6 +52,31 @@ window.__audit = function (label) {
       p = p.parentElement;
     }
     if (!inScroller && !e.closest('.bottombar, .topbar, .overlay') && r.bottom > barTop + 1) out.push(label + ': UNDER BAR ' + name + ' ' + Math.round(r.bottom) + '>' + Math.round(barTop));
+    // Its words and icons (text nodes - emoji are text too). Badges placed
+    // on a corner on purpose (position: absolute, like the ✓ on a stamped
+    // mission or a pile) are skipped; everything else must stay inside.
+    const c = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity, width: 0 }, k = 2;
+    const walker = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.textContent.trim()) continue;
+      let placed = false;
+      for (let el = node.parentElement; el && el !== e; el = el.parentElement) {
+        if (/absolute|fixed/.test(getComputedStyle(el).position)) { placed = true; break; }
+      }
+      if (placed) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const tr = range.getBoundingClientRect();
+      if (!tr.width) continue;
+      c.left = Math.min(c.left, tr.left); c.right = Math.max(c.right, tr.right);
+      c.top = Math.min(c.top, tr.top); c.bottom = Math.max(c.bottom, tr.bottom); c.width = 1;
+    }
+    if (c.width && (c.left < r.left - k || c.right > r.right + k || c.top < r.top - k || c.bottom > r.bottom + k)) {
+      out.push(label + ': SPILLS ' + name + ' (' + [c.left < r.left - k && 'left ' + Math.round(r.left - c.left) + 'px',
+        c.right > r.right + k && 'right ' + Math.round(c.right - r.right) + 'px',
+        c.top < r.top - k && 'top ' + Math.round(r.top - c.top) + 'px',
+        c.bottom > r.bottom + k && 'bottom ' + Math.round(c.bottom - r.bottom) + 'px'].filter(Boolean).join(', ') + ')');
+    }
   }
   return out;
 };

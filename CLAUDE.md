@@ -749,6 +749,20 @@ to the start. No card screen.
   **`Assets.image()` hands out one cached `<img>`** — appending it twice
   moves it, so anything showing a picture more than once must
   `cloneNode()` it (the crowd lost two of its three pairs to this).
+- **v94 (4 November 2026): no "What happens then?", and "Other doors"
+  fits.** Filip: the 🎯 question was "too abstract for kids" - what
+  happens, and to whom? Removed from `POWER_SLOTS`, with its paint,
+  read-back and remove code; a battery is now 👥 Who → 🔌 Switch on (plus
+  📜 or 🎛️ for the two powers that ask), and ⚡ Power on! comes at 🔌.
+  `soThat` stays in the data, `null`; `nar-powers-then` is Retired.
+  **"Other doors" spilled far out of its button on the iPad:** v90 put
+  words into what had been an icon-only `tool` button - 64px wide, 44px
+  font - so the words came out at 44px too. It is a normal `btn-big` now,
+  with only the 🚪 big. `tools/layout-audit.js` missed it because it only
+  looked for buttons cut off by their container; it now also reports
+  **SPILLS** (a button's own words or icon outside it; corner badges
+  placed with `position: absolute` are skipped). Swept every v3 screen at
+  1180×734 and 820×1180: nothing else spills.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -812,8 +826,9 @@ hand-edit the manifest, and never edit both.
 ## Settled decisions
 
 - **Short over complete (4 November 2026).** Filip cut the secret word,
-  the When question and the secret door so a session fits its time.
-  Their data fields stay; nothing new is written to them.
+  the When question and the secret door so a session fits its time, and
+  then "What happens then?" (v94) as too abstract. Their data fields
+  stay; nothing new is written to them.
 
 - **No "School wants us to…" (4 November 2026).** Removed at Filip's
   request; the school's expectations are to be found another way. This
@@ -911,6 +926,10 @@ applies (v3 §13).
   inside its edge (`.suit-side` padding), and lists that scroll leave
   their buttons outside. Run `tools/layout-audit.js` on every screen, at
   1180×734 and 820×1180, after any layout change - eyes miss 4px.
+- **Words added to an icon button need the button changed too.** A
+  `.tool` is a 64px square whose font size is the icon's; words put in it
+  come out at the icon's size and run out of it ("Other doors", v90-v93).
+  Give the icon its own span and size, and make it a normal `.btn`.
 - **`flex: 1` in a scrolling column means "the space left", not "my
   contents".** In portrait the right-hand column took what was left and
   squeezed below its contents, so the page had nothing to scroll and the

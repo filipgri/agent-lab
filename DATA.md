@@ -7,7 +7,14 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v90** (4 November 2026). `schemaVersion` is still **3**.
+Last updated: **v94** (4 November 2026). `schemaVersion` is still **3**.
+
+> **v94: no "What happens then?".** The 🎯 question at the end of the
+> Powers battery is no longer asked (Filip: "too abstract for kids").
+> `powers[].soThat` stays in every record, `null` from v94;
+> `powers_sothat` and `powers_sothat_remove` are only in data from before
+> v94. A power's battery now ends at 🔌 "How do you switch it on?".
+> (v93, the bottle's landing scene, changed no field or event.)
 
 > **v90: three powers a door.** `pow-hold-turn`, `pow-warn-me`,
 > `pow-question-swap` and `pow-see-points` are no longer offered (they can
@@ -251,7 +258,7 @@ milestone first writes each one; until then it keeps its default.
 | `when` / `whenOwn` | 🕐 Situation ids (the session-2 ids: `sit-too-loud`, `sit-not-understood`, `sit-waiting`, `sit-did-well`, `sit-asked-answer`, `sit-unkind`, `sit-plans-change`, `sit-new-place`, `sit-playtime`, `sit-tricky-work`) / own cards `{ png, audioId }`. **Three at most, cards and own together.** |
 | `who` / `whoOwn` | 👥 `who-me`, `who-friend`, `who-teacher` (any adult at school), `who-class`, `who-everyone`, `who-room` / own cards. Any number. |
 | `how` / `howOwn` | 🔌 How it switches on: `how-badge`, `how-handshake`, `how-hand-sign`, `how-word`, `how-drawing`, `how-button` / own cards. Any number. |
-| `soThat` | 🎯 "What happens then?" (it asked "So that…" before v80) — `{ png, audioId }` from the ✏️ sheet, or `null`. |
+| `soThat` | 🎯 "What happens then?" (it asked "So that…" before v80) — `{ png, audioId }` from the ✏️ sheet, or `null`. **Not asked from v94**, so always `null` in new powers. |
 | `skipped` | The slots still EMPTY when the power was last switched on (⚡), e.g. `["sothat"]` — `devices` counts as a slot for "Control school devices". Set at every ⚡. `[]` until the first. |
 | `order` | The order the sentence was filled in: always `"power"` first, then each slot the first time something was put in it, e.g. `["power", "who", "when"]`. |
 
@@ -469,8 +476,8 @@ Every place tapped is also a `label_speak`.
 | `powers_slot_open` | Another question (a battery cell) opened. | `{ slot, how: "next"/"tab" }` — `tab` is tapping a cell | ✅ |
 | `powers_slot` | A card in a question turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `slot` is `rules` (v88)/`devices`/`when`/`who`/`how`; `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
 | `powers_slot_skip` | ➡️ on a slot that was still empty. | `{ slot }` | ✅ |
-| `powers_sothat` | 🎯 "What happens then?" was kept (drawn or said). | `{ drawn, said }` | ✅ |
-| `powers_sothat_remove` | …and removed (two taps). | `{}` | ✅ |
+| `powers_sothat` | 🎯 "What happens then?" was kept (drawn or said). **Before v94 only.** | `{ drawn, said }` | ✅ |
+| `powers_sothat_remove` | …and removed (two taps). **Before v94 only.** | `{}` | ✅ |
 | `powers_fire` | ⚡ Power on! — the agent does the power and the sentence reads itself back. | `{ index, via }` — which of the agent's powers; `via` (v88) `"hold"` if ⚡ was held until the battery charged, `"tap"` for a tap (also on My powers) | ✅ |
 | `powers_charge_stop` | v88: ⚡ was held, then let go before the battery had charged - nothing fired. | `{ cells }` — how many cells had lit | ✅ |
 | `powers_edit` | 🔋 on a kept power, to change its answers (📝 before v80). | `{ index }` | ✅ |
@@ -664,7 +671,7 @@ display will show — never the agent's `id`, its event log, or any other agent:
 - **For a friend or a teacher, `items` is empty**: the envelope only; the
   contents stay on the iPad (§9.1). **The spoken name (`toNameAudioId`)
   is never sent**, for any bottle.
-- `soThat` is only sent with "Control teachers" (the display shows it).
+- `soThat` is only sent with "Control teachers" (the display shows it). From v94 it is only there for a power made before then.
 - **Voices are disguised ON THE iPAD** (the §9.1 choice): `Voice.render()` runs
   the same filter through an OfflineAudioContext and sends a WAV (mono,
   16 kHz), so the display plays exactly what the child heard — and a

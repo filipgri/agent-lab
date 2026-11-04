@@ -2059,12 +2059,6 @@
       "rev": "167df789"
     },
     {
-      "id": "nar-powers-then",
-      "file": "audio/narrator/nar-powers-then.mp3",
-      "text": "And then what happens? Draw it, or say it.",
-      "rev": "e68294ef"
-    },
-    {
       "id": "nar-powers-fire",
       "file": "audio/narrator/nar-powers-fire.mp3",
       "text": "Power on!",
