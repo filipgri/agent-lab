@@ -49,15 +49,16 @@ const Assets = (function () {
   function setSpeed(value) {
     const speed = Number(value);
     narrationSpeed = (speed >= 0.5 && speed <= 2) ? speed : DEFAULT_SPEED;
-    // Anything already loaded follows immediately.
-    audioCache.forEach(function (audio) {
-      if (audio && audio !== false && audio._isNarration) applySpeed(audio);
-    });
+    // The line playing now follows immediately.
+    applySpeed(narrator);
   }
 
   function getSpeed() { return narrationSpeed; }
 
   function applySpeed(audio) {
+    // Loading a new file resets playbackRate to defaultPlaybackRate, and the
+    // one narration player loads a new file for every line: set both.
+    audio.defaultPlaybackRate = narrationSpeed;
     audio.playbackRate = narrationSpeed;
     audio.preservesPitch = true;
     audio.webkitPreservesPitch = true;      // Safari
@@ -69,9 +70,80 @@ const Assets = (function () {
   let manifest = { version: 0, hq: [], situations: [], stickers: [], narrator: [], sfx: [] };
   let byId = new Map();          // every item from every list, by its id
   const imageCache = new Map();  // id -> Promise<img|null>
-  const audioCache = new Map();  // id -> HTMLAudioElement, or false if missing
-  let narrating = null;          // the narration playing right now
+  const missing = new Set();     // sound and narration files found not to exist
   let speaking = null;           // the iPad's own voice's line, if that is speaking
+
+  /* --------------------------------------------------------------------------
+     THE PLAYERS (v101)
+     iPad Safari lets a sound player start ON ITS OWN only if that same player
+     has been started by a tap before. The app used to make a new player for
+     every line - so a line whose first play came after a wait (the next
+     Talking Mat card, after "Yes!" had finished) was refused, the refusal
+     was taken for an interruption, and nothing was heard (Filip, 4 November:
+     "the rest no sound"). Now there is ONE narration player and a few effect
+     players, made once, and the child's first tap starts each of them with
+     a moment of silence. From then on every line and every sound plays
+     through them, whenever it comes. The same first tap wakes the Web Audio
+     engine in audio.js (recordings, generated sounds), and every tap wakes
+     it again in case the iPad put it to sleep.
+     ----------------------------------------------------------------------- */
+  const SILENCE = silentWav();
+  const narrator = new Audio();
+  let narratorHolds = null;      // the id of the line the narration player has loaded
+  let lineToken = 0;             // goes up whenever a line starts or is stopped
+  let lineDone = null;           // ends sayAndWait() for the line playing now
+  narrator.addEventListener('ended', function () { finishLine(); });
+  const SFX_PLAYERS = 4;         // effects may overlap: up to four at once
+  const sfxPlayers = [];
+  for (let i = 0; i < SFX_PLAYERS; i++) {
+    const player = new Audio();
+    player._holds = null;        // the id of the sound it has loaded
+    sfxPlayers.push(player);
+  }
+  let sfxTurn = 0;
+  let unlocked = false;
+
+  /* A tenth of a second of silence, as a data: address (the CSP allows
+     media-src data:) - so unlocking needs no file. 8-bit, 8 kHz, mono. */
+  function silentWav() {
+    const n = 800;
+    const bytes = new Uint8Array(44 + n);
+    const view = new DataView(bytes.buffer);
+    const text = function (at, s) { for (let i = 0; i < s.length; i++) bytes[at + i] = s.charCodeAt(i); };
+    text(0, 'RIFF'); view.setUint32(4, 36 + n, true); text(8, 'WAVE');
+    text(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);   // PCM
+    view.setUint16(22, 1, true); view.setUint32(24, 8000, true);                    // mono, 8 kHz
+    view.setUint32(28, 8000, true); view.setUint16(32, 1, true); view.setUint16(34, 8, true);
+    text(36, 'data'); view.setUint32(40, n, true);
+    bytes.fill(128, 44);                                                            // 8-bit silence
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return 'data:audio/wav;base64,' + btoa(s);
+  }
+
+  function unlockPlayers() {
+    if (typeof Voice !== 'undefined' && Voice.unlock) Voice.unlock();
+    if (unlocked) return;
+    unlocked = true;
+    [narrator].concat(sfxPlayers).forEach(function (player) {
+      if (!player.paused) return;               // already playing: already allowed
+      try {
+        player.src = SILENCE;
+        if (player === narrator) narratorHolds = null; else player._holds = null;
+        const started = player.play();
+        if (started && started.catch) {
+          started.catch(function (err) {
+            // Not a tap Safari counts: try again on the next one.
+            if (err && err.name === 'NotAllowedError') unlocked = false;
+          });
+        }
+      } catch (err) { /* harmless */ }
+    });
+  }
+  // Capture phase, so it runs before the tap's own handler starts a line.
+  ['touchend', 'pointerup', 'click', 'keydown'].forEach(function (type) {
+    document.addEventListener(type, unlockPlayers, { capture: true, passive: true });
+  });
 
   /* --------------------------------------------------------------------------
      LOADING THE MANIFEST
@@ -214,14 +286,28 @@ const Assets = (function () {
      reading the same words. The child hears the same sentence either way.
      ----------------------------------------------------------------------- */
   function stopSaying() {
-    if (narrating) { try { narrating.pause(); } catch (err) { /* harmless */ } }
-    narrating = null;
+    lineToken++;
+    try { narrator.pause(); } catch (err) { /* harmless */ }
+    finishLine();
     if ('speechSynthesis' in window) speechSynthesis.cancel();
   }
 
+  // The line playing now has ended (or been stopped): its sayAndWait() is over.
+  function finishLine() {
+    const done = lineDone;
+    lineDone = null;
+    if (done) done();
+  }
+
   function say(id, options) {
+    return sayLine(id, options).then(function (result) { return result.how; });
+  }
+
+  /* say(), also telling sayAndWait() WHICH line it started (`token`), so it
+     never waits on a line that has already been replaced. */
+  function sayLine(id, options) {
     const opts = options || {};
-    if (opts.muted) return Promise.resolve('muted');
+    if (opts.muted) return Promise.resolve({ how: 'muted' });
 
     return ready.then(function () {
       const entry = item(id);
@@ -229,30 +315,37 @@ const Assets = (function () {
 
       // Never let two lines talk over each other.
       stopSaying();
+      const token = lineToken;
 
-      if (entry && audioCache.get(id) !== false) {
-        const audio = getAudio(id, entry, NARRATOR_VOLUME, true);
-        if (audio) {
-          narrating = audio;
-          audio.currentTime = 0;
-          applySpeed(audio);                // v2 §7
-          return audio.play()
-            .then(function () { return 'file'; })
-            .catch(function (err) {
-              /* INTERRUPTED is not MISSING. When the next line starts
-                 before this one has, stopSaying() pauses it and play()
-                 rejects with an AbortError. Treating that as a missing
-                 file spoke this line in the iPad's voice OVER the next
-                 one - and used the iPad's voice for it for the rest of
-                 the session (Filip, 4 November: "not vocalised"). */
-              if (interrupted(err) || narrating !== audio) return 'interrupted';
-              // The file is not there after all; remember that and speak.
-              audioCache.set(id, false);
-              return speak(text);
-            });
+      if (entry && entry.file && !missing.has(id)) {
+        // The one narration player loads this line - or, if it already
+        // holds it (a card tapped again), starts it from the beginning.
+        if (narratorHolds !== id) {
+          narrator.src = url(entry);
+          narratorHolds = id;
+        } else {
+          try { narrator.currentTime = 0; } catch (err) { /* harmless */ }
         }
+        narrator.volume = NARRATOR_VOLUME;
+        applySpeed(narrator);               // v2 §7
+        return narrator.play()
+          .then(function () {
+            return { how: token === lineToken ? 'file' : 'interrupted', token: token };
+          })
+          .catch(function (err) {
+            /* INTERRUPTED is not MISSING. When the next line starts before
+               this one has, play() rejects with an AbortError; before the
+               first tap, with a NotAllowedError. Treating either as a
+               missing file spoke the line in the iPad's voice OVER the next
+               one (Filip, 4 November: "not vocalised"). */
+            if (interrupted(err) || token !== lineToken) return { how: 'interrupted', token: token };
+            // The file is not there after all; remember that and speak.
+            missing.add(id);
+            narratorHolds = null;
+            return { how: speak(text), token: token };
+          });
       }
-      return speak(text);
+      return { how: speak(text), token: token };
     });
   }
 
@@ -269,10 +362,13 @@ const Assets = (function () {
       let done = false;
       const finish = function () { if (!done) { done = true; resolve(); } };
       setTimeout(finish, maxMs);
-      say(id, opts).then(function (how) {
-        if (how === 'file' && narrating) {
-          narrating.addEventListener('ended', finish, { once: true });
-          narrating.addEventListener('pause', finish, { once: true });
+      sayLine(id, opts).then(function (result) {
+        const how = result.how;
+        if (how === 'file') {
+          // Over when it ends, or when anything else is said or stopped
+          // (stopSaying) - unless it was replaced before we got here.
+          if (result.token !== lineToken || narrator.ended) finish();
+          else lineDone = finish;
         } else if (how === 'speech' && 'speechSynthesis' in window) {
           /* The utterance says when it ends. As a back-up, ask the voice
              every 150 ms - but count a line that is still QUEUED as talking
@@ -326,20 +422,31 @@ const Assets = (function () {
     if (opts.muted) return;
 
     const entry = item(id);
-    if (entry && audioCache.get(id) !== false) {
-      const audio = getAudio(id, entry, SFX_VOLUME);
-      if (audio) {
-        audio.currentTime = 0;
-        const played = audio.play();
-        if (played && played.catch) {
-          played.catch(function (err) {
-            if (interrupted(err)) return;       // cut short, not missing
-            audioCache.set(id, false);
-            generated(entry, id);
-          });
-        }
-        return;
+    if (entry && entry.file && !missing.has(id)) {
+      // A free player that already holds this sound; else a free one; else
+      // the next in turn (cutting short the oldest sound still playing).
+      const free = function (player) { return player.paused || player.ended; };
+      let player = sfxPlayers.find(function (p) { return p._holds === id && free(p); });
+      if (!player) {
+        player = sfxPlayers.find(free) || sfxPlayers[sfxTurn++ % SFX_PLAYERS];
+        player.src = url(entry);
+        player._holds = id;
+      } else {
+        try { player.currentTime = 0; } catch (err) { /* harmless */ }
       }
+      player.volume = SFX_VOLUME;
+      const played = player.play();
+      if (played && played.catch) {
+        played.catch(function (err) {
+          // Before the first tap: the generated sound, rather than nothing.
+          if (err && err.name === 'NotAllowedError') { generated(entry, id); return; }
+          if (interrupted(err)) return;       // cut short, not missing
+          missing.add(id);
+          player._holds = null;
+          generated(entry, id);
+        });
+      }
+      return;
     }
     generated(entry, id);
   }
@@ -358,23 +465,6 @@ const Assets = (function () {
     Voice.sfx(name);
   }
 
-  function getAudio(id, entry, volume, isNarration) {
-    if (audioCache.has(id)) {
-      const held = audioCache.get(id);
-      return held === false ? null : held;
-    }
-    const audio = new Audio(url(entry));
-    audio.volume = volume;
-    audio.preload = 'auto';
-    audio._isNarration = Boolean(isNarration);
-    if (isNarration) applySpeed(audio);
-    // A file that turns out to be missing is remembered, so the stand-in is
-    // used immediately next time rather than after another failed request.
-    audio.addEventListener('error', function () { audioCache.set(id, false); });
-    audioCache.set(id, audio);
-    return audio;
-  }
-
   /* Start loading a narration line before it is said (v97). A line used to
      load only when it was due, so the second of two lines in a row waited
      for its file - on the iPad, a pause long enough for Filip to notice.
@@ -383,7 +473,7 @@ const Assets = (function () {
   function warm(id) {
     ready.then(function () {
       const entry = item(id);
-      if (!entry || audioCache.has(id) || warmed.has(id)) return;
+      if (!entry || !entry.file || missing.has(id) || warmed.has(id)) return;
       warmed.add(id);
       // Only the file is fetched (into the offline copy's cache); the player
       // is not touched, so a warm-up can never mark a line as missing.
@@ -402,9 +492,7 @@ const Assets = (function () {
      adult having to close and reopen the whole app. */
   function refresh() {
     imageCache.clear();
-    audioCache.forEach(function (value, key) {
-      if (value === false) audioCache.delete(key);
-    });
+    missing.clear();
   }
 
   // Play a file the adult panel is previewing, whatever the mute setting.

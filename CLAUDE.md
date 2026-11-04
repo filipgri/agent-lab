@@ -827,6 +827,22 @@ to the start. No card screen.
   shrunk into its answer (`SUIT_DROP_MS`, 320 ms), not after a tapped
   card's 560 ms flight. Tested: eight cards dragged back to back, each
   grabbed mid-slide, all 0px from the finger.
+- **v101 (4 November 2026): one narration player, unlocked by the first
+  tap.** Filip: from the third Talking Mat card on, no sound at all.
+  iPad Safari lets a player start on its own only if THAT player was
+  started by a tap before, and `assets.js` made a new player per file -
+  so a line first played after a wait (the next card's sentence, after
+  "Yes!" had finished) was refused, and the refusal (`NotAllowedError`)
+  was taken as an interruption: silence. The same cause, half hidden,
+  was v96's "not every word is pronounced". Now `assets.js` has ONE
+  narration player and four effect players, made once; the first
+  `touchend`/`pointerup`/`click`/`keydown` anywhere starts each with a
+  tenth of a second of silence (a `data:` WAV), and every line and sound
+  plays through them. That listener also calls `Voice.unlock()` on every
+  tap. `defaultPlaybackRate` is set as well, because loading a new file
+  resets the rate. An effect refused before the first tap plays the
+  generated sound instead of nothing. Chrome never enforced this, so the
+  browser tests show nothing broke; the iPad is the real test.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -1383,6 +1399,10 @@ applies (v3 §13).
   `.m3-tools`, because `margin-top:auto` inside a scroller pins a row to the
   scroll edge, where the Stamp it bar clips it. Both orientations were only
   right after this change — check portrait AND landscape for any new panel.
+- **Never make a new `Audio()` per sound** (v101). iPad Safari allows a
+  player to start on its own only once that player has been started by a
+  tap. Everything plays through the players in `assets.js`, unlocked by
+  the first tap; anything else that plays a file must use them.
 - **Sound only starts inside a tap** (spec §9). Every path that makes noise
   calls `Voice.unlock()` from a real click handler first. `leaveCurrent()`
   stops recording and playback, so nothing follows the child to the next
