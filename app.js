@@ -5948,19 +5948,19 @@ function wireQuickAgent() {
      their own agent - one nods ✓, one tilts its head ?, one shakes it ✗ -
      and the big agent does the same when one is tapped. The data is the
      same three piles as before (yes / unsure / no).
-   - Four parts, each a short heading with an icon:
+   - Three parts, each a short heading with an icon:
        🗣️ My agent likes…        suit.likes / likesUnsure / likesNot
        ⭐ Which one does your
           agent like the most?    suit.best - one card from the ✓ pile
-       🏫 School wants us to…    suit.school / schoolUnsure / schoolNot,
-                                 with cards of its own (SCHOOL_CARDS)
        🤫 A secret word          secretWord - an invented word, said with 🎤,
                                  given one of the six spy voices
+   - "School wants us to…" is GONE (Filip, 4 November 2026, v87): what
+     school expects is to come out some other way. Its fields (suit.school
+     and the rest) stay in the data, empty from v87.
    - No ✏️ My own here any more: nobody used it in session 2 (Filip). The
      fields stay in the data; nothing new goes into them.
-   - THE APP NEVER COMPARES THE PILES. A child whose agent likes drawing and
-     whose school wants talk is told nothing about it: that gap is for the
-     analysis and for next session's questions, never for a reaction.
+   - THE APP NEVER REACTS TO THE PILES: what an agent likes is for the
+     analysis and for next session's questions, never for a comment.
    - The secret handshake lives on a sheet that Powers opens (see below).
    ======================================================================== */
 
@@ -5980,30 +5980,10 @@ const TALK_MODES = [
   { id: 'mode-device',    emoji: '📱', label: 'A device',         act: 'rise',   anim: 'glow' }
 ];
 
-/* "School wants us to…" has cards of its own (Filip, 3 November): a secret
-   handshake, drawing or acting are not things school asks for, "Hand up"
-   told us nothing and "Being quiet" was too abstract. These are things a
-   school really does ask of how children communicate. Five of them match a
-   "likes" card - DATA.md lists the pairs, so the two can still be compared:
-     school-talk-lot ↔ mode-talk      school-makaton  ↔ mode-hands
-     school-write    ↔ mode-write     school-pictures ↔ mode-pictures
-     school-device   ↔ mode-device                                        */
-const SCHOOL_CARDS = [
-  { id: 'school-talk-lot',  emoji: '🗣️', label: 'Talk a lot',            act: 'jump',   anim: 'beat' },
-  { id: 'school-only-talk', emoji: '👄', label: 'Only talk',             act: 'jump',   anim: 'beat' },
-  { id: 'school-makaton',   emoji: '🤟', label: 'Learn Makaton',         act: 'wiggle', anim: 'wave' },
-  { id: 'school-look',      emoji: '👀', label: "Look at who's talking", act: 'rise',   anim: 'look' },
-  { id: 'school-quick',     emoji: '⚡', label: 'Answer quickly',        act: 'jump',   anim: 'dart' },
-  { id: 'school-speak-up',  emoji: '📢', label: 'Speak up',              act: 'jump',   anim: 'beat' },
-  { id: 'school-write',     emoji: '📝', label: 'Write it down',         act: 'wiggle', anim: 'scribble' },
-  { id: 'school-pictures',  emoji: '🎴', label: 'Use picture cards',     act: 'rise',   anim: 'flip' },
-  { id: 'school-device',    emoji: '📱', label: 'Use a device',          act: 'rise',   anim: 'glow' }
-];
-
-// The three piles of each sorting part, and where each is saved.
+// The three piles, and where each is saved. ("school" had its own until
+// v87, when that part was removed.)
 const SUIT_PILES = {
-  likes:  { yes: 'likes',  unsure: 'likesUnsure',  no: 'likesNot' },
-  school: { yes: 'school', unsure: 'schoolUnsure', no: 'schoolNot' }
+  likes:  { yes: 'likes',  unsure: 'likesUnsure',  no: 'likesNot' }
 };
 
 /* How the agent answers: it nods, tilts its head or shakes it, with a mark
@@ -6020,10 +6000,9 @@ const SUIT_ANSWERS = {
 const SUIT_PHASES = {
   likes:  { title: 'My agent likes…', frame: 'nar-likes-frame', modes: TALK_MODES },
   best:   { title: 'Which one does your agent like the most?', say: 'nar-suit-most' },
-  school: { title: 'School wants us to…', frame: 'nar-school-frame', modes: SCHOOL_CARDS },
   word:   { title: 'Make up a secret word', say: 'nar-word-make' }
 };
-const SUIT_ORDER = ['likes', 'best', 'school', 'word'];
+const SUIT_ORDER = ['likes', 'best', 'word'];
 const SUIT_FLY_MS = 560;             // a sorted card flying to its pile (style.css)
 
 const suitUi = { phase: 'likes', index: 0, moving: false };
@@ -6103,7 +6082,7 @@ function playNotes(steps, gapMs) {
 }
 
 function modeById(id) {
-  return TALK_MODES.concat(SCHOOL_CARDS).find(m => m.id === id) || null;
+  return TALK_MODES.find(m => m.id === id) || null;
 }
 
 /* Which pile a card is on in one sorting part: 'yes', 'unsure', 'no', or
@@ -6151,7 +6130,7 @@ function startSuitPhase(phase) {
   clearTimeout(suitTimer);
   suitUi.moving = false;
   // Nothing on the ✓ pile means there is nothing to choose from.
-  if (phase === 'best' && bestChoices().length === 0) phase = 'school';
+  if (phase === 'best' && bestChoices().length === 0) phase = 'word';
   suitUi.phase = phase;
 
   const conf = SUIT_PHASES[phase];
@@ -6606,7 +6585,7 @@ function wireSuit() {
   $$('.suit-pile').forEach(b =>
     b.addEventListener('click', () => sortCard(b.dataset.pile)));
   $('#suit-back').addEventListener('click', suitBack);
-  $('#suit-best-go').addEventListener('click', () => goSuitPhase('school', 'next'));
+  $('#suit-best-go').addEventListener('click', () => goSuitPhase('word', 'next'));
   $('#word-mic').addEventListener('click', recordWord);
   // The 🔊: the sentence for the card on screen - or the part's question,
   // or, once a secret word exists, the line that asks for a spy voice.

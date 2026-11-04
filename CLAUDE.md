@@ -695,6 +695,11 @@ to the start. No card screen.
   https://filipgri.github.io/agent-lab/ (checked: version.json 86, the
   app boots, recordings and pictures load). The `v3` branch is pushed too.
   Session 2's version stays tagged `session-2` (`b0ba4c1`).
+- **v87 (4 November 2026): "School wants us to…" removed.** Filip: kill
+  it; what school expects should come out some other way. How my agent
+  talks is now 🗣️ likes → ⭐ the most → 🤫 secret word. The school fields
+  stay in the data (empty); its 19 lines and 9 pictures are in the asset
+  guide's Retired section, their files kept.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -756,6 +761,10 @@ Then, by hand:
 hand-edit the manifest, and never edit both.
 
 ## Settled decisions
+
+- **No "School wants us to…" (4 November 2026).** Removed at Filip's
+  request; the school's expectations are to be found another way. This
+  departs from v3 §5 (step 2) and from the v80 redesign.
 
 - **A bottle may hold a spoken name (4 November 2026, Filip's decision).**
   For a friend or a teacher, a child may SAY who the bottle is for. This

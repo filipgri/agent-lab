@@ -179,11 +179,8 @@ This card may show people, but only like this: simple round bean-shaped figures 
 
 - **Some are copies, not new pictures:** `who-teacher` is a copy of
   `disp-teacher`, `mode-handshake` is a copy of `how-handshake`, and
-  `mode-device` is a copy of the existing `stk-aac-talker`. Five school cards
-  are copies of the matching "likes" card (`school-talk-lot`,
-  `school-makaton`, `school-write`, `school-pictures`, `school-device`), so a
-  child sees the same picture in both questions. Copy the file under the
-  second name.
+  `mode-device` is a copy of the existing `stk-aac-talker`. Copy the file under the second name. (The five school cards that were
+  copies went with "School wants us to…" in v87.)
 - **To bring them in,** put the downloads in `assets/incoming/` and say
   **"Bring in the new assets."** Every v3 picture is the sticker kind (PNG,
   longest side 512, transparency kept), except `disp-shore` — the wide kind,
@@ -264,15 +261,6 @@ Stickers project. The emoji are fine until these arrive.
 | mode-pictures | Picture cards | 🎴 | 👤 | A bean figure holding up one picture card (a cup) and pointing at it with a mitten hand, with three more picture cards (a ball, a house, a star) fanned beside it. The cards have thick white borders, like communication picture cards. |
 | mode-write | Writing | 📝 | | A pencil writing wavy lines, not letters, on lined paper. |
 | mode-device | A device | 📱 | | Copy of `stk-aac-talker`. |
-| school-talk-lot | Talk a lot | 🗣️ | | Copy of `mode-talk`. |
-| school-only-talk | Only talk | 👄 | 👤 | A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line. |
-| school-makaton | Learn Makaton | 🤟 | 👤 | Copy of `mode-hands`. |
-| school-look | Look at who's talking | 👀 | 👤 | A small bean figure with big round eyes looking up at a taller bean figure with a lanyard who has a speech bubble, with dotted lines from the eyes to the speaker. |
-| school-quick | Answer quickly | ⚡ | 👤 | A bean figure with a speech bubble shooting out fast, with speed lines and a small stopwatch beside it. |
-| school-speak-up | Speak up | 📢 | 👤 | A bean figure speaking into a megaphone, with big bold sound waves coming out. |
-| school-write | Write it down | 📝 | | Copy of `mode-write`. |
-| school-pictures | Use picture cards | 🎴 | 👤 | Copy of `mode-pictures`. |
-| school-device | Use a device | 📱 | | Copy of `mode-device`. |
 | dev-bell | The school bell | 🔔 | | A round red school bell on a wall bracket, ringing, with curved ring lines. |
 | dev-alarm | The fire alarm | 🚨 | | A red wall fire-alarm box with a flashing light on top and short alarm lines round it. |
 | dev-lights | The lights | 💡 | | A ceiling light hanging down, glowing, with soft rays. |
@@ -435,7 +423,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-handshake-make | Handshake | Tap a secret handshake for your agent. |
 | nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
 | nar-likes-frame | Talking: said before every card | My agent likes… |
-| nar-school-frame | Talking: said before every school card | School wants us to… |
 | nar-suit-most | Talking: the favourite | Which one does your agent like the most? |
 | nar-word-make | Secret word | Make up a secret word. Tap the microphone and say it. |
 | nar-word-voice | Secret word: spy voice | Now pick a spy voice for it. |
@@ -484,15 +471,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-story-mode-pictures | A talks card, after "My agent likes…" | Picture cards! Pointing at a picture to say it. |
 | nar-story-mode-write | A talks card, after "My agent likes…" | Writing! Putting the words on paper. |
 | nar-story-mode-device | A talks card, after "My agent likes…" | A device! A tablet that talks for your agent. |
-| nar-story-school-talk-lot | A talks card, after "School wants us to…" | Talk a lot! Lots of talking, all day long. |
-| nar-story-school-only-talk | A talks card, after "School wants us to…" | Only talk! Words out loud, and nothing else. |
-| nar-story-school-makaton | A talks card, after "School wants us to…" | Learn Makaton! Signs that go with words. |
-| nar-story-school-look | A talks card, after "School wants us to…" | Look at who's talking! Eyes on the speaker. |
-| nar-story-school-quick | A talks card, after "School wants us to…" | Answer quickly! Say the answer straight away. |
-| nar-story-school-speak-up | A talks card, after "School wants us to…" | Speak up! Loud and clear, so everyone hears. |
-| nar-story-school-write | A talks card, after "School wants us to…" | Write it down! Put it on paper. |
-| nar-story-school-pictures | A talks card, after "School wants us to…" | Use picture cards! Point at pictures to say things. |
-| nar-story-school-device | A talks card, after "School wants us to…" | Use a device! A tablet that helps with talking. |
 | nar-story-sit-too-loud | A When card is picked | Too loud! When school gets noisy, the power kicks in. |
 | nar-story-sit-not-understood | A When card is picked | Nobody gets what your agent means? Then the power kicks in. |
 | nar-story-sit-waiting | A When card is picked | Waiting, and waiting… That's when your agent uses it. |
@@ -569,15 +547,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-mode-pictures | Picture cards. |
 | nar-mode-write | Writing. |
 | nar-mode-device | A device. |
-| nar-school-talk-lot | Talk a lot. |
-| nar-school-only-talk | Only talk. |
-| nar-school-makaton | Learn Makaton. |
-| nar-school-look | Look at who's talking. |
-| nar-school-quick | Answer quickly. |
-| nar-school-speak-up | Speak up. |
-| nar-school-write | Write it down. |
-| nar-school-pictures | Use picture cards. |
-| nar-school-device | Use a device. |
 | nar-safe-nowhere | Nowhere. |
 | nar-fam-time | Time. |
 | nar-fam-senses | Sound and light. |
@@ -879,11 +848,39 @@ longer played; files already made stay where they are.
 | nar-mode-hand-up | Hand up. | school has its own cards now |
 | nar-mode-quiet | Being quiet. | school has its own cards now |
 | nar-bottle-friend | Tap your friend's agent. | v84: the list of every agent is gone - children did not know which was their friend's |
+| nar-school-frame | School wants us to… | v87: "School wants us to…" removed |
+| nar-story-school-talk-lot | Talk a lot! Lots of talking, all day long. | v87: "School wants us to…" removed |
+| nar-story-school-only-talk | Only talk! Words out loud, and nothing else. | v87: "School wants us to…" removed |
+| nar-story-school-makaton | Learn Makaton! Signs that go with words. | v87: "School wants us to…" removed |
+| nar-story-school-look | Look at who's talking! Eyes on the speaker. | v87: "School wants us to…" removed |
+| nar-story-school-quick | Answer quickly! Say the answer straight away. | v87: "School wants us to…" removed |
+| nar-story-school-speak-up | Speak up! Loud and clear, so everyone hears. | v87: "School wants us to…" removed |
+| nar-story-school-write | Write it down! Put it on paper. | v87: "School wants us to…" removed |
+| nar-story-school-pictures | Use picture cards! Point at pictures to say things. | v87: "School wants us to…" removed |
+| nar-story-school-device | Use a device! A tablet that helps with talking. | v87: "School wants us to…" removed |
+| nar-school-talk-lot | Talk a lot. | v87: "School wants us to…" removed |
+| nar-school-only-talk | Only talk. | v87: "School wants us to…" removed |
+| nar-school-makaton | Learn Makaton. | v87: "School wants us to…" removed |
+| nar-school-look | Look at who's talking. | v87: "School wants us to…" removed |
+| nar-school-quick | Answer quickly. | v87: "School wants us to…" removed |
+| nar-school-speak-up | Speak up. | v87: "School wants us to…" removed |
+| nar-school-write | Write it down. | v87: "School wants us to…" removed |
+| nar-school-pictures | Use picture cards. | v87: "School wants us to…" removed |
+| nar-school-device | Use a device. | v87: "School wants us to…" removed |
 
 | id | label | picture | why |
 |---|---|---|---|
 | mode-hand-up | Hand up | A bean figure with one mitten hand raised high. | school has its own cards now |
 | mode-quiet | Being quiet | A calm bean figure holding a mitten hand where its mouth would be, with a small crossed-out sound wave beside it. | school has its own cards now |
+| school-talk-lot | Talk a lot | Copy of `mode-talk`. | v87: "School wants us to…" removed |
+| school-only-talk | Only talk | A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line. | v87: "School wants us to…" removed |
+| school-makaton | Learn Makaton | Copy of `mode-hands`. | v87: "School wants us to…" removed |
+| school-look | Look at who's talking | A small bean figure with big round eyes looking up at a taller bean figure with a lanyard who has a speech bubble, with dotted lines from the eyes to the speaker. | v87: "School wants us to…" removed |
+| school-quick | Answer quickly | A bean figure with a speech bubble shooting out fast, with speed lines and a small stopwatch beside it. | v87: "School wants us to…" removed |
+| school-speak-up | Speak up | A bean figure speaking into a megaphone, with big bold sound waves coming out. | v87: "School wants us to…" removed |
+| school-write | Write it down | Copy of `mode-write`. | v87: "School wants us to…" removed |
+| school-pictures | Use picture cards | Copy of `mode-pictures`. | v87: "School wants us to…" removed |
+| school-device | Use a device | Copy of `mode-device`. | v87: "School wants us to…" removed |
 
 | id | plays when | prompt | why |
 |---|---|---|---|

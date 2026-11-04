@@ -37,7 +37,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=86">
+  <link rel="stylesheet" href="./style.css?v=87">
 </head>
 <body>
 
@@ -406,10 +406,9 @@
              three small copies of it nod ✓, tilt their head ? or shake it ✗.
                🗣️ My agent likes…        every card, one at a time
                ⭐ …like the most?        one card from the ✓ pile
-               🏫 School wants us to…    school's own cards
                🤫 A secret word          said with 🎤, in a spy voice
-             The app NEVER compares the piles. The gap between how an agent
-             likes to talk and what school wants is for the analysis. -->
+             ("School wants us to…" was removed on 4 November 2026, v87.)
+             The app never reacts to what a child sorted. -->
         <article class="mission-panel" data-mission="suit">
           <div class="suit-wrap">
 
@@ -418,7 +417,6 @@
               <div class="suit-phases seg-group">
                 <button class="btn seg" data-suit-phase="likes" aria-label="My agent likes">🗣️</button>
                 <button class="btn seg" data-suit-phase="best" aria-label="Which one does your agent like the most">⭐</button>
-                <button class="btn seg" data-suit-phase="school" aria-label="School wants us to">🏫</button>
                 <button class="btn seg" data-suit-phase="word" aria-label="Secret word">🤫</button>
               </div>
               <h2 id="suit-title" class="power-title">My agent likes…</h2>
@@ -923,14 +921,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=86"></script>
-<script src="./storage.js?v=86"></script>
-<script src="./audio.js?v=86"></script>
-<script src="./effects.js?v=86"></script>
-<script src="./assets.js?v=86"></script>
-<script src="./stickers.js?v=86"></script>
-<script src="./parts.js?v=86"></script>
-<script src="./app.js?v=86"></script>
+<script src="./boot-guard.js?v=87"></script>
+<script src="./storage.js?v=87"></script>
+<script src="./audio.js?v=87"></script>
+<script src="./effects.js?v=87"></script>
+<script src="./assets.js?v=87"></script>
+<script src="./stickers.js?v=87"></script>
+<script src="./parts.js?v=87"></script>
+<script src="./app.js?v=87"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

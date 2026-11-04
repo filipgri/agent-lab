@@ -840,92 +840,6 @@
       "rev": "2530c73a"
     },
     {
-      "id": "school-talk-lot",
-      "file": "img/cards/school-talk-lot.png",
-      "label": "Talk a lot",
-      "fallback": "🗣️",
-      "kind": "sticker",
-      "people": false,
-      "prompt": "Copy of `mode-talk`.",
-      "rev": "dcc69bb8"
-    },
-    {
-      "id": "school-only-talk",
-      "file": "img/cards/school-only-talk.png",
-      "label": "Only talk",
-      "fallback": "👄",
-      "kind": "sticker",
-      "people": true,
-      "prompt": "A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line."
-    },
-    {
-      "id": "school-makaton",
-      "file": "img/cards/school-makaton.png",
-      "label": "Learn Makaton",
-      "fallback": "🤟",
-      "kind": "sticker",
-      "people": true,
-      "prompt": "Copy of `mode-hands`.",
-      "rev": "b10f9130"
-    },
-    {
-      "id": "school-look",
-      "file": "img/cards/school-look.png",
-      "label": "Look at who's talking",
-      "fallback": "👀",
-      "kind": "sticker",
-      "people": true,
-      "prompt": "A small bean figure with big round eyes looking up at a taller bean figure with a lanyard who has a speech bubble, with dotted lines from the eyes to the speaker."
-    },
-    {
-      "id": "school-quick",
-      "file": "img/cards/school-quick.png",
-      "label": "Answer quickly",
-      "fallback": "⚡",
-      "kind": "sticker",
-      "people": true,
-      "prompt": "A bean figure with a speech bubble shooting out fast, with speed lines and a small stopwatch beside it."
-    },
-    {
-      "id": "school-speak-up",
-      "file": "img/cards/school-speak-up.png",
-      "label": "Speak up",
-      "fallback": "📢",
-      "kind": "sticker",
-      "people": true,
-      "prompt": "A bean figure speaking into a megaphone, with big bold sound waves coming out."
-    },
-    {
-      "id": "school-write",
-      "file": "img/cards/school-write.png",
-      "label": "Write it down",
-      "fallback": "📝",
-      "kind": "sticker",
-      "people": false,
-      "prompt": "Copy of `mode-write`.",
-      "rev": "b1a79c7a"
-    },
-    {
-      "id": "school-pictures",
-      "file": "img/cards/school-pictures.png",
-      "label": "Use picture cards",
-      "fallback": "🎴",
-      "kind": "sticker",
-      "people": true,
-      "prompt": "Copy of `mode-pictures`.",
-      "rev": "3d880101"
-    },
-    {
-      "id": "school-device",
-      "file": "img/cards/school-device.png",
-      "label": "Use a device",
-      "fallback": "📱",
-      "kind": "sticker",
-      "people": false,
-      "prompt": "Copy of `mode-device`.",
-      "rev": "2530c73a"
-    },
-    {
       "id": "dev-bell",
       "file": "img/cards/dev-bell.png",
       "label": "The school bell",
@@ -1545,12 +1459,6 @@
       "rev": "43020d33"
     },
     {
-      "id": "nar-school-frame",
-      "file": "audio/narrator/nar-school-frame.mp3",
-      "text": "School wants us to…",
-      "rev": "9872c332"
-    },
-    {
       "id": "nar-suit-most",
       "file": "audio/narrator/nar-suit-most.mp3",
       "text": "Which one does your agent like the most?",
@@ -1837,60 +1745,6 @@
       "file": "audio/narrator/nar-story-mode-device.mp3",
       "text": "A device! A tablet that talks for your agent.",
       "rev": "3cdef865"
-    },
-    {
-      "id": "nar-story-school-talk-lot",
-      "file": "audio/narrator/nar-story-school-talk-lot.mp3",
-      "text": "Talk a lot! Lots of talking, all day long.",
-      "rev": "c12a48d1"
-    },
-    {
-      "id": "nar-story-school-only-talk",
-      "file": "audio/narrator/nar-story-school-only-talk.mp3",
-      "text": "Only talk! Words out loud, and nothing else.",
-      "rev": "ad4c7e3c"
-    },
-    {
-      "id": "nar-story-school-makaton",
-      "file": "audio/narrator/nar-story-school-makaton.mp3",
-      "text": "Learn Makaton! Signs that go with words.",
-      "rev": "bb8927ef"
-    },
-    {
-      "id": "nar-story-school-look",
-      "file": "audio/narrator/nar-story-school-look.mp3",
-      "text": "Look at who's talking! Eyes on the speaker.",
-      "rev": "afe8b7e5"
-    },
-    {
-      "id": "nar-story-school-quick",
-      "file": "audio/narrator/nar-story-school-quick.mp3",
-      "text": "Answer quickly! Say the answer straight away.",
-      "rev": "d4e5aa6f"
-    },
-    {
-      "id": "nar-story-school-speak-up",
-      "file": "audio/narrator/nar-story-school-speak-up.mp3",
-      "text": "Speak up! Loud and clear, so everyone hears.",
-      "rev": "42339e62"
-    },
-    {
-      "id": "nar-story-school-write",
-      "file": "audio/narrator/nar-story-school-write.mp3",
-      "text": "Write it down! Put it on paper.",
-      "rev": "e6e30fab"
-    },
-    {
-      "id": "nar-story-school-pictures",
-      "file": "audio/narrator/nar-story-school-pictures.mp3",
-      "text": "Use picture cards! Point at pictures to say things.",
-      "rev": "4734482c"
-    },
-    {
-      "id": "nar-story-school-device",
-      "file": "audio/narrator/nar-story-school-device.mp3",
-      "text": "Use a device! A tablet that helps with talking.",
-      "rev": "3d13ff5c"
     },
     {
       "id": "nar-story-sit-too-loud",
@@ -2317,60 +2171,6 @@
       "file": "audio/narrator/nar-mode-device.mp3",
       "text": "A device.",
       "rev": "97a860d0"
-    },
-    {
-      "id": "nar-school-talk-lot",
-      "file": "audio/narrator/nar-school-talk-lot.mp3",
-      "text": "Talk a lot.",
-      "rev": "babdfdaa"
-    },
-    {
-      "id": "nar-school-only-talk",
-      "file": "audio/narrator/nar-school-only-talk.mp3",
-      "text": "Only talk.",
-      "rev": "bfec35f2"
-    },
-    {
-      "id": "nar-school-makaton",
-      "file": "audio/narrator/nar-school-makaton.mp3",
-      "text": "Learn Makaton.",
-      "rev": "fe1b01dc"
-    },
-    {
-      "id": "nar-school-look",
-      "file": "audio/narrator/nar-school-look.mp3",
-      "text": "Look at who's talking.",
-      "rev": "276900aa"
-    },
-    {
-      "id": "nar-school-quick",
-      "file": "audio/narrator/nar-school-quick.mp3",
-      "text": "Answer quickly.",
-      "rev": "15a50730"
-    },
-    {
-      "id": "nar-school-speak-up",
-      "file": "audio/narrator/nar-school-speak-up.mp3",
-      "text": "Speak up.",
-      "rev": "990554ce"
-    },
-    {
-      "id": "nar-school-write",
-      "file": "audio/narrator/nar-school-write.mp3",
-      "text": "Write it down.",
-      "rev": "cd8413d2"
-    },
-    {
-      "id": "nar-school-pictures",
-      "file": "audio/narrator/nar-school-pictures.mp3",
-      "text": "Use picture cards.",
-      "rev": "d83949ad"
-    },
-    {
-      "id": "nar-school-device",
-      "file": "audio/narrator/nar-school-device.mp3",
-      "text": "Use a device.",
-      "rev": "c019a32c"
     },
     {
       "id": "nar-safe-nowhere",
