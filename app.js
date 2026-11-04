@@ -6007,6 +6007,7 @@ const SUIT_PHASES = {
 };
 const SUIT_ORDER = ['likes', 'best'];
 const SUIT_FLY_MS = 560;             // a sorted card flying to its pile (style.css)
+const SUIT_DROP_MS = 320;            // a DRAGGED card shrinking into its pile (dropOnPile)
 
 const suitUi = { phase: 'likes', index: 0, moving: false };
 let suitTimer = null;                 // the short pause before the next part
@@ -6338,7 +6339,9 @@ function sortCard(pile, via) {
   suitUi.moving = true;
   // A dragged card has already been put on its answer (dropOnPile).
   if (card && fullMotion() && via !== 'drag') card.classList.add('fly-' + pile);
-  suitTimer = setTimeout(nextCard, card && fullMotion() ? SUIT_FLY_MS : 0);
+  // A dragged card is gone as soon as it has shrunk into its answer; the
+  // next one comes then, not after a tapped card's longer flight.
+  suitTimer = setTimeout(nextCard, !card || !fullMotion() ? 0 : via === 'drag' ? SUIT_DROP_MS : SUIT_FLY_MS);
 
   function nextCard() {
     suitUi.moving = false;
@@ -6366,17 +6369,25 @@ function wireCardDrag(card) {
   card.style.touchAction = 'none';
   card.addEventListener('pointerdown', down => {
     if (suitUi.moving) return;
-    card.classList.remove('drag-hint');   // its hop would fight the finger
     const start = { x: down.clientX, y: down.clientY };
     let dragging = false;
     const move = e => {
-      const dx = e.clientX - start.x;
-      const dy = e.clientY - start.y;
       if (!dragging) {
-        if (Math.hypot(dx, dy) < 8) return;
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
         dragging = true;
+        // A card still sliding in, or doing its "carry me" hop, stops: a CSS
+        // animation beats the transform below, and the card would stay put
+        // under the finger (v99). It carries on from where it was SEEN, so
+        // it does not jump to its resting place first.
+        const seen = card.getBoundingClientRect();
+        card.classList.remove('is-dealt', 'drag-hint');
+        const rest = card.getBoundingClientRect();
+        start.x -= (seen.left + seen.width / 2) - (rest.left + rest.width / 2);
+        start.y -= (seen.top + seen.height / 2) - (rest.top + rest.height / 2);
         card.classList.add('is-dragging');
       }
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
       card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.72) rotate(' + (dx / 25) + 'deg)';
       markPileTarget(pileAt(e.clientX, e.clientY, dy, false));
     };
@@ -6445,7 +6456,7 @@ function dropOnPile(card, pile) {
     const dy = (r.top + r.height / 2) - (c.top + c.height / 2);
     card.animate([{ transform: from, opacity: 1 },
                   { transform: from + ' translate(' + dx / 0.72 + 'px,' + dy / 0.72 + 'px) scale(.2)', opacity: 0 }],
-                 { duration: 320, easing: 'ease-in', fill: 'forwards' });
+                 { duration: SUIT_DROP_MS, easing: 'ease-in', fill: 'forwards' });
   } else {
     card.style.opacity = '0';
   }

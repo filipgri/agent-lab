@@ -3210,7 +3210,10 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 /* A card arrives like one dealt from a pack, and a sorted card flies off
    towards the answer that was tapped (✓ left, ? down, ✗ right). Full
    motion only: in Calm and Off the next card is simply there. */
-body[data-motion="full"] .suit-card-slot .pic-card.is-dealt { animation: card-deal 620ms cubic-bezier(.2,.9,.3,1.2) both; }
+/* `backwards`, never `both` (v99): an animation that HOLDS its end state
+   overrides the transform a drag gives the card, so a dealt card would not
+   follow the finger at all (Filip: "it simply stops after two quick ones"). */
+body[data-motion="full"] .suit-card-slot .pic-card.is-dealt { animation: card-deal 620ms cubic-bezier(.2,.9,.3,1.2) backwards; }
 /* 560 ms: SUIT_FLY_MS in app.js waits for this. */
 body[data-motion="full"] .suit-card-slot .pic-card.fly-yes    { animation: fly-yes 560ms ease-in forwards; }
 body[data-motion="full"] .suit-card-slot .pic-card.fly-unsure { animation: fly-unsure 560ms ease-in forwards; }

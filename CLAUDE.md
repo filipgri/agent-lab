@@ -814,6 +814,19 @@ to the start. No card screen.
   against a stand-in cache (this preview browser cannot run a service
   worker). `Assets.warm()` now only fetches the file and never touches a
   player, so it cannot mark a line as missing.
+- **v99–v100 (4 November 2026): quick drags on the Talking Mat.** Filip:
+  "it simply stops after two quick ones in a row… almost like they need
+  to be read out first". Not the narration: every card after the first
+  arrives with a slide-in (`card-deal`) whose fill was `both`, and an
+  animation that HOLDS its end state beats the inline transform the drag
+  sets - so the card sat still under a moving finger (measured: 211px
+  apart by the end of the drag), though the drop still counted. Now the
+  slide-in is `backwards`, and the moment a drag starts the card drops
+  its slide-in or "carry me" hop and carries on from where it was SEEN
+  (no jump). After a drag the next card comes when the old one has
+  shrunk into its answer (`SUIT_DROP_MS`, 320 ms), not after a tapped
+  card's 560 ms flight. Tested: eight cards dragged back to back, each
+  grabbed mid-slide, all 0px from the finger.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -960,6 +973,11 @@ applies (v3 §13).
 
 - **A gesture never replaces a tap.** Every drag, hold or press has a tap
   that does the same, and the event says which was used (`via`).
+- **Nothing that can be dragged may have an animation that holds its
+  end state** (`fill: both` / `forwards`). A running or held CSS
+  animation beats the inline `transform` a drag sets, and the element
+  stays put under the finger. When a drag starts, remove the animation
+  and offset the start by where the element was seen (`wireCardDrag`).
 - **"This was a drag, not a tap" must clear itself at once.** A press let
   go somewhere else sends its click to somewhere else, so a mark waiting
   for that click would swallow the child's NEXT real tap. The drags set
