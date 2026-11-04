@@ -37,7 +37,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=92">
+  <link rel="stylesheet" href="./style.css?v=93">
 </head>
 <body>
 
@@ -873,6 +873,18 @@
   </div>
 </div>
 
+<!-- 🛬 WHERE THE BOTTLE LANDS (v93). After a bottle is sent or kept, a
+     short scene shows where it went: the agent's own shelf, the school
+     postbox (a friend), the teacher's tray, or the shore on the big screen
+     (everyone). Built by showLanding() in app.js; a tap closes it. -->
+<div id="landing-overlay" class="overlay landing-overlay" hidden>
+  <div id="landing-scene" class="landing-scene">
+    <div id="landing-place" class="landing-place"></div>
+    <div id="landing-bottle" class="landing-bottle" aria-hidden="true"></div>
+    <p id="landing-caption" class="landing-caption"></p>
+  </div>
+</div>
+
 <!-- TYPE YOUR OWN SPY NAME (v2 §5.1). Never a real name: the placeholder
      says "Make up a spy name", and nothing here asks who the child is. -->
 <div id="type-overlay" class="overlay" hidden>
@@ -920,14 +932,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=92"></script>
-<script src="./storage.js?v=92"></script>
-<script src="./audio.js?v=92"></script>
-<script src="./effects.js?v=92"></script>
-<script src="./assets.js?v=92"></script>
-<script src="./stickers.js?v=92"></script>
-<script src="./parts.js?v=92"></script>
-<script src="./app.js?v=92"></script>
+<script src="./boot-guard.js?v=93"></script>
+<script src="./storage.js?v=93"></script>
+<script src="./audio.js?v=93"></script>
+<script src="./effects.js?v=93"></script>
+<script src="./assets.js?v=93"></script>
+<script src="./stickers.js?v=93"></script>
+<script src="./parts.js?v=93"></script>
+<script src="./app.js?v=93"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

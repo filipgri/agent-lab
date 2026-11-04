@@ -8131,6 +8131,9 @@ function addAndSay(item, lines) {
 function stopBottle() {
   bottleTimers.forEach(clearTimeout);
   bottleTimers = [];
+  clearTimeout(landingTimer);
+  const landing = $('#landing-overlay');
+  if (landing) landing.hidden = true;
   bottleSayToken++;                   // nothing still to say follows the child out
   bottleQueue = [];
   bottleSaying = false;
@@ -8850,10 +8853,124 @@ function keepBottle() {
   const b = currentBottle();
   b.state = 'kept';
   logEvent('bottle_keep', {});
-  bottleSay([['nar-bottle-kept', 'Your bottle stays safe on your shelf.']]);
   bottleUi.index = null;
   scheduleSave();
-  startBottlePhase('shelf');
+  // It lands on the agent's own shelf (showLanding), then the shelf opens.
+  showLanding(b, ['nar-bottle-kept', 'Your bottle stays safe on your shelf.']);
+}
+
+/* ---- 🛬 where the bottle lands (v93) ----
+   After the flight, a short scene shows WHERE the bottle went (Filip:
+   "visualise that it lands just with me, a friend at school, my teacher or
+   everybody at school"). Each shows what really happens, so the picture
+   promises no more than the bottle does:
+     🙋 me        it drops onto the agent's own shelf, beside the agent
+     👫 friend    it drops into the school postbox, onto an envelope with
+                  the friend picture - then the friend's name plays, if one
+                  was said (it is in the post on the big screen)
+     🧑‍🏫 teacher  it drops into the teacher's tray
+     🌍 everyone  it splashes onto the shore on the big screen, with the
+                  class looking up (it does arrive there)
+   The narrator says where it went. A tap closes it early; it closes by
+   itself after LANDING_MS; then the shelf opens. In Calm and Off the
+   bottle is simply there - no flight. Not logged: the bottle's own events
+   already say what happened. */
+const LANDING_MS = 4200;
+// Where the bottle comes to rest: [left, bottom] in % of the scene, so it
+// stands ON the shelf, the tray or the sand. Kept beside the CSS that draws
+// those surfaces (the .land-* rules in style.css).
+const LANDING_SPOTS = {
+  'who-me':       [73, 34],
+  'who-friend':   [30, 52],
+  'who-teacher':  [73, 31],
+  'who-everyone': [50, 38]
+};
+let landingTimer = null;
+
+async function showLanding(b, line) {
+  const to = b.to || 'who-me';
+  const overlay = $('#landing-overlay');
+  const scene = $('#landing-scene');
+  const place = $('#landing-place');
+  scene.dataset.to = to;
+  place.innerHTML = '';
+
+  // The place itself, from pictures the app already has.
+  const pic = async (id, fallback, cls) => {
+    const holder = document.createElement('div');
+    holder.className = cls;
+    const img = await Assets.image(id);
+    // Assets.image() hands out ONE cached <img>; appending it twice would
+    // move it, so the crowd's three pairs each get a copy.
+    if (img) holder.appendChild(img.cloneNode());
+    else holder.textContent = fallback;
+    return holder;
+  };
+  if (to === 'who-me') {
+    const agent = document.createElement('div');
+    agent.className = 'land-agent';
+    agent.innerHTML = agentViewHtml('');
+    renderAgentView(agent.querySelector('.agent-view'), state.agent.cover, false);
+    place.appendChild(agent);
+    place.insertAdjacentHTML('beforeend', '<div class="land-shelf"></div>');
+  } else if (to === 'who-friend') {
+    place.insertAdjacentHTML('beforeend', '<div class="land-postbox" aria-hidden="true">📮</div>');
+    const envelope = document.createElement('div');
+    envelope.className = 'land-envelope';
+    envelope.appendChild(await pic('who-friend', '👫', 'land-envelope-pic'));
+    place.appendChild(envelope);
+  } else if (to === 'who-teacher') {
+    place.appendChild(await pic('who-teacher', '🧑‍🏫', 'land-teacher'));
+    // The tray sits in front of the bottle that drops into it (z-index).
+    place.insertAdjacentHTML('beforeend', '<div class="land-desk"></div>' +
+                                          '<div class="land-tray"></div>');
+  } else {
+    place.insertAdjacentHTML('beforeend',
+      '<div class="land-screen"><div class="land-sea"></div><div class="land-sand"></div>' +
+      '<span class="land-splash"></span></div>');
+    // The class looking up at it: three pairs of the bean children.
+    const crowd = document.createElement('div');
+    crowd.className = 'land-crowd';
+    for (let i = 0; i < 3; i++) crowd.appendChild(await pic('who-friend', '👫', 'land-crowd-pic'));
+    place.appendChild(crowd);
+  }
+
+  const target = BOTTLE_TO.find(x => x.id === to);
+  $('#landing-caption').textContent = target ? target.emoji + ' ' + target.label : '';
+
+  // The bottle, corked, falling to its spot.
+  const bottle = $('#landing-bottle');
+  bottle.innerHTML = bottleSvg(b, { corked: true });
+  const spot = LANDING_SPOTS[to] || [50, 50];
+  bottle.style.left = spot[0] + '%';
+  bottle.style.bottom = spot[1] + '%';
+  bottle.classList.remove('is-landing');
+  scene.classList.remove('has-landed');
+  overlay.hidden = false;
+  void bottle.offsetWidth;
+  bottle.classList.add('is-landing');
+
+  // It lands: a sound, a little burst, and the narrator says where.
+  clearTimeout(landingTimer);
+  bottleTimers.push(setTimeout(() => {
+    scene.classList.add('has-landed');
+    playSfx(to === 'who-everyone' ? 'sfx-bottle-arrive' : 'sfx-bottle-drop');
+    if (fullMotion() && typeof Effects !== 'undefined') Effects.burstAt(bottle, { count: 14, spread: 4 });
+    // A friend's name, if the child said one, follows the line (it stays
+    // on this iPad - it is only played here).
+    const then = to === 'who-friend' && b.toNameAudioId ? () => playToName(b) : null;
+    bottleSay([[line[0], line[1], then]]);
+  }, fullMotion() ? 900 : 100));
+  landingTimer = setTimeout(closeLanding, LANDING_MS + (b.toNameAudioId && to === 'who-friend' ? 2500 : 0));
+}
+
+function closeLanding() {
+  clearTimeout(landingTimer);
+  landingTimer = null;
+  const overlay = $('#landing-overlay');
+  if (!overlay || overlay.hidden) return;
+  overlay.hidden = true;
+  if (state.screen === 'mission' && currentMissionId() === 'bottle') startBottlePhase('shelf');
 }
 
 /* Send: the same flight whether or not the link works (§8). */
@@ -8870,14 +8987,14 @@ function sendBottle() {
 
   const agent = state.agent;
   bottleTimers.push(setTimeout(() => {
-    // On its way - and to whom (Filip: "it does not say to whom").
+    // On its way - and to whom (Filip: "it does not say to whom"): it
+    // lands where it is going (showLanding), and the narrator says so.
     const sentLine = { 'who-everyone': 'nar-bottle-sent-everyone',
                        'who-friend': 'nar-bottle-sent-friend',
                        'who-teacher': 'nar-bottle-sent-teacher' }[b.to] || 'nar-bottle-sent';
-    bottleSay([[sentLine, 'Whoosh!']]);
     bottleUi.index = null;
-    startBottlePhase('shelf');
-  }, 1300));
+    showLanding(b, [sentLine, 'Whoosh!']);
+  }, 1000));
 
   // Then, quietly, the actual sending.
   deliverBottle(agent, b).then(ok => {
@@ -9128,6 +9245,8 @@ function wireBottle() {
     goBottlePhase(currentBottle().to === 'who-me' ? 'send' : 'sign', 'next'));
   $('#bottle-sign-go').addEventListener('click', () => goBottlePhase('send', 'next'));
   $('#bottle-cork').addEventListener('click', corkBottle);
+  // A tap anywhere on the landing scene closes it early.
+  $('#landing-overlay').addEventListener('click', closeLanding);
   $('#bottle-keep').addEventListener('click', keepBottle);
   const rocket = $('#bottle-rocket');
   rocket.addEventListener('pointerdown', startRocketHold);

@@ -736,6 +736,19 @@ to the start. No card screen.
   clearer than "My agent likes…" that the cards are ways of getting a
   message across (Filip). Heading, narration (`nar-likes-frame`, remade)
   and the bottle's token ("How my agent likes to communicate").
+- **v93 (4 November 2026): where the bottle lands.** After Send (or Keep)
+  a short scene shows where it went, so "it goes to my friend" is something
+  a child SEES (Filip). `showLanding()` / `closeLanding()` in section 33,
+  `#landing-overlay` in `index.html`, the `.land-*` rules in `style.css`:
+  🙋 the agent beside its own shelf · 👫 into the school postbox, then an
+  envelope with the friend picture (and the friend's name plays, if one
+  was said) · 🧑‍🏫 into the teacher's tray · 🌍 onto the shore on the big
+  screen with the class watching. Each shows only what really happens to
+  the bottle. A tap closes it; it closes itself after `LANDING_MS`; then
+  the shelf. Calm: the bottle is just there. No new data or events.
+  **`Assets.image()` hands out one cached `<img>`** — appending it twice
+  moves it, so anything showing a picture more than once must
+  `cloneNode()` it (the crowd lost two of its three pairs to this).
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
