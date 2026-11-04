@@ -7,7 +7,15 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v87** (4 November 2026). `schemaVersion` is still **3**.
+Last updated: **v88** (4 November 2026). `schemaVersion` is still **3**.
+
+> **v88: gestures, and "Which rule?".** Every gesture has a tap that does
+> the same, and the log says which was used: `via` on `suit_sort`
+> ("drag"/"tap"), `bottle_item_add` ("drag"/"tap"), `powers_fire`
+> ("hold"/"tap") and the recordings (`secret_word_record`,
+> `bottle_voice_record`, `bottle_to_name`: "hold"/"tap" - held like a
+> walkie-talkie, or tapped on and off). New event `powers_charge_stop`.
+> "Change a school rule" asks which rules (`powers[].rules`, `rulesOwn`).
 
 > **v87: "School wants us to…" is removed.** How my agent talks asks only
 > "My agent likes…", the favourite, and the secret word. `suit.school`,
@@ -224,6 +232,7 @@ milestone first writes each one; until then it keeps its default.
 | `power` | A power card id (`pow-…`, below), `"own"` for one the child made up behind the ✨ secret door, or `"v2"` for their session-2 power ("⏪ Last time"). |
 | `own` | `{ png, audioId }`. For `"own"`: the made-up power, drawn and/or said. For `"v2"`: the session-2 drawing and recording, pointed at, never copied (they still belong to `powerup.power` and are never deleted from here). For a card: both `null` (before v80 it could hold a drawing made on the ✨ canvas before the card was picked). |
 | `inventedFirst` | **`null` since v80**: the doors come first, so the question "did the child invent before seeing the ideas?" cannot arise (an `"own"` power is still recognisable by `power`). Before v80: `true` if the child drew or said something on ✨ before opening the ideas, `false` if they opened the ideas first. |
+| `rules` / `rulesOwn` | 📜 v88. Only for `pow-change-rule`: "Which rule does your agent change?" - `rule-hand-up` (Put your hand up), `rule-quiet` (Be quiet), `rule-look` (Look at who's talking), `rule-quick` (Answer quickly), `rule-speak-up` (Speak up), `rule-only-talk` (Only talk), `rule-write` (Write it down), `rule-sit-still` (Sit still), any number, in the order picked / ✏️ own rules `{ png, audioId }`. This is how what school EXPECTS is now found (Filip, after "School wants us to…" was removed). `[]` for other powers; missing on powers made before v88. |
 | `devices` | 🎛️ Only for `pow-control-devices` (v80, at Filip's request: "say which devices"): which ones — `dev-bell` (the school bell), `dev-alarm` (the fire alarm), `dev-lights`, `dev-speakers`, `dev-board` (the whiteboard), `dev-computers`. Any number, in the order picked. `[]` for every other power (and missing on powers made before v80). If a child changes a power away from "Control school devices", the list stays but means nothing. |
 | `when` / `whenOwn` | 🕐 Situation ids (the session-2 ids: `sit-too-loud`, `sit-not-understood`, `sit-waiting`, `sit-did-well`, `sit-asked-answer`, `sit-unkind`, `sit-plans-change`, `sit-new-place`, `sit-playtime`, `sit-tricky-work`) / own cards `{ png, audioId }`. **Three at most, cards and own together.** |
 | `who` / `whoOwn` | 👥 `who-me`, `who-friend`, `who-teacher` (any adult at school), `who-class`, `who-everyone`, `who-room` / own cards. Any number. |
@@ -401,13 +410,13 @@ The "v3" column says whether the current app can still log the event.
 
 | Action | When | `detail` | v3 |
 |---|---|---|---|
-| `suit_sort` | A card was put on a pile. Putting it on another pile later (coming back, or ↩️) is another `suit_sort`, so changes of mind are kept. | `{ step: "likes"/"school", mode, pile: "yes"/"unsure"/"no" }` | ✅ |
+| `suit_sort` | A card was put on a pile. Putting it on another pile later (coming back, or ↩️) is another `suit_sort`, so changes of mind are kept. | `{ step: "likes"/"school", mode, pile: "yes"/"unsure"/"no", via }` — `via` (v88): `"drag"` if the card was carried onto its answer, `"tap"` if the answer was tapped | ✅ |
 | `suit_back` | ↩️ — back one card. | `{ step }` | ✅ |
 | `suit_phase` | Another part opened. | `{ to: "likes"/"best"/"school"/"word", how: "auto"/"next"/"tab" }` — `auto` after the last card, `next` is ➡️, `tab` the 🗣️ ⭐ 🏫 🤫 buttons | ✅ |
 | `suit_best` | ⭐ "Which one does your agent like the most?" — a card was picked. | `{ best }` — a card id (`"own-0"`… only before v80) | ✅ |
 | `suit_own` | A ✏️ My own card was kept. | `{ step, drawn, said }` | — (before v80) |
 | `suit_own_remove` | A ✏️ card was removed (second tap of two). | `{ step }` | — (before v80) |
-| `secret_word_record` | 🎤 A secret word was recorded. | `{ ms, again }` — `again` if it replaced one | ✅ |
+| `secret_word_record` | 🎤 A secret word was recorded. | `{ ms, again, via }` — `again` if it replaced one; `via` (v88) `"hold"` (held while speaking, like a walkie-talkie) or `"tap"` (tapped on, then off) | ✅ |
 | `secret_word_voice` | A spy voice was picked for it. | `{ filter }` | ✅ |
 | `handshake_open` | The handshake sheet was opened (from 🤝 in Powers' 🔌 slot). | `{}` | ✅ |
 | `handshake_make` | A handshake was finished: 1.5 s after the last tap, at the 8th tap, or 6 s after the first. | `{ taps, ms }` — `taps` is the whole rhythm (ms from the first tap), `ms` its length | ✅ |
@@ -444,11 +453,12 @@ Every place tapped is also a `label_speak`.
 | `powers_choose` | A power was chosen: a card in a door, ✨ an own power from the secret door, or ⏪ Last time. Choosing again changes it. | `{ power }`, plus `{ drawn, said }` for `"own"` | ✅ |
 | `powers_phase` | Another step opened (🚪 🔋 ⚡). | `{ to: "doors"/"sentence"/"mine", how: "next"/"tab"/"back" }` — `back` is 🚪 back to all the doors from inside one (`to: "make"` only before v80) | ✅ |
 | `powers_slot_open` | Another question (a battery cell) opened. | `{ slot, how: "next"/"tab" }` — `tab` is tapping a cell | ✅ |
-| `powers_slot` | A card in a question turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `slot` is `devices`/`when`/`who`/`how`; `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
+| `powers_slot` | A card in a question turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `slot` is `rules` (v88)/`devices`/`when`/`who`/`how`; `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
 | `powers_slot_skip` | ➡️ on a slot that was still empty. | `{ slot }` | ✅ |
 | `powers_sothat` | 🎯 "What happens then?" was kept (drawn or said). | `{ drawn, said }` | ✅ |
 | `powers_sothat_remove` | …and removed (two taps). | `{}` | ✅ |
-| `powers_fire` | ⚡ Power on! — the agent does the power and the sentence reads itself back. | `{ index }` — which of the agent's powers | ✅ |
+| `powers_fire` | ⚡ Power on! — the agent does the power and the sentence reads itself back. | `{ index, via }` — which of the agent's powers; `via` (v88) `"hold"` if ⚡ was held until the battery charged, `"tap"` for a tap (also on My powers) | ✅ |
+| `powers_charge_stop` | v88: ⚡ was held, then let go before the battery had charged - nothing fired. | `{ cells }` — how many cells had lit | ✅ |
 | `powers_edit` | 🔋 on a kept power, to change its answers (📝 before v80). | `{ index }` | ✅ |
 | `powers_new` | ➕ Another power. | `{}` | ✅ |
 | `powers_remove` | 🗑️ A power was removed (two taps). | `{ index }` | ✅ |
@@ -457,9 +467,9 @@ Every place tapped is also a `label_speak`.
 
 | Action | When | `detail` | v3 |
 |---|---|---|---|
-| `bottle_item_add` | An item went into the bottle. | `{ type }` | ✅ |
+| `bottle_item_add` | An item went into the bottle. | `{ type, via }` — `via` (v88): `"drag"` if its token was carried into the bottle, `"tap"` if tapped (an item made on a sheet carries the way its token was used) | ✅ |
 | `bottle_item_remove` | An item was taken out (two taps on its chip). | `{ type }` | ✅ |
-| `bottle_voice_record` | 🎤 for a voice message, or (v80) for the name of a favourite game. The `bottle_item_add` that follows says which. | `{ ms }` | ✅ |
+| `bottle_voice_record` | 🎤 for a voice message, or (v80) for the name of a favourite game. The `bottle_item_add` that follows says which. | `{ ms, via }` — `via` as for `secret_word_record` | ✅ |
 
 A token tapped is also a `label_speak { id }` with the token's KIND (e.g.
 `item-power`), as its story is told; `bottle_item_add { type }` says what
@@ -467,7 +477,7 @@ went in.
 | `bottle_voice_filter` | A spy voice was picked. | `{ filter }`, plus `mystery: true` when the 🕵️ step asked for it — then it applies to EVERY recording in the bottle | ✅ |
 | `bottle_phase` | Another step opened (🍾 👥 🕵️ 🚀 🗂️; 🕵️ was ✍️ before v80). | `{ to, how: "next"/"tab" }` — `to: "sign"` is "Who is it from?" | ✅ |
 | `bottle_to` | Who it is for. | `{ who }` | ✅ |
-| `bottle_to_name` | v86: 🎤 the child said who a friend's or teacher's bottle is for. | `{ ms, again }` — `again` if it replaced an earlier one. The recording itself is `toNameAudioId` (personal data). | ✅ |
+| `bottle_to_name` | v86: 🎤 the child said who a friend's or teacher's bottle is for. | `{ ms, again, via }` — `again` if it replaced an earlier one. The recording itself is `toNameAudioId` (personal data). | ✅ |
 | `bottle_to_name_remove` | v86: that recording was deleted because the bottle is now for someone else. | `{}` | ✅ |
 | `bottle_friend_pick` | A friend's agent was tapped (or tapped again to un-pick). | `{ toAgentId }` | — (before v84: the list of agents is gone) |
 | `bottle_sign` | "Who is it from?": the agent, or 🎭 a mystery. | `{ signed }` | ✅ |
@@ -700,7 +710,8 @@ for yes/no. Running it twice on the same files gives the same output.
 `power_ref`, `power` (a card id, `own` or `v2`), `family` (the door, from §4
 of this file; empty for own/v2), `invented_first` (1/0; empty since v80,
 when the doors come first), `own_drawn`, `own_said`, `devices` (v80: the
-devices a "Control school devices" power controls), `when`, `when_own`,
+devices a "Control school devices" power controls), `rules`, `rules_own`
+(v88: the school rules "Change a school rule" changes, and own ones), `when`, `when_own`,
 `who`, `who_own`, `how`, `how_own`, `so_that` (`drawn`/`said`/both),
 `skipped`, `order`, `times_fired` (its `powers_fire` events).
 

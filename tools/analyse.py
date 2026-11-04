@@ -228,7 +228,8 @@ def agent_row(agent):
 
 POWER_COLUMNS = [
     "agent_ref", "codename", "power_index", "power_ref", "power", "family", "invented_first",
-    "own_drawn", "own_said", "devices", "when", "when_own", "who", "who_own", "how", "how_own",
+    "own_drawn", "own_said", "devices", "rules", "rules_own", "when", "when_own", "who", "who_own",
+    "how", "how_own",
     "so_that", "skipped", "order", "times_fired",
 ]
 
@@ -250,6 +251,9 @@ def power_rows(agent):
             int(bool(own.get("png"))), int(bool(own.get("audioId"))),
             # v80: which devices "Control school devices" controls.
             joined(p.get("devices", [])) if p["power"] == "pow-control-devices" else "",
+            # v88: which school rules "Change a school rule" changes.
+            joined(p.get("rules", [])) if p["power"] == "pow-change-rule" else "",
+            own_summary(p.get("rulesOwn")) if p["power"] == "pow-change-rule" else "",
             joined(p.get("when", [])), own_summary(p.get("whenOwn")),
             joined(p.get("who", [])), own_summary(p.get("whoOwn")),
             joined(p.get("how", [])), own_summary(p.get("howOwn")),
@@ -345,7 +349,7 @@ def save_media(agent, audio, drawings, sounds):
         if p.get("soThat"):
             png(p["soThat"].get("png"), "power%d-sothat" % i)
             clip(p["soThat"].get("audioId"), "power%d-sothat" % i)
-        for slot, own_key in SLOTS:
+        for slot, own_key in SLOTS + [("rules", "rulesOwn")]:      # v88: own rules too
             for j, c in enumerate(p.get(own_key, [])):
                 png(c.get("png"), "power%d-%s%d" % (i, slot, j))
                 clip(c.get("audioId"), "power%d-%s%d" % (i, slot, j))
@@ -492,6 +496,10 @@ def card_html(agent, files, labels, parts_js):
             name = {"own": "✨ Their own power", "v2": "⏪ From last time"}.get(power) or chip(power, labels)
             out.append('<div class="strip"><div class="slot"><b>Power%s</b>%s %s</div>' % (
                 " · invented first" if p.get("inventedFirst") else "", name, media(files, "power%d" % i)))
+            if power == "pow-change-rule" and (p.get("rules") or p.get("rulesOwn")):
+                out.append('<div class="slot"><b>📜 Rules</b>%s%s</div>' % (
+                    " ".join(chip(c, labels) for c in p.get("rules", [])),
+                    " ".join(media(files, "power%d-rules%d" % (i, j)) for j in range(len(p.get("rulesOwn", []))))))
             if power == "pow-control-devices" and p.get("devices"):
                 out.append('<div class="slot"><b>🎛️ Devices</b>%s</div>' % " ".join(
                     chip(c, labels) for c in p["devices"]))

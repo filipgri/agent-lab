@@ -2966,7 +2966,7 @@ function startTrayDrag(event, emoji) {
 /* The safety net (v2 spec §4.1). Anything a drag parks on <body> is swept up
    here, so a stranded preview can never outlive the screen it came from. */
 function clearDragLeftovers() {
-  $$('.sticker-ghost').forEach(el => el.remove());
+  $$('.sticker-ghost, .drag-ghost').forEach(el => el.remove());
 }
 
 /* Moving a sticker that is already on the agent. */
@@ -5089,7 +5089,7 @@ function wireOwnCard() {
     b.addEventListener('click', () => speakLine(b.dataset.say)));
   $('#own-undo').addEventListener('click', undoCode);
   $('#own-clear').addEventListener('click', clearCode);
-  $('#own-mic').addEventListener('click', recordOwnCard);
+  wireTalkie($('#own-mic'), recordOwnCard);            // hold to talk, or tap
   $('#own-cancel').addEventListener('click', closeOwnCard);
   $('#own-save').addEventListener('click', keepOwnCard);
   $('#own-say').addEventListener('click', () => speakLine($('#own-say').dataset.say));
@@ -6075,6 +6075,44 @@ function agentViewHtml(extraClass) {
     '<span class="sticker-layer"></span></span>';
 }
 
+/* ---- 📻 the walkie-talkie (v88) ----
+   Every 🎤 works two ways, like a spy's radio: HOLD it while you speak and
+   let go to stop - or tap it to start and tap again to stop, as before.
+   The recorder starts the moment a finger touches down (pointerdown); on
+   letting go, a press held for TALKIE_HOLD_MS or longer stops it. A short
+   tap leaves it running. The very first time, Safari asks for the
+   microphone mid-press; that recording simply carries on as a tap one.
+   `talkie.via` says which way a recording was stopped, for the log. */
+const TALKIE_HOLD_MS = 500;
+const talkie = { via: 'tap' };
+function wireTalkie(button, record) {
+  let downAt = 0;
+  let pressing = false;
+  button.style.touchAction = 'none';
+  button.addEventListener('pointerdown', event => {
+    event.preventDefault();
+    try { button.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
+    if (Voice.isRecording()) { talkie.via = 'tap'; Voice.stop(); return; }   // the second tap
+    downAt = performance.now();
+    pressing = true;
+    talkie.via = 'tap';
+    record();
+  });
+  const release = () => {
+    if (!pressing) return;
+    pressing = false;
+    if (performance.now() - downAt >= TALKIE_HOLD_MS && Voice.isRecording()) {
+      talkie.via = 'hold';
+      Voice.stop();
+    }
+  };
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+  // The click that follows a press is not a second tap.
+  button.addEventListener('click', event => event.preventDefault());
+}
+
 /* A few notes, one after another - the answers and the power battery. */
 function playNotes(steps, gapMs) {
   if (state.muted) return;
@@ -6216,6 +6254,10 @@ function paintSort(dealt) {
       sayCardSentence(phase, mode);
     });
     if (dealt && fullMotion()) card.classList.add('is-dealt');
+    // Before anything is sorted, the first card hops towards the answers:
+    // "you can carry me there" (style.css, .drag-hint).
+    if (suitUi.index === 0 && !TALK_MODES.some(m => pileOf('likes', m.id))) card.classList.add('drag-hint');
+    wireCardDrag(card);
     slot.appendChild(card);
   } else {
     slot.innerHTML = '<div class="suit-card-done" aria-label="All sorted">✓</div>';
@@ -6247,7 +6289,7 @@ function presentCard() {
   sayCardSentence(suitUi.phase, mode);
 }
 
-function sortCard(pile) {
+function sortCard(pile, via) {
   if (suitUi.moving) return;             // the last card is still flying
   const step = suitUi.phase;
   const modes = SUIT_PHASES[step].modes;
@@ -6265,7 +6307,7 @@ function sortCard(pile) {
   // The favourite has to be a ✓ card.
   if (step === 'likes' && pile !== 'yes' && suit.best === mode.id) suit.best = null;
 
-  logEvent('suit_sort', { step: step, mode: mode.id, pile: pile });
+  logEvent('suit_sort', { step: step, mode: mode.id, pile: pile, via: via || 'tap' });
   scheduleSave();
 
   // The agent answers - nods, tilts or shakes its head - and the card flies
@@ -6278,7 +6320,8 @@ function sortCard(pile) {
 
   const card = $('#suit-card .pic-card');
   suitUi.moving = true;
-  if (card && fullMotion()) card.classList.add('fly-' + pile);
+  // A dragged card has already been put on its answer (dropOnPile).
+  if (card && fullMotion() && via !== 'drag') card.classList.add('fly-' + pile);
   suitTimer = setTimeout(nextCard, card && fullMotion() ? SUIT_FLY_MS : 0);
 
   function nextCard() {
@@ -6293,6 +6336,108 @@ function sortCard(pile) {
       startSuitPhase(next);
     }, 1200);
   }
+}
+
+/* 🗂️ DRAG THE CARD ONTO AN ANSWER (v88) - what a real Talking Mat is:
+   pick the card up and put it on a pile. Forgiving: let go over an answer
+   or near one, or push it down towards one, and it counts; anywhere else
+   it springs back. A tap on an answer still works, and a tap on the card
+   still says its sentence. The drag follows the CLAUDE.md shape: window
+   listeners and one clean-up for every way a press can end. */
+function wireCardDrag(card) {
+  card.style.touchAction = 'none';
+  card.addEventListener('pointerdown', down => {
+    if (suitUi.moving) return;
+    card.classList.remove('drag-hint');   // its hop would fight the finger
+    const start = { x: down.clientX, y: down.clientY };
+    let dragging = false;
+    const move = e => {
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (!dragging) {
+        if (Math.hypot(dx, dy) < 8) return;
+        dragging = true;
+        card.classList.add('is-dragging');
+      }
+      card.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.72) rotate(' + (dx / 25) + 'deg)';
+      markPileTarget(pileAt(e.clientX, e.clientY, dy, false));
+    };
+    const end = e => {
+      cleanUp();
+      if (!dragging) return;              // a tap: the card's own click says it
+      // The click that may follow is swallowed - and only that one: a drag
+      // let go elsewhere sends its click elsewhere, so the mark goes at once.
+      card.dataset.dragged = '1';
+      setTimeout(() => { delete card.dataset.dragged; }, 60);
+      const pile = e.type === 'pointerup' ? pileAt(e.clientX, e.clientY, e.clientY - start.y, true) : null;
+      if (pile) dropOnPile(card, pile);
+      else springBack(card);
+    };
+    const cleanUp = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+      card.classList.remove('is-dragging');
+      markPileTarget(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+  });
+  // The click that ends a drag is not a tap on the card.
+  card.addEventListener('click', e => {
+    if (!card.dataset.dragged) return;
+    delete card.dataset.dragged;
+    e.stopImmediatePropagation();
+  }, true);
+}
+
+/* Which answer a finger is over - or, when `forgiving`, the one it was
+   pushed towards: dragged down at least 60px, the nearest answer. */
+function pileAt(x, y, dy, forgiving) {
+  const piles = $$('.suit-pile').filter(b => !b.hidden);
+  const over = piles.find(b => {
+    const r = b.getBoundingClientRect();
+    return x > r.left - 24 && x < r.right + 24 && y > r.top - 24 && y < r.bottom + 24;
+  });
+  if (over) return over.dataset.pile;
+  if (!forgiving || dy < 60) return null;
+  let best = null;
+  let bestD = Infinity;
+  piles.forEach(b => {
+    const r = b.getBoundingClientRect();
+    const d = Math.abs(x - (r.left + r.width / 2));
+    if (d < bestD) { bestD = d; best = b.dataset.pile; }
+  });
+  return best;
+}
+
+function markPileTarget(pile) {
+  $$('.suit-pile').forEach(b => b.classList.toggle('is-target', b.dataset.pile === pile));
+}
+
+/* The card goes onto its answer - shrinking into it - and is sorted. */
+function dropOnPile(card, pile) {
+  const target = $('.suit-pile[data-pile="' + pile + '"]');
+  if (target && fullMotion() && card.animate) {
+    const c = card.getBoundingClientRect();
+    const r = target.getBoundingClientRect();
+    const from = card.style.transform;
+    const dx = (r.left + r.width / 2) - (c.left + c.width / 2);
+    const dy = (r.top + r.height / 2) - (c.top + c.height / 2);
+    card.animate([{ transform: from, opacity: 1 },
+                  { transform: from + ' translate(' + dx / 0.72 + 'px,' + dy / 0.72 + 'px) scale(.2)', opacity: 0 }],
+                 { duration: 320, easing: 'ease-in', fill: 'forwards' });
+  } else {
+    card.style.opacity = '0';
+  }
+  sortCard(pile, 'drag');
+}
+
+function springBack(card) {
+  card.style.transition = 'transform 260ms cubic-bezier(.34,1.56,.64,1)';
+  card.style.transform = '';
+  setTimeout(() => { card.style.transition = ''; }, 300);
 }
 
 function suitBack() {
@@ -6362,7 +6507,7 @@ async function recordWord() {
     if (old && old.audioId) { Voice.forget(old.audioId); await Storage.deleteAudio(old.audioId); }
     // A new recording keeps the spy voice already chosen.
     state.agent.secretWord = { audioId: id, filter: (old && old.filter) || 'normal' };
-    logEvent('secret_word_record', { ms: Math.round(result.ms), again: Boolean(old) });
+    logEvent('secret_word_record', { ms: Math.round(result.ms), again: Boolean(old), via: talkie.via });
     scheduleSave();
     playWord();
   } catch (err) {
@@ -6583,10 +6728,10 @@ function wireSuit() {
   $$('[data-suit-phase]').forEach(b =>
     b.addEventListener('click', () => goSuitPhase(b.dataset.suitPhase, 'tab')));
   $$('.suit-pile').forEach(b =>
-    b.addEventListener('click', () => sortCard(b.dataset.pile)));
+    b.addEventListener('click', () => sortCard(b.dataset.pile, 'tap')));
   $('#suit-back').addEventListener('click', suitBack);
   $('#suit-best-go').addEventListener('click', () => goSuitPhase('word', 'next'));
-  $('#word-mic').addEventListener('click', recordWord);
+  wireTalkie($('#word-mic'), recordWord);              // hold to talk, or tap
   // The 🔊: the sentence for the card on screen - or the part's question,
   // or, once a secret word exists, the line that asks for a spy voice.
   $('#suit-say').addEventListener('click', () => {
@@ -6774,11 +6919,28 @@ const DEVICE_CARDS = [
   { id: 'dev-computers', emoji: '💻', label: 'The computers' }
 ];
 
+/* "Change a school rule" - but WHICH rule (Filip, 4 November: the school's
+   expectations, found another way; shown like the "My agent likes…"
+   cards - big, moving pictures, each telling what the rule is). Any
+   number, plus ✏️ a rule of their own. */
+const RULE_CARDS = [
+  { id: 'rule-hand-up',   emoji: '🙋', label: 'Put your hand up',      anim: 'wave' },
+  { id: 'rule-quiet',     emoji: '🤫', label: 'Be quiet',              anim: 'glow' },
+  { id: 'rule-look',      emoji: '👀', label: "Look at who's talking", anim: 'look' },
+  { id: 'rule-quick',     emoji: '⚡', label: 'Answer quickly',        anim: 'dart' },
+  { id: 'rule-speak-up',  emoji: '📢', label: 'Speak up',              anim: 'beat' },
+  { id: 'rule-only-talk', emoji: '👄', label: 'Only talk',             anim: 'beat' },
+  { id: 'rule-write',     emoji: '📝', label: 'Write it down',         anim: 'scribble' },
+  { id: 'rule-sit-still', emoji: '🪑', label: 'Sit still',             anim: 'bounce' }
+];
+
 /* The battery's cells, in order. `only` limits a cell to one power. The
    titles are the questions, said aloud as each cell is reached. */
 const POWER_SLOTS = [
   { id: 'devices', icon: '🎛️', title: 'Which ones does your agent control?', say: 'nar-powers-devices',
     cards: DEVICE_CARDS, only: 'pow-control-devices' },
+  { id: 'rules',   icon: '📜', title: 'Which rule does your agent change?', say: 'nar-powers-rules',
+    cards: RULE_CARDS, own: 'rulesOwn', only: 'pow-change-rule' },
   { id: 'when',   icon: '🕐', title: 'When does your agent use it?',  say: 'nar-powers-when',
     cards: SITUATION_CARDS, own: 'whenOwn', max: 3 },
   { id: 'who',    icon: '👥', title: 'Who does your power work on?',  say: 'nar-powers-who',
@@ -6849,6 +7011,7 @@ function enterPowers() {
 function stopPowers() {
   powersTimers.forEach(clearTimeout);
   powersTimers = [];
+  if (charging) { clearTimeout(charging.timer); charging = null; }
   clearTimeout(powerFxTimer);
   powersUi.busy = false;
   powersUi.opening = false;
@@ -7033,6 +7196,7 @@ function ensurePower() {
        3 November the doors come first, so the question cannot arise. */
     inventedFirst: null,
     devices: [],
+    rules: [], rulesOwn: [],
     when: [], whenOwn: [], who: [], whoOwn: [], how: [], howOwn: [],
     soThat: null,
     skipped: [],
@@ -7050,6 +7214,7 @@ function choosePower(id) {
   const p = ensurePower();
   p.power = id;
   if (id === 'pow-control-devices' && !p.devices) p.devices = [];
+  if (id === 'pow-change-rule') { p.rules = p.rules || []; p.rulesOwn = p.rulesOwn || []; }
   logEvent('powers_choose', { power: id });
   sayPowerStory(id);
   playPower(p);
@@ -7173,6 +7338,7 @@ function paintSentence() {
   const slot = slotById(powersUi.slot);
   const box = $('#powers-slot-cards');
   box.innerHTML = '';
+  box.dataset.slot = slot.id;                // style.css fits some lists tighter
   // Cards are dealt when a question is arrived at - not on every repaint.
   const deal = powersUi.dealNext;
   powersUi.dealNext = false;
@@ -7217,6 +7383,7 @@ function paintSentence() {
         title: slot.title,
         say: slot.say,
         onKeep: card => {
+          if (!p[slot.own]) p[slot.own] = [];
           p[slot.own].push(card);
           noteSlotOrder(p, slot.id);
           logEvent('powers_slot', { slot: slot.id, value: 'own', on: true,
@@ -7350,8 +7517,8 @@ function toggleSlotCard(slot, card, button) {
   if (card.id === 'how-word') {
     told.then(() => { if (powersUi.phase === 'sentence' && !powersUi.busy) playSecretWord(); });
   }
-  // The devices light up on the stage as they are picked.
-  if (slot.id === 'devices') playPower(p);
+  // The devices light up, and the rules are crossed out, as they are picked.
+  if (slot.id === 'devices' || slot.id === 'rules') playPower(p);
 }
 
 async function removeSlotOwn(slot, index) {
@@ -7388,7 +7555,8 @@ async function playSecretWord() {
 /* The battery lights up cell by cell, the power plays on the agent, and
    the sentence reads itself back: the power, then each cell in order, each
    card by its own recorded line - and each cell lights as it is read. */
-async function firePower(index) {
+async function firePower(index, opts) {
+  const o = opts || {};
   if (powersUi.busy) return;
   const p = state.agent.powers[index];
   if (!p || !p.power) return;
@@ -7398,7 +7566,9 @@ async function firePower(index) {
   // still empty when the power is switched on.
   const slots = slotsFor(p);
   p.skipped = slots.filter(s => slotEmpty(p, s.id)).map(s => s.id);
-  logEvent('powers_fire', { index: index });
+  // `via`: "hold" when the child held ⚡ until the battery was charged,
+  // "tap" for a tap (here, or on a kept power in My powers).
+  logEvent('powers_fire', { index: index, via: o.via || 'tap' });
   scheduleSave();
 
   powersUi.busy = true;
@@ -7410,12 +7580,15 @@ async function firePower(index) {
   powersUi.phase = 'sentence';
   paintPowers();
 
-  // Charging up: each cell lights in turn, each a note higher.
-  for (let i = 0; i < slots.length; i++) {
-    if (!powersUi.busy) return;
-    markReading(slots[i].id, true);
-    playNotes([i + 2]);
-    await pause(240);
+  // Charging up: each cell lights in turn, each a note higher - unless
+  // the child has just done that by HOLDING ⚡ (startCharge).
+  if (!o.charged) {
+    for (let i = 0; i < slots.length; i++) {
+      if (!powersUi.busy) return;
+      markReading(slots[i].id, true);
+      playNotes([i + 2]);
+      await pause(240);
+    }
   }
   slots.forEach(s => markReading(s.id, false));
 
@@ -7453,6 +7626,56 @@ async function firePower(index) {
   panel.classList.remove('is-busy');
   startPowersPhase('mine');
   sayPowersLine('nar-powers-more', 'Make another power, or Stamp it.');
+}
+
+/* ⚡ HOLD TO CHARGE (v88). Holding Power on! lights the battery cell by
+   cell, each a note higher, and the power fires when the last one lights.
+   A quick tap still fires it straight away (with the short charge-up
+   firePower does itself). Letting go part-way drains the charge with a
+   falling note and fires nothing - try again. Logged: `powers_fire
+   { via }`, and `powers_charge_stop { cells }` for a charge let go. */
+const CHARGE_STEP_MS = 380;
+const CHARGE_TAP_MS = 250;           // shorter than this is a tap
+let charging = null;
+
+function startCharge(event) {
+  event.preventDefault();
+  const p = currentPower();
+  if (powersUi.busy || charging || !p || !p.power) return;
+  const button = $('#powers-fire');
+  try { button.setPointerCapture(event.pointerId); } catch (err) { /* harmless */ }
+  const slots = slotsFor(p);
+  charging = { downAt: performance.now(), lit: 0, timer: null };
+  button.style.setProperty('--charge-ms', (150 + slots.length * CHARGE_STEP_MS) + 'ms');
+  button.classList.add('is-charging');
+  const step = () => {
+    if (!charging) return;
+    markReading(slots[charging.lit].id, true);
+    playNotes([charging.lit + 2]);
+    charging.lit += 1;
+    if (charging.lit < slots.length) { charging.timer = setTimeout(step, CHARGE_STEP_MS); return; }
+    // Full: it fires, even if the finger is still down.
+    charging = null;
+    button.classList.remove('is-charging');
+    firePower(powersUi.index, { via: 'hold', charged: true });
+  };
+  charging.timer = setTimeout(step, 150);
+}
+
+function endCharge() {
+  if (!charging) return;
+  const c = charging;
+  charging = null;
+  clearTimeout(c.timer);
+  $('#powers-fire').classList.remove('is-charging');
+  const p = currentPower();
+  if (p) slotsFor(p).forEach(s => markReading(s.id, false));
+  if (performance.now() - c.downAt < CHARGE_TAP_MS) {      // a tap
+    firePower(powersUi.index, { via: 'tap' });
+    return;
+  }
+  playNotes([4, 2, 0], 110);                               // the charge drains away
+  logEvent('powers_charge_stop', { cells: c.lit });
 }
 
 /* A recorded line, and never less than a moment - so with the sound off a
@@ -7551,7 +7774,7 @@ async function removePower(index) {
   const clips = [];
   if (p.power !== 'v2' && p.own && p.own.audioId) clips.push(p.own.audioId);
   if (p.soThat && p.soThat.audioId) clips.push(p.soThat.audioId);
-  ['whenOwn', 'whoOwn', 'howOwn'].forEach(k => (p[k] || []).forEach(c => { if (c.audioId) clips.push(c.audioId); }));
+  ['whenOwn', 'whoOwn', 'howOwn', 'rulesOwn'].forEach(k => (p[k] || []).forEach(c => { if (c.audioId) clips.push(c.audioId); }));
   for (const id of clips) { Voice.forget(id); await Storage.deleteAudio(id); }
 
   state.agent.powers.splice(index, 1);
@@ -7688,6 +7911,17 @@ function playPower(p) {
     powerStageMove('fx-lightning');
     playSfx(POWER_SFX[id]);
     ms = 2600;
+  } else if (id === 'pow-change-rule') {
+    // The rules the child picked appear and are crossed out; the scroll of
+    // the new rule unrolls underneath. Just the scroll until any are picked.
+    (p.rules || []).slice(0, 4).forEach((r, i) => {
+      const card = RULE_CARDS.find(c => c.id === r);
+      if (card) prop(card.emoji, 20 + i * 20, 18, 'pfx-pop pfx-crossed', 44);
+    });
+    prop('📜', 50, 86, 'pfx-pop', 56);
+    powerStageMove('pfx-bounce');
+    playSfx(POWER_SFX[id]);
+    ms = 2600;
   } else if (id === 'pow-speak-for-friends') {
     // ★ A friend joins, and two speech bubbles rise.
     prop('🧑', 16, 66, 'pfx-pop', 60);
@@ -7740,7 +7974,12 @@ function wirePowers() {
     arriveAtSlot(firstOpenSlot(currentPower()));
   });
   $('#powers-slot-next').addEventListener('click', nextSlot);
-  $('#powers-fire').addEventListener('click', () => firePower(powersUi.index));
+  // ⚡ Hold to charge, or tap (startCharge).
+  const fire = $('#powers-fire');
+  fire.style.touchAction = 'none';
+  fire.addEventListener('pointerdown', startCharge);
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(e => fire.addEventListener(e, endCharge));
+  fire.addEventListener('click', event => event.preventDefault());
   $('#powers-new').addEventListener('click', () => {
     logEvent('powers_new', {});
     newPower();
@@ -8167,8 +8406,71 @@ function tokenButton(tok, full, has) {
   else icon.textContent = tok.emoji || kind.emoji;
   token.querySelector('.btn-label').textContent = tok.label || kind.label;
   token.disabled = full || has(kind.id);
-  token.addEventListener('click', () => tapToken(kind, tok));
+  wireTokenDrag(token, () => tapToken(kind, tok, 'drag'));
+  token.addEventListener('click', () => tapToken(kind, tok, 'tap'));
   return token;
+}
+
+/* 🍾 DRAG A TOKEN INTO THE BOTTLE (v88; v3 §8 asked for "tap or drag").
+   The token list scrolls, so the drag is only claimed after 8px of
+   movement and the list keeps `touch-action: pan-y` - an up-and-down
+   swipe still scrolls it, and the browser cancelling the press is treated
+   as exactly that (CLAUDE.md: a drag out of a tray). A token let go over
+   the bottle goes in, exactly as a tap does; anywhere else it is dropped.
+   The floating copy is a .drag-ghost, swept up by clearDragLeftovers(). */
+function wireTokenDrag(token, onDrop) {
+  token.style.touchAction = 'pan-y';
+  token.addEventListener('pointerdown', down => {
+    if (token.disabled) return;
+    const start = { x: down.clientX, y: down.clientY };
+    let ghost = null;
+    const move = e => {
+      if (!ghost) {
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+        ghost = document.createElement('div');
+        ghost.className = 'drag-ghost token-ghost';
+        ghost.innerHTML = token.querySelector('.token-icon').innerHTML;
+        ghost.style.setProperty('--chip', token.style.getPropertyValue('--chip'));
+        document.body.appendChild(ghost);
+        token.classList.add('is-lifted');
+      }
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+      $('#bottle-art').classList.toggle('is-target', overBottle(e.clientX, e.clientY));
+    };
+    const end = e => {
+      const dropped = ghost && e.type === 'pointerup' && overBottle(e.clientX, e.clientY);
+      if (ghost) {
+        token.dataset.dragged = '1';               // swallow the click that may follow
+        setTimeout(() => { delete token.dataset.dragged; }, 60);
+      }
+      cleanUp();
+      if (dropped) onDrop();
+    };
+    const cleanUp = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+      if (ghost) ghost.remove();
+      token.classList.remove('is-lifted');
+      $('#bottle-art').classList.remove('is-target');
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+  });
+  // The click that ends a drag is not a tap on the token.
+  token.addEventListener('click', e => {
+    if (!token.dataset.dragged) return;
+    delete token.dataset.dragged;
+    e.stopImmediatePropagation();
+  }, true);
+}
+
+/* Is a point over the bottle? Generously: 30px all round. */
+function overBottle(x, y) {
+  const r = $('#bottle-art').getBoundingClientRect();
+  return x > r.left - 30 && x < r.right + 30 && y > r.top - 30 && y < r.bottom + 30;
 }
 
 /* The bottle is saved the moment its first item goes in (state 'open'). */
@@ -8198,15 +8500,16 @@ function addBottleItem(item) {
   b.items.push(item);
   bottleUi.newBand = b.items.length - 1;
   bottleUi.sub = null;
-  logEvent('bottle_item_add', { type: item.type });
+  logEvent('bottle_item_add', { type: item.type, via: bottleUi.via || 'tap' });
   playSfx('sfx-bottle-drop');
   paintBottle();
   scheduleSave();
 }
 
-function tapToken(kind, tok) {
+function tapToken(kind, tok, via) {
   const b = currentBottle();
   if (b && b.items.length >= MAX_ITEMS) return;
+  bottleUi.via = via || 'tap';            // logged with the item that goes in
   logEvent('label_speak', { id: kind.id });
 
   // ⚡ One of the agent's own powers, by name: it goes straight in, and
@@ -8312,7 +8615,7 @@ function paintBottleSub() {
   mic.className = 'btn btn-big word-mic';
   mic.setAttribute('aria-label', 'Record a voice message');
   mic.textContent = Voice.isRecording() ? '⏹️' : '🎤';
-  mic.addEventListener('click', recordBottleVoice);
+  wireTalkie(mic, recordBottleVoice);                  // hold to talk, or tap
   sub.appendChild(mic);
   if (draft) {
     sub.appendChild(voicePicker(draft.filter, true, filterId => {
@@ -8371,7 +8674,7 @@ async function recordBottleVoice() {
     const old = bottleUi.voiceDraft;
     if (old && old.audioId) { Voice.forget(old.audioId); await Storage.deleteAudio(old.audioId); }
     bottleUi.voiceDraft = { audioId: id, filter: (old && old.filter) || 'normal' };
-    logEvent('bottle_voice_record', { ms: Math.round(result.ms) });
+    logEvent('bottle_voice_record', { ms: Math.round(result.ms), via: talkie.via });
     playClipIn(id, bottleUi.voiceDraft.filter);
   } catch (err) {
     toast('The microphone did not work');
@@ -8461,7 +8764,7 @@ async function recordToName() {
     const again = Boolean(b.toNameAudioId);
     if (again) await forgetToName(b, true);
     b.toNameAudioId = id;
-    logEvent('bottle_to_name', { ms: Math.round(result.ms), again: again });
+    logEvent('bottle_to_name', { ms: Math.round(result.ms), again: again, via: talkie.via });
     scheduleSave();
     // The child hears the name back, then the narrator confirms it.
     const ok = b.to === 'who-teacher'
@@ -8879,7 +9182,7 @@ function wireBottle() {
   $$('[data-bottle-phase]').forEach(b =>
     b.addEventListener('click', () => goBottlePhase(b.dataset.bottlePhase, 'tab')));
   $('#bottle-fill-go').addEventListener('click', () => goBottlePhase('to', 'next'));
-  $('#to-name-mic').addEventListener('click', recordToName);
+  wireTalkie($('#to-name-mic'), recordToName);         // hold to talk, or tap
   $('#to-name-play').addEventListener('click', () => { Voice.unlock(); playToName(currentBottle()); });
   $('#bottle-to-go').addEventListener('click', () =>
     goBottlePhase(currentBottle().to === 'who-me' ? 'send' : 'sign', 'next'));

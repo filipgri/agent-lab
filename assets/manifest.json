@@ -894,6 +894,81 @@
       "prompt": "An open laptop with a glowing screen next to a small desktop screen."
     },
     {
+      "id": "rule-hand-up",
+      "file": "img/cards/rule-hand-up.png",
+      "label": "Put your hand up",
+      "fallback": "🙋",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Copy of `mode-hand-up`.",
+      "rev": "f6ddc810"
+    },
+    {
+      "id": "rule-quiet",
+      "file": "img/cards/rule-quiet.png",
+      "label": "Be quiet",
+      "fallback": "🤫",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "Copy of `mode-quiet`.",
+      "rev": "907239f9"
+    },
+    {
+      "id": "rule-look",
+      "file": "img/cards/rule-look.png",
+      "label": "Look at who's talking",
+      "fallback": "👀",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A small bean figure with big round eyes looking up at a taller bean figure with a lanyard who has a speech bubble, with dotted lines from the eyes to the speaker."
+    },
+    {
+      "id": "rule-quick",
+      "file": "img/cards/rule-quick.png",
+      "label": "Answer quickly",
+      "fallback": "⚡",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure with a speech bubble shooting out fast, with speed lines and a small stopwatch beside it."
+    },
+    {
+      "id": "rule-speak-up",
+      "file": "img/cards/rule-speak-up.png",
+      "label": "Speak up",
+      "fallback": "📢",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure speaking into a megaphone, with big bold sound waves coming out."
+    },
+    {
+      "id": "rule-only-talk",
+      "file": "img/cards/rule-only-talk.png",
+      "label": "Only talk",
+      "fallback": "👄",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line."
+    },
+    {
+      "id": "rule-write",
+      "file": "img/cards/rule-write.png",
+      "label": "Write it down",
+      "fallback": "📝",
+      "kind": "sticker",
+      "people": false,
+      "prompt": "Copy of `mode-write`.",
+      "rev": "b1a79c7a"
+    },
+    {
+      "id": "rule-sit-still",
+      "file": "img/cards/rule-sit-still.png",
+      "label": "Sit still",
+      "fallback": "🪑",
+      "kind": "sticker",
+      "people": true,
+      "prompt": "A bean figure sitting very straight on a classroom chair, hands flat on a desk."
+    },
+    {
       "id": "who-me",
       "file": "img/cards/who-me.png",
       "label": "Me",
@@ -1527,8 +1602,8 @@
     {
       "id": "nar-powers-charged",
       "file": "audio/narrator/nar-powers-charged.mp3",
-      "text": "Fully charged! Press Power on!",
-      "rev": "ef9499b6"
+      "text": "Fully charged! Now hold down Power on!",
+      "rev": "4052c090"
     },
     {
       "id": "nar-door-time",
@@ -1915,6 +1990,54 @@
       "rev": "be447851"
     },
     {
+      "id": "nar-story-rule-hand-up",
+      "file": "audio/narrator/nar-story-rule-hand-up.mp3",
+      "text": "Put your hand up! Hands up before anyone talks.",
+      "rev": "f20d993e"
+    },
+    {
+      "id": "nar-story-rule-quiet",
+      "file": "audio/narrator/nar-story-rule-quiet.mp3",
+      "text": "Be quiet! No talking in class.",
+      "rev": "059ba1a8"
+    },
+    {
+      "id": "nar-story-rule-look",
+      "file": "audio/narrator/nar-story-rule-look.mp3",
+      "text": "Look at who's talking! Eyes on the speaker.",
+      "rev": "9b90714d"
+    },
+    {
+      "id": "nar-story-rule-quick",
+      "file": "audio/narrator/nar-story-rule-quick.mp3",
+      "text": "Answer quickly! Say the answer straight away.",
+      "rev": "e15bc428"
+    },
+    {
+      "id": "nar-story-rule-speak-up",
+      "file": "audio/narrator/nar-story-rule-speak-up.mp3",
+      "text": "Speak up! Loud and clear, so everyone hears.",
+      "rev": "3ef14843"
+    },
+    {
+      "id": "nar-story-rule-only-talk",
+      "file": "audio/narrator/nar-story-rule-only-talk.mp3",
+      "text": "Only talk! Words out loud, and nothing else.",
+      "rev": "b62dd337"
+    },
+    {
+      "id": "nar-story-rule-write",
+      "file": "audio/narrator/nar-story-rule-write.mp3",
+      "text": "Write it down! Put it on paper.",
+      "rev": "0dc51f83"
+    },
+    {
+      "id": "nar-story-rule-sit-still",
+      "file": "audio/narrator/nar-story-rule-sit-still.mp3",
+      "text": "Sit still! Stay in your seat.",
+      "rev": "64050a93"
+    },
+    {
       "id": "nar-story-item-power",
       "file": "audio/narrator/nar-story-item-power.mp3",
       "text": "A power to give! Your agent gives one of its powers away.",
@@ -1997,6 +2120,12 @@
       "file": "audio/narrator/nar-powers-devices.mp3",
       "text": "Which ones does your agent control? Pick as many as you like.",
       "rev": "58e1263b"
+    },
+    {
+      "id": "nar-powers-rules",
+      "file": "audio/narrator/nar-powers-rules.mp3",
+      "text": "Which school rule does your agent change? Pick as many as you like.",
+      "rev": "167df789"
     },
     {
       "id": "nar-powers-then",
@@ -2453,6 +2582,54 @@
       "file": "audio/narrator/nar-dev-computers.mp3",
       "text": "The computers.",
       "rev": "a69eee51"
+    },
+    {
+      "id": "nar-rule-hand-up",
+      "file": "audio/narrator/nar-rule-hand-up.mp3",
+      "text": "Put your hand up.",
+      "rev": "dbb53add"
+    },
+    {
+      "id": "nar-rule-quiet",
+      "file": "audio/narrator/nar-rule-quiet.mp3",
+      "text": "Be quiet.",
+      "rev": "eac39ada"
+    },
+    {
+      "id": "nar-rule-look",
+      "file": "audio/narrator/nar-rule-look.mp3",
+      "text": "Look at who's talking.",
+      "rev": "4abf31ed"
+    },
+    {
+      "id": "nar-rule-quick",
+      "file": "audio/narrator/nar-rule-quick.mp3",
+      "text": "Answer quickly.",
+      "rev": "b06e43c4"
+    },
+    {
+      "id": "nar-rule-speak-up",
+      "file": "audio/narrator/nar-rule-speak-up.mp3",
+      "text": "Speak up.",
+      "rev": "156604c3"
+    },
+    {
+      "id": "nar-rule-only-talk",
+      "file": "audio/narrator/nar-rule-only-talk.mp3",
+      "text": "Only talk.",
+      "rev": "c52415a7"
+    },
+    {
+      "id": "nar-rule-write",
+      "file": "audio/narrator/nar-rule-write.mp3",
+      "text": "Write it down.",
+      "rev": "99c39afc"
+    },
+    {
+      "id": "nar-rule-sit-still",
+      "file": "audio/narrator/nar-rule-sit-still.mp3",
+      "text": "Sit still.",
+      "rev": "83378505"
     },
     {
       "id": "nar-item-power",

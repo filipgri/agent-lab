@@ -700,6 +700,23 @@ to the start. No card screen.
   talks is now 🗣️ likes → ⭐ the most → 🤫 secret word. The school fields
   stay in the data (empty); its 19 lines and 9 pictures are in the asset
   guide's Retired section, their files kept.
+- **v88 (4 November 2026): gestures, and "Which rule?".** Each gesture
+  means what it does, and each keeps a tap that does the same (logged as
+  `via`):
+  - **Carry the Talking Mat card onto an answer** (`wireCardDrag`):
+    forgiving - over an answer, near one, or pushed down towards one; the
+    first card hops towards the answers as a hint.
+  - **Hold ⚡ Power on! to charge it** (`startCharge`/`endCharge`): the
+    cells light one by one, and it fires when full; let go early and the
+    charge drains (`powers_charge_stop`).
+  - **Drag a token into the bottle** (`wireTokenDrag`): claimed only after
+    8px, the list still scrolls (pan-y); `.drag-ghost` is swept up.
+  - **Walkie-talkie 🎤** everywhere (`wireTalkie`): hold while speaking,
+    let go to stop - or tap on, tap off.
+  - **"Change a school rule" asks "Which rule?"** (`RULE_CARDS`, the 📜
+    battery cell, `powers[].rules`): how school's expectations are found
+    now. Shown like the "likes" cards; picked rules are crossed out on
+    the stage.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -836,6 +853,19 @@ hand-edit the manifest, and never edit both.
 
 Many of these name screens v3 retired. They stay, because the lesson still
 applies (v3 §13).
+
+### v3 conventions (from v88, gestures)
+
+- **A gesture never replaces a tap.** Every drag, hold or press has a tap
+  that does the same, and the event says which was used (`via`).
+- **"This was a drag, not a tap" must clear itself at once.** A press let
+  go somewhere else sends its click to somewhere else, so a mark waiting
+  for that click would swallow the child's NEXT real tap. The drags set
+  `dataset.dragged` and remove it after 60 ms.
+- **Start the microphone on pointerdown.** iPad Safari lets
+  getUserMedia start from a touch going down, which is what makes
+  hold-to-talk possible; the first permission prompt simply turns that
+  press into a tap recording.
 
 ### v3 conventions (from v85, "nothing cut off")
 

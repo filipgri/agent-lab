@@ -267,6 +267,14 @@ Stickers project. The emoji are fine until these arrive.
 | dev-speakers | The speakers | 🔊 | | A box speaker on a wall bracket with sound waves coming out. |
 | dev-board | The whiteboard | 📋 | | A classroom interactive whiteboard on a stand, its screen glowing blue. |
 | dev-computers | The computers | 💻 | | An open laptop with a glowing screen next to a small desktop screen. |
+| rule-hand-up | Put your hand up | 🙋 | 👤 | Copy of `mode-hand-up`. |
+| rule-quiet | Be quiet | 🤫 | 👤 | Copy of `mode-quiet`. |
+| rule-look | Look at who's talking | 👀 | 👤 | A small bean figure with big round eyes looking up at a taller bean figure with a lanyard who has a speech bubble, with dotted lines from the eyes to the speaker. |
+| rule-quick | Answer quickly | ⚡ | 👤 | A bean figure with a speech bubble shooting out fast, with speed lines and a small stopwatch beside it. |
+| rule-speak-up | Speak up | 📢 | 👤 | A bean figure speaking into a megaphone, with big bold sound waves coming out. |
+| rule-only-talk | Only talk | 👄 | 👤 | A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line. |
+| rule-write | Write it down | 📝 | | Copy of `mode-write`. |
+| rule-sit-still | Sit still | 🪑 | 👤 | A bean figure sitting very straight on a classroom chair, hands flat on a desk. |
 | who-me | Me | 🙋 | 👤 | One bean figure pointing at itself with a mitten hand, with a small star above it. |
 | who-friend | A friend | 👫 | 👤 | Two bean figures side by side with linked arms. |
 | who-teacher | My teacher | 🧑‍🏫 | 👤 | Copy of `disp-teacher`. |
@@ -434,7 +442,7 @@ the app does not react to what a child chose (v3 §17).
 | nar-door-peek | A door creaks open (one of three, at random) | [whispers] Shh… Let's take a peek. |
 | nar-door-creak | A door creaks open (one of three, at random) | [whispers] It's opening… slowly… |
 | nar-door-secret | The secret door creaks open | [whispers] The secret door… What will you make? |
-| nar-powers-charged | Every cell of the battery is full | Fully charged! Press Power on! |
+| nar-powers-charged | Every cell of the battery is full | Fully charged! Now hold down Power on! |
 | nar-door-time | A family door has opened | The Time door! Powers to stop, slow and save time. |
 | nar-door-senses | A family door has opened | The Sound and light door! Powers for noise and brightness. |
 | nar-door-language | A family door has opened | The Words door! Powers that help everyone understand. |
@@ -499,6 +507,14 @@ the app does not react to what a child chose (v3 §17).
 | nar-story-dev-speakers | A device card is picked | The speakers! Louder or quieter. Your agent decides. |
 | nar-story-dev-board | A device card is picked | The whiteboard! Your agent chooses what it shows. |
 | nar-story-dev-computers | A device card is picked | The computers! Your agent is at the controls. |
+| nar-story-rule-hand-up | A rule card is picked | Put your hand up! Hands up before anyone talks. |
+| nar-story-rule-quiet | A rule card is picked | Be quiet! No talking in class. |
+| nar-story-rule-look | A rule card is picked | Look at who's talking! Eyes on the speaker. |
+| nar-story-rule-quick | A rule card is picked | Answer quickly! Say the answer straight away. |
+| nar-story-rule-speak-up | A rule card is picked | Speak up! Loud and clear, so everyone hears. |
+| nar-story-rule-only-talk | A rule card is picked | Only talk! Words out loud, and nothing else. |
+| nar-story-rule-write | A rule card is picked | Write it down! Put it on paper. |
+| nar-story-rule-sit-still | A rule card is picked | Sit still! Stay in your seat. |
 | nar-story-item-power | A bottle token is tapped | A power to give! Your agent gives one of its powers away. |
 | nar-story-item-handshake | A bottle token is tapped | My handshake! Your agent's secret rhythm goes inside. |
 | nar-story-item-drawing | A bottle token is tapped | A drawing! Draw something to put inside. |
@@ -513,6 +529,7 @@ the app does not react to what a child chose (v3 §17).
 | nar-powers-who | Who slot | Who does the power work on? Pick as many as you like. |
 | nar-powers-how | How slot | How does your agent switch it on? A badge? A secret word? |
 | nar-powers-devices | Devices cell | Which ones does your agent control? Pick as many as you like. |
+| nar-powers-rules | Rules cell | Which school rule does your agent change? Pick as many as you like. |
 | nar-powers-then | What-happens cell | And then what happens? Draw it, or say it. |
 | nar-powers-fire | Power fires | Power on! |
 | nar-powers-more | After a power | Your power is ready. Make another, or Stamp it. |
@@ -594,6 +611,14 @@ the app does not react to what a child chose (v3 §17).
 | nar-dev-speakers | The speakers. |
 | nar-dev-board | The whiteboard. |
 | nar-dev-computers | The computers. |
+| nar-rule-hand-up | Put your hand up. |
+| nar-rule-quiet | Be quiet. |
+| nar-rule-look | Look at who's talking. |
+| nar-rule-quick | Answer quickly. |
+| nar-rule-speak-up | Speak up. |
+| nar-rule-only-talk | Only talk. |
+| nar-rule-write | Write it down. |
+| nar-rule-sit-still | Sit still. |
 | nar-item-power | A power to give. |
 | nar-item-handshake | My handshake. |
 | nar-item-drawing | A drawing. |
