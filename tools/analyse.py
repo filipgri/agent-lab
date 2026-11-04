@@ -54,7 +54,9 @@ DEFAULT_OUT = os.path.join(os.path.dirname(ROOT), "agent-lab-analysis")
 
 # The six doors and their powers, in the app's order (v3 §7.2 and
 # POWER_DOORS in app.js). The family is a lens for the analysis; children
-# only ever saw the plain door labels.
+# only ever saw the plain door labels. Kept WHOLE on purpose: v90 offers
+# three a door (hold-turn, warn-me, question-swap and see-points were cut),
+# but a power chosen before then still needs its family.
 DOORS = [
     ("fam-time", ["pow-slow-everybody", "pow-pause", "pow-hold-turn", "pow-warn-me", "pow-say-again"]),
     ("fam-senses", ["pow-turn-down", "pow-dim-lights", "pow-quiet-bubble"]),

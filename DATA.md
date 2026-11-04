@@ -7,7 +7,11 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v89** (4 November 2026). `schemaVersion` is still **3**.
+Last updated: **v90** (4 November 2026). `schemaVersion` is still **3**.
+
+> **v90: three powers a door.** `pow-hold-turn`, `pow-warn-me`,
+> `pow-question-swap` and `pow-see-points` are no longer offered (they can
+> only appear in data from before v90). No field or event changed.
 
 > **v89: shorter.** Three things are no longer asked, to keep the session
 > short (their fields stay in every record, empty from v89):
@@ -257,11 +261,11 @@ see the plain labels.
 
 | Door (`family`) | Label | Powers |
 |---|---|---|
-| `fam-time` | Time | `pow-slow-everybody` ★, `pow-pause`, `pow-hold-turn`, `pow-warn-me`, `pow-say-again` |
+| `fam-time` | Time | `pow-slow-everybody` ★, `pow-pause`, `pow-say-again` (and, before v90, `pow-hold-turn`, `pow-warn-me`) |
 | `fam-senses` | Sound and light | `pow-turn-down`, `pow-dim-lights`, `pow-quiet-bubble` |
 | `fam-language` | Words | `pow-translator`, `pow-my-way`, `pow-get-me` |
-| `fam-floor` | Turns | `pow-control-teachers` ★, `pow-question-swap`, `pow-pass`, `pow-invisible` |
-| `fam-screens` | Screens | `pow-control-displays` ★, `pow-control-devices` ★, `pow-see-points`, `pow-change-rule` |
+| `fam-floor` | Turns | `pow-control-teachers` ★, `pow-pass`, `pow-invisible` (and, before v90, `pow-question-swap`) |
+| `fam-screens` | Screens | `pow-control-displays` ★, `pow-control-devices` ★, `pow-change-rule` (and, before v90, `pow-see-points`) |
 | `fam-together` | Together | `pow-speak-for-friends` ★, `pow-call-ally`, `pow-team-up` |
 
 ★ = from Filip's notes; these five have their own scenes on the agent.

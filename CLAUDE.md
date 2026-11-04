@@ -724,6 +724,14 @@ to the start. No card screen.
   secret door (six doors, two rows of three). The answers now also SAY
   what they mean: "Yes" / "Not sure" / "No" under the little agents, and
   spoken as the card lands (`nar-answer-…`).
+- **v90 (4 November 2026): three powers a door, and one button at a
+  time.** 18 powers, not 22: Hold my turn, Warn me first, Question swap
+  and See my points are no longer offered (Filip's five ★ stay). After a
+  door introduces itself the narrator adds "Pick one, or try another
+  door!", and 🚪 says "Other doors". ⚡ Power on! appears only at the last
+  question (or once every question is answered), with "When you're ready,
+  hold down Power on!" - beside Next on every question, it was not clear
+  what it was for.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.

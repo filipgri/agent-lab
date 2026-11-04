@@ -189,6 +189,10 @@ This card may show people, but only like this: simple round bean-shaped figures 
 
 ### 3.6 Power cards ⭐ — `assets/img/powers/`
 
+From v90 each door offers three powers. **Hold my turn, Warn me first,
+Question swap and See my points are no longer offered**; their pictures and
+lines stay, for older data and the display.
+
 Stickers project. Make the five from Filip's notes first: slow everybody down,
 control teachers, control all displays, control devices and speak for your
 friends.
@@ -440,7 +444,9 @@ the app does not react to what a child chose (v3 §17).
 | nar-door-what | A door creaks open (one of three, at random) | [whispers] What's behind this door? |
 | nar-door-peek | A door creaks open (one of three, at random) | [whispers] Shh… Let's take a peek. |
 | nar-door-creak | A door creaks open (one of three, at random) | [whispers] It's opening… slowly… |
+| nar-door-other | After a door introduces itself | Pick one, or try another door! |
 | nar-powers-charged | Every cell of the battery is full | Fully charged! Now hold down Power on! |
+| nar-powers-hold | Arriving at the last question, where Power on! appears | When you're ready, hold down Power on! |
 | nar-door-time | A family door has opened | The Time door! Powers to stop, slow and save time. |
 | nar-door-senses | A family door has opened | The Sound and light door! Powers for noise and brightness. |
 | nar-door-language | A family door has opened | The Words door! Powers that help everyone understand. |

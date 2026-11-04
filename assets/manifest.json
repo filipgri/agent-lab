@@ -1585,10 +1585,22 @@
       "rev": "59773578"
     },
     {
+      "id": "nar-door-other",
+      "file": "audio/narrator/nar-door-other.mp3",
+      "text": "Pick one, or try another door!",
+      "rev": "2c8c32fb"
+    },
+    {
       "id": "nar-powers-charged",
       "file": "audio/narrator/nar-powers-charged.mp3",
       "text": "Fully charged! Now hold down Power on!",
       "rev": "4052c090"
+    },
+    {
+      "id": "nar-powers-hold",
+      "file": "audio/narrator/nar-powers-hold.mp3",
+      "text": "When you're ready, hold down Power on!",
+      "rev": "e85c5ab2"
     },
     {
       "id": "nar-door-time",

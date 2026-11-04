@@ -42,12 +42,15 @@
 
   /* The powers, by door, in the iPad's order (v3 §7.2). The number keys
      demo the doors in this order. ★ are Filip's five, with full scenes. */
+  // v90: three powers a door, as on the iPad (Hold my turn, Warn me first,
+  // Question swap and See my points were cut). Their scenes stay below, in
+  // case an older bottle carries one.
   const DOORS = [
-    ['pow-slow-everybody', 'pow-pause', 'pow-hold-turn', 'pow-warn-me', 'pow-say-again'],
+    ['pow-slow-everybody', 'pow-pause', 'pow-say-again'],
     ['pow-turn-down', 'pow-dim-lights', 'pow-quiet-bubble'],
     ['pow-translator', 'pow-my-way', 'pow-get-me'],
-    ['pow-control-teachers', 'pow-question-swap', 'pow-pass', 'pow-invisible'],
-    ['pow-control-displays', 'pow-control-devices', 'pow-see-points', 'pow-change-rule'],
+    ['pow-control-teachers', 'pow-pass', 'pow-invisible'],
+    ['pow-control-displays', 'pow-control-devices', 'pow-change-rule'],
     ['pow-speak-for-friends', 'pow-call-ally', 'pow-team-up']
   ];
   const STARS = ['pow-slow-everybody', 'pow-control-teachers', 'pow-control-displays',

@@ -6799,18 +6799,22 @@ const POWER_CARDS = [
   { id: 'pow-team-up', emoji: '🤝', label: 'Team up' }
 ];
 
-// §7.2: always in this order. DATA.md repeats it, for the analysis.
+/* §7.2: always in this order. DATA.md repeats it, for the analysis.
+   THREE POWERS A DOOR (v90, Filip: fewer to take in, so a child is less
+   likely to miss one). Cut: Hold my turn, Warn me first, Question swap and
+   See my points - they stay in POWER_CARDS, so older data still has its
+   labels. Filip's five ★ powers all stay. */
 const POWER_DOORS = [
   { id: 'fam-time',     emoji: '⏳', label: 'Time',
-    powers: ['pow-slow-everybody', 'pow-pause', 'pow-hold-turn', 'pow-warn-me', 'pow-say-again'] },
+    powers: ['pow-slow-everybody', 'pow-pause', 'pow-say-again'] },
   { id: 'fam-senses',   emoji: '🔊', label: 'Sound and light',
     powers: ['pow-turn-down', 'pow-dim-lights', 'pow-quiet-bubble'] },
   { id: 'fam-language', emoji: '🗣️', label: 'Words',
     powers: ['pow-translator', 'pow-my-way', 'pow-get-me'] },
   { id: 'fam-floor',    emoji: '✋', label: 'Turns',
-    powers: ['pow-control-teachers', 'pow-question-swap', 'pow-pass', 'pow-invisible'] },
+    powers: ['pow-control-teachers', 'pow-pass', 'pow-invisible'] },
   { id: 'fam-screens',  emoji: '📺', label: 'Screens',
-    powers: ['pow-control-displays', 'pow-control-devices', 'pow-see-points', 'pow-change-rule'] },
+    powers: ['pow-control-displays', 'pow-control-devices', 'pow-change-rule'] },
   { id: 'fam-together', emoji: '🤝', label: 'Together',
     powers: ['pow-speak-for-friends', 'pow-call-ally', 'pow-team-up'] }
 ];
@@ -7093,11 +7097,24 @@ async function openDoor(door, card) {
   powersUi.dealNext = true;
   paintPowers();
   // The door introduces itself: "The Time door! Powers to stop, slow and
-  // save time." The bare names (nar-fam-…) are no longer played.
-  sayPowersLine(doorIntroId(door), door.label + '.');
+  // save time." - then invites a look elsewhere, so a child who would love
+  // a power behind another door knows they can go and see (v90). The bare
+  // names (nar-fam-…) are no longer played.
+  if (state.muted) return;
+  const token = ++doorSayToken;
+  await Assets.sayAndWait(doorIntroId(door), { text: door.label + '.', maxMs: 6000 });
+  if (token === doorSayToken && powersUi.door === door.id && powersUi.phase === 'doors' && !currentPowerChosenHere(door)) {
+    sayPowersLine('nar-door-other', 'Pick one, or try another door!');
+  }
 }
 
 function doorIntroId(door) { return 'nar-door-' + door.id.replace(/^fam-/, ''); }
+let doorSayToken = 0;
+/* Has a power behind this door already been picked (then no invitation)? */
+function currentPowerChosenHere(door) {
+  const p = currentPower();
+  return Boolean(p && door.powers.indexOf(p.power) !== -1);
+}
 
 /* The power being worked on, made the first time something is chosen. */
 function ensurePower() {
@@ -7126,6 +7143,7 @@ function ensurePower() {
    carries on to charging it. */
 function choosePower(id) {
   if (powersUi.busy) return;
+  doorSayToken++;                      // "…or try another door" is not needed now
   const p = ensurePower();
   p.power = id;
   if (id === 'pow-control-devices' && !p.devices) p.devices = [];
@@ -7207,7 +7225,16 @@ function arriveAtSlot(slotId) {
   powersUi.dealNext = true;
   startPowersPhase('sentence');
   const slot = slotById(slotId);
-  sayPowersLine(slot.say, slot.title);
+  const slots = slotsFor(currentPower());
+  const last = slots[slots.length - 1].id === slotId;
+  if (!last || state.muted) { sayPowersLine(slot.say, slot.title); return; }
+  // The last question - and then what ⚡ is for, the first time it appears.
+  const token = ++doorSayToken;
+  Assets.sayAndWait(slot.say, { text: slot.title, maxMs: 6000 }).then(() => {
+    if (token === doorSayToken && powersUi.slot === slotId && powersUi.phase === 'sentence' && !powersUi.busy) {
+      sayPowersLine('nar-powers-hold', 'When you are ready, hold down Power on!');
+    }
+  });
 }
 
 /* The battery under the agent: one cell per question, and a cap that
@@ -7310,6 +7337,12 @@ function paintSentence() {
   const last = slots[slots.length - 1].id === slot.id;
   const next = $('#powers-slot-next');
   next.hidden = last;
+  /* ⚡ Power on! appears only at the LAST question, where Next goes - one
+     thing to press at a time (v90; Filip: "not sure what Power on does"
+     when it sat beside Next on every question). */
+  // (…or as soon as every question has an answer, which is when "Fully
+  // charged! Now hold down Power on!" is said.)
+  $('#powers-fire').hidden = !(last || slots.every(s => !slotEmpty(p, s.id)));
   next.classList.toggle('is-ready', !slotEmpty(p, slot.id));
   $('#powers-fire').classList.toggle('is-ready', last || slots.every(s => !slotEmpty(p, s.id)));
 }
