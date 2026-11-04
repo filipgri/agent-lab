@@ -690,6 +690,11 @@ to the start. No card screen.
   see Settled decisions). The bottle's words and narration say school:
   "A friend at school", "Everyone at school", "It's in the school post for
   your friend", "Got it! It goes to your teacher at school."
+- **v3 DEPLOYED (4 November 2026)** at Filip's "deploy v3": `main`
+  fast-forwarded to v86 (`b1211c4`) and pushed; GitHub Pages serves it at
+  https://filipgri.github.io/agent-lab/ (checked: version.json 86, the
+  app boots, recordings and pictures load). The `v3` branch is pushed too.
+  Session 2's version stays tagged `session-2` (`b0ba4c1`).
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
