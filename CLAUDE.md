@@ -763,6 +763,11 @@ to the start. No card screen.
   **SPILLS** (a button's own words or icon outside it; corner badges
   placed with `position: absolute` are skipped). Swept every v3 screen at
   1180×734 and 820×1180: nothing else spills.
+- **v95 (4 November 2026): "Find your agent" without boxes.** Filip: the
+  heading looked wrapped in a dark square. Two boxes: the 🔊's button
+  face, and the dark strip that pinned the heading while the gallery
+  scrolled (a solid colour on the page's gradient). Now the words and a
+  bare 🔊 (still a 64px target), and the heading scrolls with the agents.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.

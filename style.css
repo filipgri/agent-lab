@@ -2307,6 +2307,9 @@ body.is-practice .practice-badge { display: block; }
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .gallery-speak { font-size: 24px; }
+/* v95: just the words and the 🔊 - no dark square round the 🔊 (Filip: it
+   "looks odd"). It keeps its 64px target; only the box is gone. */
+.gallery-title .gallery-speak { background: none; box-shadow: none; font-size: 28px; }
 .gallery { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 760px; }
 .gallery-tile {
   position: relative;
@@ -2958,11 +2961,9 @@ body[data-motion="off"] .power-stage { animation: none !important; }
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .start-wrap > .gallery-block .gallery-title {
-    position: sticky; top: 0; z-index: 1;
-    background: var(--navy-1);
-    padding: 4px 0 8px;
-  }
+  /* The heading scrolls with the agents. It used to stay pinned on a
+     dark strip, which showed as a dark box on the page's gradient (v95). */
+  .start-wrap > .gallery-block .gallery-title { padding: 4px 0 8px; }
 }
 
 /* ============================================================
