@@ -6225,17 +6225,23 @@ function saySuitLine(id, text) {
 async function sayCardSentence(phase, mode) {
   if (state.muted) return;
   const token = ++suitSayToken;
-  const conf = SUIT_PHASES[phase];
   // The last answer's word ("Yes!") is heard to the end first.
   await suitUi.answerSaid;
   if (token !== suitSayToken) return;
-  await Assets.sayAndWait(conf.frame, { text: conf.title, maxMs: 3500 });
-  if (token !== suitSayToken) return;
-  // The sentence ends with the card's short story - "Signing! Talking with
-  // hands, like Makaton." - which says what the card MEANS, plainly and
-  // without leaning either way: this is a Talking Mat, and the answer is
-  // the child's (Filip, 4 November: deepen the narration).
-  Assets.say(storyId(mode.id), { text: mode.label + '.' });
+  const line = likesLine(mode);
+  Assets.say(line[0], { text: line[1] });
+}
+
+/* The whole sentence for a card, in ONE recording (v97): "My agent likes
+   to communicate by drawing! Showing it with a picture." It used to be two
+   - the frame, then the card's story - and on the iPad the second only
+   started loading when the first had ended, after its trailing "by…":
+   Filip heard a big pause, and words lost at the join. The story part says
+   what the card MEANS, plainly and without leaning either way: this is a
+   Talking Mat, and the answer is the child's. */
+function likesLine(mode) {
+  return ['nar-likes-' + mode.id.replace(/^mode-/, ''),
+          'My agent likes to communicate by ' + mode.label.toLowerCase() + '.'];
 }
 
 /* ---- sorting ---- */
@@ -6248,6 +6254,8 @@ function paintSort(dealt) {
 
   const slot = $('#suit-card');
   slot.innerHTML = '';
+  const after = modes[suitUi.index + 1];
+  if (after) Assets.warm(likesLine(after)[0]);     // ready before it is needed
   if (mode) {
     // Tapping the card shows it acted out again, and says the sentence.
     const card = modeCard(mode, false, () => {
@@ -7267,6 +7275,7 @@ function arriveAtSlot(slotId, opts) {
   lines.push([slot.say, slot.title]);
   if (last) lines.push(['nar-powers-hold', 'When you are ready, hold down Power on!']);
   const token = ++doorSayToken;
+  lines.forEach(line => Assets.warm(line[0]));     // no loading gap between them
   (async () => {
     for (const line of lines) {
       if (token !== doorSayToken || powersUi.slot !== slotId ||
@@ -7321,6 +7330,7 @@ async function givePower(via, fromRect, art) {
     stage.classList.add('is-receiving');           // the agent glows...
     playPower(p);                                  // ...and does the power
     const line = givesLine(p);
+    Assets.warm('nar-powers-charge-up');
     await Promise.all([
       pause(fullMotion() ? 2400 : 1400),
       (async () => {
@@ -8279,6 +8289,7 @@ let bottleSaying = false;
 async function bottleSay(lines, append) {
   if (state.muted) return;
   if (!append) { bottleSayToken++; bottleQueue = []; }
+  lines.forEach(line => Assets.warm(line[0]));   // no loading gap between them
   bottleQueue.push(...lines);
   if (append && bottleSaying) return;          // the running loop will get there
   const token = bottleSayToken;
@@ -8651,10 +8662,10 @@ function tapToken(kind, tok, via) {
     return;
   }
   // 🗣️ The way the agent likes to talk most (⭐ in How my agent talks):
-  // "My agent likes to communicate by… Signing! Talking with hands, like Makaton."
+  // "My agent likes to communicate by signing! Talking with hands, like
+  // Makaton." - one recording, as on the Talking Mat (likesLine).
   if (kind.id === 'item-talk') {
-    addAndSay({ type: 'item-talk', mode: tok.mode.id },
-              [['nar-likes-frame', 'My agent likes to communicate by…'], [storyId(tok.mode.id), tok.mode.label + '.']]);
+    addAndSay({ type: 'item-talk', mode: tok.mode.id }, [likesLine(tok.mode)]);
     return;
   }
   if (kind.id === 'item-safe') {

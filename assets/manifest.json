@@ -1525,6 +1525,54 @@
       "rev": "cf16e390"
     },
     {
+      "id": "nar-likes-talk",
+      "file": "audio/narrator/nar-likes-talk.mp3",
+      "text": "My agent likes to communicate by talking! Saying it out loud, with words.",
+      "rev": "d093d3ed"
+    },
+    {
+      "id": "nar-likes-hands",
+      "file": "audio/narrator/nar-likes-hands.mp3",
+      "text": "My agent likes to communicate by signing! Talking with hands, like Makaton.",
+      "rev": "7b62a537"
+    },
+    {
+      "id": "nar-likes-handshake",
+      "file": "audio/narrator/nar-likes-handshake.mp3",
+      "text": "My agent likes to communicate with a secret handshake! A rhythm only your agent knows.",
+      "rev": "68f8cd81"
+    },
+    {
+      "id": "nar-likes-draw",
+      "file": "audio/narrator/nar-likes-draw.mp3",
+      "text": "My agent likes to communicate by drawing! Showing it with a picture.",
+      "rev": "ed51aca8"
+    },
+    {
+      "id": "nar-likes-act",
+      "file": "audio/narrator/nar-likes-act.mp3",
+      "text": "My agent likes to communicate by acting it out! Showing it with the whole body.",
+      "rev": "d4d1730e"
+    },
+    {
+      "id": "nar-likes-pictures",
+      "file": "audio/narrator/nar-likes-pictures.mp3",
+      "text": "My agent likes to communicate with picture cards! Pointing at a picture to say it.",
+      "rev": "3d508a65"
+    },
+    {
+      "id": "nar-likes-write",
+      "file": "audio/narrator/nar-likes-write.mp3",
+      "text": "My agent likes to communicate by writing! Putting the words on paper.",
+      "rev": "cbb49fad"
+    },
+    {
+      "id": "nar-likes-device",
+      "file": "audio/narrator/nar-likes-device.mp3",
+      "text": "My agent likes to communicate with a device! A tablet that talks for your agent.",
+      "rev": "64aa375f"
+    },
+    {
       "id": "nar-suit-most",
       "file": "audio/narrator/nar-suit-most.mp3",
       "text": "Which one does your agent like the most?",
@@ -1895,54 +1943,6 @@
       "file": "audio/narrator/nar-story-team-up.mp3",
       "text": "Team up! Two agents together are even stronger.",
       "rev": "f7e30e8d"
-    },
-    {
-      "id": "nar-story-mode-talk",
-      "file": "audio/narrator/nar-story-mode-talk.mp3",
-      "text": "Talking! Saying it out loud, with words.",
-      "rev": "8b3b8ad8"
-    },
-    {
-      "id": "nar-story-mode-hands",
-      "file": "audio/narrator/nar-story-mode-hands.mp3",
-      "text": "Signing! Talking with hands, like Makaton.",
-      "rev": "c79d428a"
-    },
-    {
-      "id": "nar-story-mode-handshake",
-      "file": "audio/narrator/nar-story-mode-handshake.mp3",
-      "text": "A secret handshake! A rhythm only your agent knows.",
-      "rev": "b709cb70"
-    },
-    {
-      "id": "nar-story-mode-draw",
-      "file": "audio/narrator/nar-story-mode-draw.mp3",
-      "text": "Drawing! Showing it with a picture.",
-      "rev": "7075ca57"
-    },
-    {
-      "id": "nar-story-mode-act",
-      "file": "audio/narrator/nar-story-mode-act.mp3",
-      "text": "Acting it out! Showing it with the whole body.",
-      "rev": "14c06131"
-    },
-    {
-      "id": "nar-story-mode-pictures",
-      "file": "audio/narrator/nar-story-mode-pictures.mp3",
-      "text": "Picture cards! Pointing at a picture to say it.",
-      "rev": "6d39c129"
-    },
-    {
-      "id": "nar-story-mode-write",
-      "file": "audio/narrator/nar-story-mode-write.mp3",
-      "text": "Writing! Putting the words on paper.",
-      "rev": "611f3d4c"
-    },
-    {
-      "id": "nar-story-mode-device",
-      "file": "audio/narrator/nar-story-mode-device.mp3",
-      "text": "A device! A tablet that talks for your agent.",
-      "rev": "3cdef865"
     },
     {
       "id": "nar-story-who-me",

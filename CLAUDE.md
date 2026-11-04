@@ -789,6 +789,17 @@ to the start. No card screen.
     does your agent switch it on?").
   21 new lines from ElevenLabs (782 credits). `powers_phase` gains
   `how: "give"` and `via` (DATA.md).
+- **v97 (4 November 2026): each Talking Mat card is ONE sentence.**
+  Filip: a big pause after "My agent likes to communicate by…", and words
+  lost. It was two recordings - the frame, then the card's story - and
+  the second only started loading when the first had ended, after the
+  frame's trailing "by…". Now `likesLine(mode)` → `nar-likes-…`, one take
+  per card ("My agent likes to communicate by drawing! Showing it with a
+  picture."), also for the bottle's token. The eight `nar-story-mode-…`
+  are Retired. `Assets.warm(id)` (new) starts loading a line before it is
+  said: the next card's sentence, and every line of a chain (the bottle's
+  queue, a Powers question with its power's name, the power-up moment).
+  612 credits.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -969,6 +980,10 @@ applies (v3 §13).
   spoken line can be a little story. Keep both in the asset guide, and
   keep every story equally warm: describe what it does, never praise the
   choice.
+- **A sentence a child hears as one is ONE recording.** Two files played
+  back to back leave a gap on the iPad (the second loads only when it is
+  due) and lose the intonation across the join. Chains of separate
+  sentences are fine - but `Assets.warm()` every line first.
 - **A file that changes must change its address.** Browsers and the
   service worker keep files by URL, so a remade sound with the same name
   is not fetched again. The manifest's `rev` does this for every asset -

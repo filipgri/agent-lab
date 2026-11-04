@@ -367,6 +367,21 @@ const Assets = (function () {
     return audio;
   }
 
+  /* Start loading a narration line before it is said (v97). A line used to
+     load only when it was due, so the second of two lines in a row waited
+     for its file - on the iPad, a pause long enough for Filip to notice.
+     Harmless if the file is missing or the browser ignores load(). */
+  function warm(id) {
+    ready.then(function () {
+      const entry = item(id);
+      if (!entry || audioCache.get(id) === false) return;
+      const audio = getAudio(id, entry, NARRATOR_VOLUME, true);
+      if (audio && audio.readyState === 0) {
+        try { audio.load(); } catch (err) { /* harmless */ }
+      }
+    });
+  }
+
   /* Does this sound or narration file actually exist? The adult panel's Asset
      check asks, so it must not play anything to find out. */
   function hasAudio(id) {
@@ -410,6 +425,7 @@ const Assets = (function () {
     say: say,
     sayAndWait: sayAndWait,
     stopSaying: stopSaying,
+    warm: warm,
     sfx: sfx,
     preview: preview,
     manifest: function () { return manifest; }

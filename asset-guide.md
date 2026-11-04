@@ -433,7 +433,15 @@ the app does not react to what a child chose (v3 §17).
 | nar-suit-likes | Talking, step 1 | How does your agent like to talk? |
 | nar-handshake-make | Handshake | Tap a secret handshake for your agent. |
 | nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
-| nar-likes-frame | Talking: said before every card | My agent likes to communicate by… |
+| nar-likes-frame | Talking: 🔊 once every card is sorted (v97: each card has its own whole sentence) | My agent likes to communicate by… |
+| nar-likes-talk | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate by talking! Saying it out loud, with words. |
+| nar-likes-hands | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate by signing! Talking with hands, like Makaton. |
+| nar-likes-handshake | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate with a secret handshake! A rhythm only your agent knows. |
+| nar-likes-draw | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate by drawing! Showing it with a picture. |
+| nar-likes-act | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate by acting it out! Showing it with the whole body. |
+| nar-likes-pictures | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate with picture cards! Pointing at a picture to say it. |
+| nar-likes-write | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate by writing! Putting the words on paper. |
+| nar-likes-device | Talking: a card arrives, or is tapped (one take, no gap) | My agent likes to communicate with a device! A tablet that talks for your agent. |
 | nar-suit-most | Talking: the favourite | Which one does your agent like the most? |
 | nar-answer-yes | A card goes on ✓ | Yes! |
 | nar-answer-unsure | A card goes on ? | Not sure. |
@@ -496,14 +504,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-story-speak-for-friends | A power card is tapped | Speak for your friends! Your agent says it for them. |
 | nar-story-call-ally | A power card is tapped | Call an ally! A friend runs over to help. |
 | nar-story-team-up | A power card is tapped | Team up! Two agents together are even stronger. |
-| nar-story-mode-talk | A talks card, after "My agent likes…" | Talking! Saying it out loud, with words. |
-| nar-story-mode-hands | A talks card, after "My agent likes…" | Signing! Talking with hands, like Makaton. |
-| nar-story-mode-handshake | A talks card, after "My agent likes…" | A secret handshake! A rhythm only your agent knows. |
-| nar-story-mode-draw | A talks card, after "My agent likes…" | Drawing! Showing it with a picture. |
-| nar-story-mode-act | A talks card, after "My agent likes…" | Acting it out! Showing it with the whole body. |
-| nar-story-mode-pictures | A talks card, after "My agent likes…" | Picture cards! Pointing at a picture to say it. |
-| nar-story-mode-write | A talks card, after "My agent likes…" | Writing! Putting the words on paper. |
-| nar-story-mode-device | A talks card, after "My agent likes…" | A device! A tablet that talks for your agent. |
 | nar-story-who-me | A Who card is picked | Me! The power works on your agent. |
 | nar-story-who-friend | A Who card is picked | A friend! The power works on a friend. |
 | nar-story-who-teacher | A Who card is picked | My teacher! The power works on the grown-ups at school. |
@@ -902,6 +902,14 @@ longer played; files already made stay where they are.
 | nar-story-sit-tricky-work | Tricky work! When it gets hard, the power helps. | v89: removed to keep the session short |
 | nar-powers-when | When does your agent use this power? Pick up to three. | v89: removed to keep the session short |
 | nar-powers-then | And then what happens? Draw it, or say it. | v94: "What happens then?" removed - too abstract for kids |
+| nar-story-mode-talk | Talking! Saying it out loud, with words. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-hands | Signing! Talking with hands, like Makaton. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-handshake | A secret handshake! A rhythm only your agent knows. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-draw | Drawing! Showing it with a picture. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-act | Acting it out! Showing it with the whole body. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-pictures | Picture cards! Pointing at a picture to say it. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-write | Writing! Putting the words on paper. | v97: each card's whole sentence is one line now (nar-likes-…) |
+| nar-story-mode-device | A device! A tablet that talks for your agent. | v97: each card's whole sentence is one line now (nar-likes-…) |
 | nar-school-frame | School wants us to… | v87: "School wants us to…" removed |
 | nar-story-school-talk-lot | Talk a lot! Lots of talking, all day long. | v87: "School wants us to…" removed |
 | nar-story-school-only-talk | Only talk! Words out loud, and nothing else. | v87: "School wants us to…" removed |
