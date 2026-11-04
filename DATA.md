@@ -7,7 +7,15 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v84** (4 November 2026). `schemaVersion` is still **3**.
+Last updated: **v86** (4 November 2026). `schemaVersion` is still **3**.
+
+> ⚠️ **v86: a bottle can hold a REAL NAME, spoken.** For a friend or a
+> teacher the child may say who it is for (`toNameAudioId`). Filip decided
+> this on 4 November 2026, as an exception to "codenames only". The
+> recording stays on the iPad and is never sent to the display, but it IS
+> in every export (which carries all recordings), and `tools/analyse.py`
+> writes it as `…_bottleN-to-name-PERSONAL`. Treat it as personal data:
+> store it securely and delete it when the study allows.
 
 > **v84:** the bottle no longer lists every agent on the iPad to pick a
 > friend's (children did not know which was their friend's), so
@@ -251,6 +259,7 @@ own power.
 | `items` | Up to 4, ONE of each kind, in the order they went in. See "Items" below. |
 | `to` | `"who-me"` (kept on this iPad), `"who-friend"`, `"who-teacher"` or `"who-everyone"` (the big screen); `null` while being filled. |
 | `toAgentId` | The friend's agent `id`, if the child tapped one on this iPad; else `null` ("a friend" on its own is fine). **Always `null` from v84**, when the list of agents was removed. |
+| `toNameAudioId` | v86, **personal data**. For `who-friend` or `who-teacher`: the child's recording of WHO it is for - a real name, said aloud - or `null` (it is optional). Deleted if the child says it again (the new one replaces it) or changes who the bottle is for. Never sent to the display; in the export with every other recording. Missing on bottles made before v86. |
 | `signed` | "Who is it from?" (it asked "Show your agent?" before v80): `true` from my agent (the card shows the agent and its codename); `false` 🎭 a mystery; `null` for `"who-me"` (not asked) or not yet chosen. |
 | `state` | `"open"` while being filled (an addition to §10: it is saved at once so nothing is lost if the iPad is closed); `"kept"` (for me); `"sent"` (the moment the child sent it); `"waiting"` (the display link was off or failed — it goes by itself when the link works); `"delivered"` (the relay took it). **The child sees the same "🚀 Sent" for sent, waiting and delivered.** |
 | `sentAt` / `deliveredAt` | ISO dates, or `null`. |
@@ -452,6 +461,8 @@ went in.
 | `bottle_voice_filter` | A spy voice was picked. | `{ filter }`, plus `mystery: true` when the 🕵️ step asked for it — then it applies to EVERY recording in the bottle | ✅ |
 | `bottle_phase` | Another step opened (🍾 👥 🕵️ 🚀 🗂️; 🕵️ was ✍️ before v80). | `{ to, how: "next"/"tab" }` — `to: "sign"` is "Who is it from?" | ✅ |
 | `bottle_to` | Who it is for. | `{ who }` | ✅ |
+| `bottle_to_name` | v86: 🎤 the child said who a friend's or teacher's bottle is for. | `{ ms, again }` — `again` if it replaced an earlier one. The recording itself is `toNameAudioId` (personal data). | ✅ |
+| `bottle_to_name_remove` | v86: that recording was deleted because the bottle is now for someone else. | `{}` | ✅ |
 | `bottle_friend_pick` | A friend's agent was tapped (or tapped again to un-pick). | `{ toAgentId }` | — (before v84: the list of agents is gone) |
 | `bottle_sign` | "Who is it from?": the agent, or 🎭 a mystery. | `{ signed }` | ✅ |
 | `bottle_cork` | The cork went in. | `{}` | ✅ |
@@ -621,7 +632,8 @@ display will show — never the agent's `id`, its event log, or any other agent:
   `drawAgentToCanvas` in its place, 256 px. `toEmblem` is the friend agent's
   emblem if one was tapped.
 - **For a friend or a teacher, `items` is empty**: the envelope only; the
-  contents stay on the iPad (§9.1).
+  contents stay on the iPad (§9.1). **The spoken name (`toNameAudioId`)
+  is never sent**, for any bottle.
 - `soThat` is only sent with "Control teachers" (the display shows it).
 - **Voices are disguised ON THE iPAD** (the §9.1 choice): `Voice.render()` runs
   the same filter through an OfflineAudioContext and sends a WAV (mono,
@@ -688,7 +700,9 @@ devices a "Control school devices" power controls), `when`, `when_own`,
 
 **`bottles.csv`** — one row per bottle: `agent_ref`, `codename`,
 `bottle_index`, `bottle_ref`, `created_at`, `state`, `to`, `to_agent_ref`
-(the friend's agent, if one was tapped), `signed` (1/0, empty for "me"),
+(the friend's agent, if one was tapped), `to_name_said` (1/0, v86: a name
+was said - the recording is in `audio/` as `…_bottleN-to-name-PERSONAL`),
+`signed` (1/0, empty for "me"),
 `items` (the types), `powers_given` (the power each ⚡ gave — `removed` if
 that power was later removed), `voice_filter`, `sent_at`, `delivered_at`.
 

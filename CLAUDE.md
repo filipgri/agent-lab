@@ -55,7 +55,9 @@ referenced throughout the code comments; a bare § means the v1 build spec,
   agent record, its id, or other agents. The relay and the display keep
   nothing on disk. No accounts, no cloud, no analytics.
 - **No camera access, ever.** The microphone records only when a child taps 🎤.
-- **Codenames only.** Never ask for or store a real name.
+- **Codenames only.** Never ask for or store a real name - with ONE
+  exception Filip decided on 4 November 2026: a child may say who a
+  friend's or teacher's bottle is for (see Settled decisions).
 - The Content-Security-Policy meta tag in `index.html` must stay. Note it
   forbids inline `<script>` and `onclick=""` — wire everything up with
   `addEventListener`. `connect-src` may list `https://*.local:8443` and
@@ -682,6 +684,12 @@ to the start. No card screen.
   its space (When's eleven photos) FADES at the bottom (`.has-more`,
   `updateFades()`). Next pulses by growing, not with a ring. Audited clean
   at 1180×734 and 820×1180.
+- **v86 (4 November 2026): say who the bottle is for; it is all about
+  school.** For a friend or a teacher the child may say their name (🎤,
+  optional; `toNameAudioId`; never sent; in the export as personal data -
+  see Settled decisions). The bottle's words and narration say school:
+  "A friend at school", "Everyone at school", "It's in the school post for
+  your friend", "Got it! It goes to your teacher at school."
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -743,6 +751,14 @@ Then, by hand:
 hand-edit the manifest, and never edit both.
 
 ## Settled decisions
+
+- **A bottle may hold a spoken name (4 November 2026, Filip's decision).**
+  For a friend or a teacher, a child may SAY who the bottle is for. This
+  is a deliberate exception to "codenames only, never store a real name",
+  for this one thing. The recording (`toNameAudioId`) stays on the iPad,
+  is NEVER part of what is sent to the relay or display, and is in the
+  export like every recording; `analyse.py` names its file
+  `…-to-name-PERSONAL`. Nothing else may ask for or keep a real name.
 
 - **"How my agent talks" is a Talking Mat, not a form (3 November 2026).**
   Filip's first try: a loud room means nothing may depend on hearing or

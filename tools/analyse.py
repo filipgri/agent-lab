@@ -261,7 +261,8 @@ def power_rows(agent):
 
 BOTTLE_COLUMNS = [
     "agent_ref", "codename", "bottle_index", "bottle_ref", "created_at", "state", "to",
-    "to_agent_ref", "signed", "items", "powers_given", "voice_filter", "sent_at", "delivered_at",
+    "to_agent_ref", "to_name_said", "signed", "items", "powers_given", "voice_filter",
+    "sent_at", "delivered_at",
 ]
 
 
@@ -283,7 +284,8 @@ def bottle_rows(agent):
         rows.append([
             ref(agent.get("id")), agent.get("codename", ""), i, ref(b.get("id")),
             b.get("createdAt", ""), b.get("state", ""), b.get("to") or "",
-            ref(b.get("toAgentId")), "" if signed is None else int(bool(signed)),
+            ref(b.get("toAgentId")), int(bool(b.get("toNameAudioId"))),
+            "" if signed is None else int(bool(signed)),
             joined(item.get("type", "") for item in b.get("items", [])),
             joined(given), voice, b.get("sentAt") or "", b.get("deliveredAt") or "",
         ])
@@ -348,6 +350,9 @@ def save_media(agent, audio, drawings, sounds):
                 png(c.get("png"), "power%d-%s%d" % (i, slot, j))
                 clip(c.get("audioId"), "power%d-%s%d" % (i, slot, j))
     for i, b in enumerate(agent.get("bottles", [])):
+        # v86: a friend's or teacher's name, said by the child - a REAL
+        # name, so its file says so (DATA.md: personal data).
+        clip(b.get("toNameAudioId"), "bottle%d-to-name-PERSONAL" % i)
         for j, item in enumerate(b.get("items", [])):
             png(item.get("png"), "bottle%d-%s" % (i, item.get("type", "item")))
             clip(item.get("audioId"), "bottle%d-%s" % (i, item.get("type", "item")))

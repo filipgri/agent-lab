@@ -528,9 +528,9 @@ the app does not react to what a child chose (v3 §17).
 | nar-story-item-safe | A bottle token is tapped | Your agent's safe place! It goes inside the bottle. |
 | nar-story-item-word | A bottle token is tapped | My secret word! It goes inside, in its spy voice. |
 | nar-story-to-me | Who the bottle is for | For me! It stays safe on your shelf. |
-| nar-story-to-friend | Who the bottle is for | For a friend! It goes in the post for your friend. |
-| nar-story-to-teacher | Who the bottle is for | For my teacher! It goes in the post for your teacher. |
-| nar-story-to-everyone | Who the bottle is for | For everyone! It goes up on the big screen. |
+| nar-story-to-friend | Who the bottle is for | For a friend at school! Tap the microphone and say their name. |
+| nar-story-to-teacher | Who the bottle is for | For your teacher at school! Tap the microphone and say their name. |
+| nar-story-to-everyone | Who the bottle is for | For everyone at school! It goes up on the big screen. |
 | nar-powers-when | When slot | When does your agent use this power? Pick up to three. |
 | nar-powers-who | Who slot | Who does the power work on? Pick as many as you like. |
 | nar-powers-how | How slot | How does your agent switch it on? A badge? A secret word? |
@@ -538,18 +538,20 @@ the app does not react to what a child chose (v3 §17).
 | nar-powers-then | What-happens cell | And then what happens? Draw it, or say it. |
 | nar-powers-fire | Power fires | Power on! |
 | nar-powers-more | After a power | Your power is ready. Make another, or Stamp it. |
-| nar-bottle-intro | Bottle | This is your agent's message bottle! Put things inside. Then choose who gets it, and send it! |
+| nar-bottle-intro | Bottle | This is your agent's message bottle! Put things inside. Then pick who at school gets it! |
 | nar-bottle-full | Fourth item goes in | Your bottle is full to the top! |
-| nar-bottle-to | Who it's for | Who is this bottle for? Pick one. |
+| nar-bottle-to | Who it's for | Who at school is this bottle for? |
 | nar-bottle-from | Who it's from | Who is it from? Sign it with your agent? Or keep it a mystery? |
 | nar-game-say | Favourite game | Say the name of your favourite game. |
 | nar-voice-say | Voice message | Tap the microphone. Say your message. |
 | nar-bottle-cork | Cork | Now push the cork in, nice and tight. |
 | nar-bottle-send | Send | Swipe it up, or hold the rocket. Off it goes! |
 | nar-bottle-sent | After sending | Whoosh! Your bottle is on its way. |
-| nar-bottle-sent-everyone | Sent to everyone | Whoosh! It's on its way to the big screen. Look! |
-| nar-bottle-sent-friend | Sent to a friend | Whoosh! It's in the post for your friend. |
-| nar-bottle-sent-teacher | Sent to a teacher | Whoosh! It's in the post for your teacher. |
+| nar-bottle-sent-everyone | Sent to everyone | Whoosh! Off to the big screen. Everyone at school will see it! |
+| nar-bottle-sent-friend | Sent to a friend | Whoosh! It's in the school post for your friend. |
+| nar-bottle-sent-teacher | Sent to a teacher | Whoosh! It's in the school post for your teacher. |
+| nar-name-ok-friend | A friend's name has been said | Got it! It goes to your friend at school. |
+| nar-name-ok-teacher | A teacher's name has been said | Got it! It goes to your teacher at school. |
 | nar-bottle-kept | Kept | Your bottle stays safe on your shelf. |
 
 **Session 3: v3 card labels ◻️**

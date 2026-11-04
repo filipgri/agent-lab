@@ -7839,11 +7839,14 @@ const BOTTLE_ITEMS = [
   { id: 'item-safe',      emoji: '📍', label: 'My safe place',                 colour: '#9fb3d1', from: true }
 ];
 
+/* Who a bottle is for. The ids are the Who cards' (who-…), so the data
+   lines up with Powers; the WORDS here say school (Filip, 4 November:
+   "don't forget it is all about the school"), and replace the cards'. */
 const BOTTLE_TO = [
-  { id: 'who-me',       emoji: '🙋', label: 'Me' },
-  { id: 'who-friend',   emoji: '👫', label: 'A friend' },
-  { id: 'who-teacher',  emoji: '🧑‍🏫', label: 'My teacher' },
-  { id: 'who-everyone', emoji: '🌍', label: 'Everyone' }
+  { id: 'who-me',       emoji: '🙋', label: 'For me' },
+  { id: 'who-friend',   emoji: '👫', label: 'A friend at school', named: true },
+  { id: 'who-teacher',  emoji: '🧑‍🏫', label: 'My teacher', named: true },
+  { id: 'who-everyone', emoji: '🌍', label: 'Everyone at school' }
 ];
 
 const BOTTLE_HOLD_MS = 900;          // how long 🚀 must be held
@@ -8199,6 +8202,7 @@ function ensureBottle() {
     items: [],
     to: null,
     toAgentId: null,
+    toNameAudioId: null,
     signed: null,
     state: 'open',
     sentAt: null,
@@ -8412,9 +8416,14 @@ function paintBottleTo() {
   const box = $('#bottle-to-cards');
   box.innerHTML = '';
   BOTTLE_TO.forEach(to => {
-    box.appendChild(modeCard(to, b.to === to.id, () => chooseBottleTo(to.id)));
+    const card = modeCard(to, b.to === to.id, () => chooseBottleTo(to.id));
+    // The bottle's own words, not the Who card's: "A friend at school".
+    const label = card.querySelector('.pic-card-label');
+    if (label) label.textContent = to.label;
+    box.appendChild(card);
   });
   $('#bottle-to-go').hidden = !b.to;
+  paintToName(b);
   /* The list of every agent on this iPad, to pick a friend's, is gone
      (Filip, 4 November: children do not know which agent is their
      friend's). "A friend" is the answer, and the narrator confirms it.
@@ -8423,16 +8432,88 @@ function paintBottleTo() {
 
 function chooseBottleTo(id) {
   const b = currentBottle();
+  // A name said for one person does not belong to another: changing who
+  // the bottle is for deletes it.
+  if (b.toNameAudioId && b.to !== id) forgetToName(b);
   b.to = id;
   if (id !== 'who-friend') b.toAgentId = null;
   if (id === 'who-me') b.signed = null;       // nothing to sign for "me"
   logEvent('bottle_to', { who: id });
-  // Its story, which for a friend also says to tap the friend's agent.
+  // Its story - for a friend or a teacher, "…say their name".
   logEvent('label_speak', { id: id });
   const to = BOTTLE_TO.find(x => x.id === id);
   bottleSay([['nar-story-to-' + id.replace(/^who-/, ''), to ? to.label + '!' : '']]);
   paintBottle();
   scheduleSave();
+}
+
+/* ---- 🎤 saying who it is for ----
+   For a friend or a teacher the child may SAY their name (Filip decided
+   this on 4 November 2026, knowing it records a real name - an exception
+   to "codenames only" for this one thing). It is optional. The recording
+   stays on this iPad: it is NEVER part of what is sent to the display
+   (buildBottlePayload leaves it out), but it IS in the export, which holds
+   every recording - DATA.md marks it as personal data. */
+function paintToName(b) {
+  const box = $('#bottle-to-name');
+  const to = BOTTLE_TO.find(x => x.id === b.to);
+  box.hidden = !(to && to.named);
+  if (box.hidden) return;
+  const mic = $('#to-name-mic');
+  mic.classList.toggle('has-clip', Boolean(b.toNameAudioId));
+  mic.querySelector('.to-name-icon').textContent = Voice.isRecording() ? '⏹️' : '🎤';
+  mic.querySelector('.btn-label').textContent = b.toNameAudioId ? 'Say it again' : 'Say who';
+  $('#to-name-play').hidden = !b.toNameAudioId;
+}
+
+async function recordToName() {
+  Voice.unlock();
+  if (Voice.isRecording()) { Voice.stop(); return; }
+  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
+  const b = currentBottle();
+  const mic = $('#to-name-mic');
+  mic.classList.add('is-recording');
+  mic.querySelector('.to-name-icon').textContent = '⏹️';
+  bottleSay([]);                       // the narrator stops while the child speaks
+  try {
+    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
+    const id = uuid();
+    await Storage.saveAudio(id, result.blob);
+    const again = Boolean(b.toNameAudioId);
+    if (again) await forgetToName(b, true);
+    b.toNameAudioId = id;
+    logEvent('bottle_to_name', { ms: Math.round(result.ms), again: again });
+    scheduleSave();
+    // The child hears the name back, then the narrator confirms it.
+    const ok = b.to === 'who-teacher'
+      ? ['nar-name-ok-teacher', 'Got it! It goes to your teacher at school.']
+      : ['nar-name-ok-friend', 'Got it! It goes to your friend at school.'];
+    await playToName(b);
+    if (bottleUi.phase === 'to') bottleSay([ok]);
+  } catch (err) {
+    toast('The microphone did not work');
+  }
+  mic.classList.remove('is-recording');
+  paintToName(b);
+}
+
+async function playToName(b) {
+  if (!b.toNameAudioId || state.muted) return;
+  const row = await Storage.loadAudio(b.toNameAudioId);
+  if (row) await Promise.race([Voice.play(b.toNameAudioId, row.blob, 'normal'),
+                               new Promise(r => setTimeout(r, 11000))]);
+}
+
+/* The name recording goes - when it is said again, or the bottle is for
+   someone else now. `quiet` when a new one is replacing it (that is
+   logged as `again`). */
+async function forgetToName(b, quiet) {
+  const id = b.toNameAudioId;
+  b.toNameAudioId = null;
+  if (!id) return;
+  if (!quiet) logEvent('bottle_to_name_remove', {});   // before the new choice is logged
+  Voice.forget(id);
+  await Storage.deleteAudio(id);
 }
 
 /* ---- 🕵️ who is it from? ---- */
@@ -8718,8 +8799,9 @@ async function itemPayload(agent, item, mystery) {
   return out;
 }
 
-/* The bottle as it travels. NEVER the agent id, the event log, or another
-   agent (§9.1). For a friend or a teacher: the envelope only. */
+/* The bottle as it travels. NEVER the agent id, the event log, another
+   agent, or the name a child said for a friend or teacher (v86, it stays
+   on this iPad) (§9.1). For a friend or a teacher: the envelope only. */
 async function buildBottlePayload(agent, bottle) {
   let toEmblem = null;
   if (bottle.to === 'who-friend' && bottle.toAgentId) {
@@ -8818,6 +8900,8 @@ function wireBottle() {
   $$('[data-bottle-phase]').forEach(b =>
     b.addEventListener('click', () => goBottlePhase(b.dataset.bottlePhase, 'tab')));
   $('#bottle-fill-go').addEventListener('click', () => goBottlePhase('to', 'next'));
+  $('#to-name-mic').addEventListener('click', recordToName);
+  $('#to-name-play').addEventListener('click', () => { Voice.unlock(); playToName(currentBottle()); });
   $('#bottle-to-go').addEventListener('click', () =>
     goBottlePhase(currentBottle().to === 'who-me' ? 'send' : 'sign', 'next'));
   $('#bottle-sign-go').addEventListener('click', () => goBottlePhase('send', 'next'));

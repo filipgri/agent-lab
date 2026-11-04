@@ -2105,20 +2105,20 @@
     {
       "id": "nar-story-to-friend",
       "file": "audio/narrator/nar-story-to-friend.mp3",
-      "text": "For a friend! It goes in the post for your friend.",
-      "rev": "77d345b0"
+      "text": "For a friend at school! Tap the microphone and say their name.",
+      "rev": "225f829b"
     },
     {
       "id": "nar-story-to-teacher",
       "file": "audio/narrator/nar-story-to-teacher.mp3",
-      "text": "For my teacher! It goes in the post for your teacher.",
-      "rev": "90c0c44b"
+      "text": "For your teacher at school! Tap the microphone and say their name.",
+      "rev": "c7e6941f"
     },
     {
       "id": "nar-story-to-everyone",
       "file": "audio/narrator/nar-story-to-everyone.mp3",
-      "text": "For everyone! It goes up on the big screen.",
-      "rev": "d8964d3f"
+      "text": "For everyone at school! It goes up on the big screen.",
+      "rev": "20b11fe7"
     },
     {
       "id": "nar-powers-when",
@@ -2165,8 +2165,8 @@
     {
       "id": "nar-bottle-intro",
       "file": "audio/narrator/nar-bottle-intro.mp3",
-      "text": "This is your agent's message bottle! Put things inside. Then choose who gets it, and send it!",
-      "rev": "6aaa705c"
+      "text": "This is your agent's message bottle! Put things inside. Then pick who at school gets it!",
+      "rev": "2f399f9d"
     },
     {
       "id": "nar-bottle-full",
@@ -2177,8 +2177,8 @@
     {
       "id": "nar-bottle-to",
       "file": "audio/narrator/nar-bottle-to.mp3",
-      "text": "Who is this bottle for? Pick one.",
-      "rev": "9709640f"
+      "text": "Who at school is this bottle for?",
+      "rev": "5de2ef8f"
     },
     {
       "id": "nar-bottle-from",
@@ -2219,20 +2219,32 @@
     {
       "id": "nar-bottle-sent-everyone",
       "file": "audio/narrator/nar-bottle-sent-everyone.mp3",
-      "text": "Whoosh! It's on its way to the big screen. Look!",
-      "rev": "0504e5f5"
+      "text": "Whoosh! Off to the big screen. Everyone at school will see it!",
+      "rev": "40582b29"
     },
     {
       "id": "nar-bottle-sent-friend",
       "file": "audio/narrator/nar-bottle-sent-friend.mp3",
-      "text": "Whoosh! It's in the post for your friend.",
-      "rev": "21d5ec0a"
+      "text": "Whoosh! It's in the school post for your friend.",
+      "rev": "fa59a348"
     },
     {
       "id": "nar-bottle-sent-teacher",
       "file": "audio/narrator/nar-bottle-sent-teacher.mp3",
-      "text": "Whoosh! It's in the post for your teacher.",
-      "rev": "de64e80b"
+      "text": "Whoosh! It's in the school post for your teacher.",
+      "rev": "e3a9559e"
+    },
+    {
+      "id": "nar-name-ok-friend",
+      "file": "audio/narrator/nar-name-ok-friend.mp3",
+      "text": "Got it! It goes to your friend at school.",
+      "rev": "ff405f88"
+    },
+    {
+      "id": "nar-name-ok-teacher",
+      "file": "audio/narrator/nar-name-ok-teacher.mp3",
+      "text": "Got it! It goes to your teacher at school.",
+      "rev": "0255cab9"
     },
     {
       "id": "nar-bottle-kept",
