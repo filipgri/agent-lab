@@ -8151,7 +8151,7 @@ function wirePowers() {
                   a mystery bottle EVERY recording must be in a spy voice.
                   (It used to ask "Show your agent?", which Filip found
                   confusing, 3 November 2026.)
-     🚀 Send      push the cork in, then swipe the bottle up or HOLD 🚀
+     🚀 Send      close the bottle with its cork, then swipe it up or HOLD 🚀
                   (every gesture has a tap alternative)
      🗂️ Shelf     up to three bottles per agent
 
@@ -8348,7 +8348,7 @@ function goBottlePhase(phase, how) {
   if (phase === bottleUi.phase) return;
   logEvent('bottle_phase', { to: phase, how: how });
   startBottlePhase(phase);
-  // The send step says "push the cork in" itself when the cork button is
+  // The send step says "close the bottle" itself when the cork button is
   // the thing to press.
   sayBottleStep(phase);
 }

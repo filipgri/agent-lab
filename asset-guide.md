@@ -552,7 +552,7 @@ the app does not react to what a child chose (v3 §17).
 | nar-bottle-from | Who it's from | Who is it from? Sign it with your agent? Or keep it a mystery? |
 | nar-game-say | Favourite game | Say the name of your favourite game. |
 | nar-voice-say | Voice message | Tap the microphone. Say your message. |
-| nar-bottle-cork | Cork | Now push the cork in, nice and tight. |
+| nar-bottle-cork | Cork | Now close the bottle with its cork. |
 | nar-bottle-send | Send | Swipe it up, or hold the rocket. Off it goes! |
 | nar-bottle-sent | After sending | Whoosh! Your bottle is on its way. |
 | nar-bottle-sent-everyone | Sent to everyone | Whoosh! Off to the big screen. Everyone at school will see it! |

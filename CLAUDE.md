@@ -843,6 +843,10 @@ to the start. No card screen.
   resets the rate. An effect refused before the first tap plays the
   generated sound instead of nothing. Chrome never enforced this, so the
   browser tests show nothing broke; the iPad is the real test.
+- **v102 (4 November 2026): the cork, said plainly.** Filip: "push the
+  cork in nice and tight" is inappropriate. The narrator now says "Now
+  close the bottle with its cork." (`nar-bottle-cork`, remade) and the
+  button reads 🍾 Close the bottle.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.

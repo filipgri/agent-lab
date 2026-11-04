@@ -37,7 +37,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=101">
+  <link rel="stylesheet" href="./style.css?v=102">
 </head>
 <body>
 
@@ -613,7 +613,7 @@
 
               <!-- 🚀 CORK IT, THEN SEND (or keep). -->
               <div id="bottle-send" class="suit-side" hidden>
-                <button id="bottle-cork" class="btn btn-big">🍾 <span class="btn-label">Push the cork in</span></button>
+                <button id="bottle-cork" class="btn btn-big">🍾 <span class="btn-label">Close the bottle</span></button>
                 <!-- Every gesture has a tap alternative: hold 🚀 to send. -->
                 <button id="bottle-rocket" class="btn btn-accent btn-big bottle-rocket" hidden>
                   <span class="rocket-fill"></span><span class="rocket-face">🚀 <span class="btn-label">Hold to send</span></span>
@@ -934,14 +934,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=101"></script>
-<script src="./storage.js?v=101"></script>
-<script src="./audio.js?v=101"></script>
-<script src="./effects.js?v=101"></script>
-<script src="./assets.js?v=101"></script>
-<script src="./stickers.js?v=101"></script>
-<script src="./parts.js?v=101"></script>
-<script src="./app.js?v=101"></script>
+<script src="./boot-guard.js?v=102"></script>
+<script src="./storage.js?v=102"></script>
+<script src="./audio.js?v=102"></script>
+<script src="./effects.js?v=102"></script>
+<script src="./assets.js?v=102"></script>
+<script src="./stickers.js?v=102"></script>
+<script src="./parts.js?v=102"></script>
+<script src="./app.js?v=102"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

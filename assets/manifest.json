@@ -2235,8 +2235,8 @@
     {
       "id": "nar-bottle-cork",
       "file": "audio/narrator/nar-bottle-cork.mp3",
-      "text": "Now push the cork in, nice and tight.",
-      "rev": "008a3216"
+      "text": "Now close the bottle with its cork.",
+      "rev": "0db1f777"
     },
     {
       "id": "nar-bottle-send",
