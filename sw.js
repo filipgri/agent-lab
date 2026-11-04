@@ -18,7 +18,7 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v97';
+const CACHE_VERSION = 'agent-lab-v98';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
@@ -26,15 +26,15 @@ const CACHE_VERSION = 'agent-lab-v97';
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=97',
-  './boot-guard.js?v=97',
-  './storage.js?v=97',
-  './audio.js?v=97',
-  './effects.js?v=97',
-  './assets.js?v=97',
-  './stickers.js?v=97',
-  './parts.js?v=97',
-  './app.js?v=97',
+  './style.css?v=98',
+  './boot-guard.js?v=98',
+  './storage.js?v=98',
+  './audio.js?v=98',
+  './effects.js?v=98',
+  './assets.js?v=98',
+  './stickers.js?v=98',
+  './parts.js?v=98',
+  './app.js?v=98',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -137,6 +137,26 @@ self.addEventListener('fetch', function (event) {
      finds out it is stuck (see healIfStale in boot-guard.js), so a cached
      copy would tell it everything is fine for ever. */
   if (request.url.indexOf('version.json') !== -1) return;
+
+  /* THE ASSET LIST IS FETCHED FRESH WHEN ONLINE (v98). It says which
+     pictures and recordings exist. A saved copy from the last release has
+     never heard of new lines, and assets.js then reads them in the iPad's
+     own voice - Filip heard exactly that. Online: the server's list, saved
+     for later. Offline: the saved one. */
+  if (new URL(request.url).pathname.endsWith('/assets/manifest.json')) {
+    event.respondWith(
+      fetch(request).then(function (response) {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_VERSION).then(function (cache) { cache.put('./assets/manifest.json', copy); });
+        }
+        return response;
+      }).catch(function () {
+        return caches.match('./assets/manifest.json', { ignoreSearch: true });
+      })
+    );
+    return;
+  }
 
   /* THE PAGE ITSELF IS FETCHED FRESH WHEN ONLINE (7 October 2026).
 

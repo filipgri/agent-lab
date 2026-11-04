@@ -78,7 +78,15 @@ const Assets = (function () {
      A missing or broken manifest leaves the empty one above in place, which
      means every lookup politely returns nothing and every stand-in appears.
      ----------------------------------------------------------------------- */
-  const ready = fetch(BASE + 'manifest.json', { cache: 'no-cache' })
+  /* The list is asked for under THIS release's number (v98): ?v= from this
+     file's own address. A new release is then a new address, which no old
+     saved copy can answer. Without it, the offline copy still running from
+     the last release answered with ITS list - which had never heard of the
+     new lines - and every new line was read in the iPad's own voice until
+     the new version finished installing (Filip, 4 November: "it's a robotic
+     voice now"). */
+  const RELEASE = (document.currentScript && /[?&]v=([^&]+)/.exec(document.currentScript.src) || [])[1] || '';
+  const ready = fetch(BASE + 'manifest.json' + (RELEASE ? '?v=' + RELEASE : ''), { cache: 'no-cache' })
     .then(function (response) {
       if (!response.ok) throw new Error('no manifest');
       return response.json();
@@ -371,14 +379,15 @@ const Assets = (function () {
      load only when it was due, so the second of two lines in a row waited
      for its file - on the iPad, a pause long enough for Filip to notice.
      Harmless if the file is missing or the browser ignores load(). */
+  const warmed = new Set();
   function warm(id) {
     ready.then(function () {
       const entry = item(id);
-      if (!entry || audioCache.get(id) === false) return;
-      const audio = getAudio(id, entry, NARRATOR_VOLUME, true);
-      if (audio && audio.readyState === 0) {
-        try { audio.load(); } catch (err) { /* harmless */ }
-      }
+      if (!entry || audioCache.has(id) || warmed.has(id)) return;
+      warmed.add(id);
+      // Only the file is fetched (into the offline copy's cache); the player
+      // is not touched, so a warm-up can never mark a line as missing.
+      fetch(url(entry)).catch(function () { /* harmless */ });
     });
   }
 

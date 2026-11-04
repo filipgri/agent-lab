@@ -800,6 +800,20 @@ to the start. No card screen.
   said: the next card's sentence, and every line of a chain (the bottle's
   queue, a Powers question with its power's name, the power-up moment).
   612 credits.
+- **v98 (4 November 2026): new lines in the robotic voice - a stale
+  asset list.** Filip heard v97's new sentences in the iPad's own voice.
+  The recordings were fine; the LIST was not. The service worker answers
+  cache-first, and its cache held the previous release's
+  `assets/manifest.json` (which `{cache: 'no-cache'}` does not get past -
+  that only skips the browser's HTTP cache). The new app asked about lines
+  that list had never heard of, so `Assets.say()` spoke them - for as long
+  as the old worker stayed in charge, i.e. until ~400 files had been
+  cached for the new one. Fixed twice over: `assets.js` asks for
+  `manifest.json?v=<release>` (from its own `?v=`), which no old cache can
+  answer, and `sw.js` fetches the list network-first. Tested in Node
+  against a stand-in cache (this preview browser cannot run a service
+  worker). `Assets.warm()` now only fetches the file and never touches a
+  player, so it cannot mark a line as missing.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -984,6 +998,9 @@ applies (v3 §13).
   back to back leave a gap on the iPad (the second loads only when it is
   due) and lose the intonation across the join. Chains of separate
   sentences are fine - but `Assets.warm()` every line first.
+- **Anything that says WHAT EXISTS is fetched fresh.** `version.json` is
+  never cached and `assets/manifest.json` is network-first and versioned:
+  a saved copy of either quietly makes new things invisible.
 - **A file that changes must change its address.** Browsers and the
   service worker keep files by URL, so a remade sound with the same name
   is not fetched again. The manifest's `rev` does this for every asset -
