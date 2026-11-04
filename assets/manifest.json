@@ -1521,8 +1521,8 @@
     {
       "id": "nar-likes-frame",
       "file": "audio/narrator/nar-likes-frame.mp3",
-      "text": "My agent likes…",
-      "rev": "43020d33"
+      "text": "My agent likes to communicate by…",
+      "rev": "cf16e390"
     },
     {
       "id": "nar-suit-most",

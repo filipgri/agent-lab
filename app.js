@@ -5941,15 +5941,16 @@ function wireQuickAgent() {
 
    - ONE CARD AT A TIME, big. The card's picture moves (talking beats and
      sends out rings, signing hands wave…), the agent acts it out beside it,
-     and the sentence is SAID: "My agent likes… Talking." This is how a
-     Talking Mat works (Murphy, University of Stirling), a method built for
+     and the sentence is SAID: "My agent likes to communicate by… Talking."
+     This is how a Talking Mat works (Murphy, University of Stirling), a
+     method built for
      children who find talking about talking hard.
    - The child answers with THE AGENT, not a symbol: three small copies of
      their own agent - one nods ✓, one tilts its head ?, one shakes it ✗ -
      and the big agent does the same when one is tapped. The data is the
      same three piles as before (yes / unsure / no).
    - Two parts, each a short heading with an icon:
-       🗣️ My agent likes…        suit.likes / likesUnsure / likesNot
+       🗣️ …likes to communicate by… suit.likes / likesUnsure / likesNot
        ⭐ Which one does your
           agent like the most?    suit.best - one card from the ✓ pile
      and then Next goes straight on to Powers. (🤫 "Make up a secret word"
@@ -5999,7 +6000,9 @@ const SUIT_ANSWERS = {
    likes…" then "Talking." The words on screen and the words spoken are the
    same (Filip: the heading was never said). */
 const SUIT_PHASES = {
-  likes:  { title: 'My agent likes…', frame: 'nar-likes-frame', modes: TALK_MODES },
+  // "…to communicate by" (Filip, 4 November, v91): it says plainly that
+  // the cards are ways of getting a message across, not things to like.
+  likes:  { title: 'My agent likes to communicate by…', frame: 'nar-likes-frame', modes: TALK_MODES },
   best:   { title: 'Which one does your agent like the most?', say: 'nar-suit-most' }
 };
 const SUIT_ORDER = ['likes', 'best'];
@@ -7983,7 +7986,7 @@ const BOTTLE_ITEMS = [
   { id: 'item-power',     emoji: '⚡', label: 'A power to give',               colour: '#ffd23f', from: true },
   { id: 'item-handshake', emoji: '🤝', label: 'My handshake',                  colour: '#ff8fab', from: true },
   { id: 'item-word',      emoji: '🤫', label: 'My secret word',                colour: '#e63946', from: true },
-  { id: 'item-talk',      emoji: '🗣️', label: 'How my agent likes to talk',     colour: '#b5e48c', from: true },
+  { id: 'item-talk',      emoji: '🗣️', label: 'How my agent likes to communicate', colour: '#b5e48c', from: true },
   { id: 'item-drawing',   emoji: '✏️', label: 'A drawing',                     colour: '#4cc9f0' },
   { id: 'item-voice',     emoji: '🎤', label: 'A voice message',               colour: '#b892ff' },
   // Said, not drawn (Filip, 3 November): a game is hard to draw, and
@@ -8471,10 +8474,10 @@ function tapToken(kind, tok, via) {
     return;
   }
   // 🗣️ The way the agent likes to talk most (⭐ in How my agent talks):
-  // "My agent likes… Signing! Talking with hands, like Makaton."
+  // "My agent likes to communicate by… Signing! Talking with hands, like Makaton."
   if (kind.id === 'item-talk') {
     addAndSay({ type: 'item-talk', mode: tok.mode.id },
-              [['nar-likes-frame', 'My agent likes…'], [storyId(tok.mode.id), tok.mode.label + '.']]);
+              [['nar-likes-frame', 'My agent likes to communicate by…'], [storyId(tok.mode.id), tok.mode.label + '.']]);
     return;
   }
   if (kind.id === 'item-safe') {

@@ -433,7 +433,7 @@ the app does not react to what a child chose (v3 §17).
 | nar-suit-likes | Talking, step 1 | How does your agent like to talk? |
 | nar-handshake-make | Handshake | Tap a secret handshake for your agent. |
 | nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
-| nar-likes-frame | Talking: said before every card | My agent likes… |
+| nar-likes-frame | Talking: said before every card | My agent likes to communicate by… |
 | nar-suit-most | Talking: the favourite | Which one does your agent like the most? |
 | nar-answer-yes | A card goes on ✓ | Yes! |
 | nar-answer-unsure | A card goes on ? | Not sure. |

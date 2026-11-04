@@ -4135,3 +4135,10 @@ body[data-motion="full"] .suit-card-slot .pic-card.drag-hint { animation: drag-h
 /* v89: six doors, no secret door - two rows of three, a little bigger. */
 .powers-door-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 440px; }
 @media (orientation: landscape) { .powers-door-grid { max-width: 420px; } }
+/* v91: "My agent likes to communicate by…" on one line where it fits;
+   where it must wrap, the two lines are balanced, so "by…" is never left
+   alone on the second. */
+.suit-head .power-title { text-wrap: balance; }
+@media (orientation: landscape) {
+  [data-mission="suit"] .suit-head .power-title { font-size: 25px; padding: 0 60px; }
+}

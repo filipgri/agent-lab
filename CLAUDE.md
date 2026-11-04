@@ -732,6 +732,10 @@ to the start. No card screen.
   question (or once every question is answered), with "When you're ready,
   hold down Power on!" - beside Next on every question, it was not clear
   what it was for.
+- **v91–v92 (4 November 2026): "My agent likes to communicate by…"** -
+  clearer than "My agent likes…" that the cards are ways of getting a
+  message across (Filip). Heading, narration (`nar-likes-frame`, remade)
+  and the bottle's token ("How my agent likes to communicate").
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
