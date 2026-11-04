@@ -5948,12 +5948,13 @@ function wireQuickAgent() {
      their own agent - one nods ✓, one tilts its head ?, one shakes it ✗ -
      and the big agent does the same when one is tapped. The data is the
      same three piles as before (yes / unsure / no).
-   - Three parts, each a short heading with an icon:
+   - Two parts, each a short heading with an icon:
        🗣️ My agent likes…        suit.likes / likesUnsure / likesNot
        ⭐ Which one does your
           agent like the most?    suit.best - one card from the ✓ pile
-       🤫 A secret word          secretWord - an invented word, said with 🎤,
-                                 given one of the six spy voices
+     and then Next goes straight on to Powers. (🤫 "Make up a secret word"
+     was removed on 4 November 2026, v89, to keep the session short; any
+     secretWord already made stays, and a bottle can still carry it.)
    - "School wants us to…" is GONE (Filip, 4 November 2026, v87): what
      school expects is to come out some other way. Its fields (suit.school
      and the rest) stay in the data, empty from v87.
@@ -5989,9 +5990,9 @@ const SUIT_PILES = {
 /* How the agent answers: it nods, tilts its head or shakes it, with a mark
    by its head and a few notes (rising for yes, falling for no). */
 const SUIT_ANSWERS = {
-  yes:    { mark: '✓', act: 'nod',   notes: [2, 4] },
-  unsure: { mark: '?', act: 'tilt',  notes: [3, 2, 3] },
-  no:     { mark: '✗', act: 'shake', notes: [4, 1] }
+  yes:    { mark: '✓', act: 'nod',   notes: [2, 4],    say: 'nar-answer-yes',    word: 'Yes!' },
+  unsure: { mark: '?', act: 'tilt',  notes: [3, 2, 3], say: 'nar-answer-unsure', word: 'Not sure.' },
+  no:     { mark: '✗', act: 'shake', notes: [4, 1],    say: 'nar-answer-no',     word: 'No.' }
 };
 
 /* `frame` is the start of the sentence, said before every card: "My agent
@@ -5999,10 +6000,9 @@ const SUIT_ANSWERS = {
    same (Filip: the heading was never said). */
 const SUIT_PHASES = {
   likes:  { title: 'My agent likes…', frame: 'nar-likes-frame', modes: TALK_MODES },
-  best:   { title: 'Which one does your agent like the most?', say: 'nar-suit-most' },
-  word:   { title: 'Make up a secret word', say: 'nar-word-make' }
+  best:   { title: 'Which one does your agent like the most?', say: 'nar-suit-most' }
 };
-const SUIT_ORDER = ['likes', 'best', 'word'];
+const SUIT_ORDER = ['likes', 'best'];
 const SUIT_FLY_MS = 560;             // a sorted card flying to its pile (style.css)
 
 const suitUi = { phase: 'likes', index: 0, moving: false };
@@ -6142,7 +6142,6 @@ function bestChoices() {
 function suitPhaseDone(phase) {
   const suit = state.agent.suit;
   if (phase === 'best') return suit.best !== null || bestChoices().length === 0;
-  if (phase === 'word') return Boolean(state.agent.secretWord);
   return SUIT_PHASES[phase].modes.every(m => pileOf(phase, m.id));
 }
 
@@ -6168,7 +6167,7 @@ function startSuitPhase(phase) {
   clearTimeout(suitTimer);
   suitUi.moving = false;
   // Nothing on the ✓ pile means there is nothing to choose from.
-  if (phase === 'best' && bestChoices().length === 0) phase = 'word';
+  if (phase === 'best' && bestChoices().length === 0) phase = 'likes';
   suitUi.phase = phase;
 
   const conf = SUIT_PHASES[phase];
@@ -6183,7 +6182,6 @@ function startSuitPhase(phase) {
   else saySuitLine(conf.say, conf.title);
   // The last answer's mark must not stay by the agent's head.
   if (phase === 'best') actOut({ emoji: '⭐', act: 'jump' });
-  if (phase === 'word') actOut({ emoji: '🤫', act: 'hush' });
 }
 
 /* Move to another part: ⭐ 🏫 … at the top, ➡️, or automatically after the
@@ -6204,10 +6202,8 @@ function paintSuit() {
   });
   $('#suit-sort').hidden = !SUIT_PHASES[phase].modes;
   $('#suit-best').hidden = phase !== 'best';
-  $('#suit-word').hidden = phase !== 'word';
   if (SUIT_PHASES[phase].modes) paintSort();
   if (phase === 'best') paintBest();
-  if (phase === 'word') paintWord();
   updateFades();
 }
 
@@ -6227,6 +6223,9 @@ async function sayCardSentence(phase, mode) {
   if (state.muted) return;
   const token = ++suitSayToken;
   const conf = SUIT_PHASES[phase];
+  // The last answer's word ("Yes!") is heard to the end first.
+  await suitUi.answerSaid;
+  if (token !== suitSayToken) return;
   await Assets.sayAndWait(conf.frame, { text: conf.title, maxMs: 3500 });
   if (token !== suitSayToken) return;
   // The sentence ends with the card's short story - "Signing! Talking with
@@ -6269,6 +6268,9 @@ function paintSort(dealt) {
     b.classList.toggle('is-on', b.dataset.pile === current);
   });
   $('#suit-back').hidden = suitUi.index === 0;
+  // Every card sorted: Next - to the favourite, or on to Powers if there is
+  // no ✓ card to choose from.
+  $('#suit-done-go').hidden = Boolean(mode);
 
   const dots = $('#suit-dots');
   dots.innerHTML = '';
@@ -6316,7 +6318,10 @@ function sortCard(pile, via) {
   actOut({ emoji: answer.mark, act: answer.act, mark: pile });
   playNotes(answer.notes);
   suitSayToken++;                        // the old card's sentence stops here
-  Assets.stopSaying();
+  // …and the answer is SAID: "Yes!" / "Not sure." / "No." (Filip: the
+  // check mark should say yes too). The next card waits for it.
+  suitUi.answerSaid = state.muted ? Promise.resolve()
+    : Assets.sayAndWait(answer.say, { text: answer.word, maxMs: 2000 });
 
   const card = $('#suit-card .pic-card');
   suitUi.moving = true;
@@ -6329,11 +6334,13 @@ function sortCard(pile, via) {
     suitUi.index += 1;
     paintSort(true);
     if (suitUi.index < modes.length) { presentCard(); return; }
-    // The last card: a tick, a breath, and on to the next part.
+    // The last card: a tick, a breath, and on to the favourite. With
+    // nothing on the ✓ pile there is no favourite to pick: the tick stays,
+    // with Next to go on (paintSort).
+    if (!bestChoices().length) return;
     suitTimer = setTimeout(() => {
-      const next = step === 'likes' ? 'best' : 'word';
-      logEvent('suit_phase', { to: next, how: 'auto' });
-      startSuitPhase(next);
+      logEvent('suit_phase', { to: 'best', how: 'auto' });
+      startSuitPhase('best');
     }, 1200);
   }
 }
@@ -6470,70 +6477,6 @@ function chooseBest(choice) {
   playNotes([2, 4, 7]);
   paintBest();
   scheduleSave();
-}
-
-/* ---- 🤫 a secret word ---- */
-
-function paintWord() {
-  const word = state.agent.secretWord;
-  $('#word-mic').textContent = Voice.isRecording() ? '⏹️' : '🎤';
-  const box = $('#word-voices');
-  box.hidden = !word;
-  box.innerHTML = '';
-  if (!word) return;
-  Voice.FILTERS.forEach(filter => {
-    const button = document.createElement('button');
-    button.className = 'btn word-voice' + (word.filter === filter.id ? ' is-on' : '');
-    button.innerHTML = '<span class="voice-icon">' + filter.icon + '</span>' +
-                       '<span class="btn-label">' + filter.label + '</span>';
-    button.addEventListener('click', () => chooseWordVoice(filter.id));
-    box.appendChild(button);
-  });
-}
-
-async function recordWord() {
-  Voice.unlock();
-  if (Voice.isRecording()) { Voice.stop(); return; }
-  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
-
-  const mic = $('#word-mic');
-  mic.classList.add('is-recording');
-  mic.textContent = '⏹️';
-  try {
-    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
-    const id = uuid();
-    await Storage.saveAudio(id, result.blob);
-    const old = state.agent.secretWord;
-    if (old && old.audioId) { Voice.forget(old.audioId); await Storage.deleteAudio(old.audioId); }
-    // A new recording keeps the spy voice already chosen.
-    state.agent.secretWord = { audioId: id, filter: (old && old.filter) || 'normal' };
-    logEvent('secret_word_record', { ms: Math.round(result.ms), again: Boolean(old), via: talkie.via });
-    scheduleSave();
-    playWord();
-  } catch (err) {
-    toast('The microphone did not work');
-  }
-  mic.classList.remove('is-recording');
-  paintWord();
-}
-
-function chooseWordVoice(filterId) {
-  if (!state.agent.secretWord) return;
-  state.agent.secretWord.filter = filterId;
-  logEvent('secret_word_voice', { filter: filterId });
-  paintWord();
-  playWord();
-  scheduleSave();
-}
-
-async function playWord() {
-  const word = state.agent && state.agent.secretWord;
-  if (!word || state.muted) return;
-  Voice.unlock();
-  const row = await Storage.loadAudio(word.audioId);
-  if (!row) return;
-  actOut({ emoji: '🤫', act: 'jump' });
-  Voice.play(word.audioId, row.blob, word.filter);
 }
 
 /* ---- the agent acting it out ---- */
@@ -6730,18 +6673,20 @@ function wireSuit() {
   $$('.suit-pile').forEach(b =>
     b.addEventListener('click', () => sortCard(b.dataset.pile, 'tap')));
   $('#suit-back').addEventListener('click', suitBack);
-  $('#suit-best-go').addEventListener('click', () => goSuitPhase('word', 'next'));
-  wireTalkie($('#word-mic'), recordWord);              // hold to talk, or tap
-  // The 🔊: the sentence for the card on screen - or the part's question,
-  // or, once a secret word exists, the line that asks for a spy voice.
+  // After the favourite, Next finishes How my agent talks and goes on to
+  // Powers (v89: the secret word that came next is gone).
+  $('#suit-best-go').addEventListener('click', stampMission);
+  $('#suit-done-go').addEventListener('click', () => {
+    if (bestChoices().length) goSuitPhase('best', 'next');
+    else stampMission();
+  });
+  // The 🔊: the sentence for the card on screen, or the part's question.
   $('#suit-say').addEventListener('click', () => {
     const phase = suitUi.phase;
     const conf = SUIT_PHASES[phase];
     if (state.muted) { toast('Sound is off'); return; }
     if (conf.modes && conf.modes[suitUi.index]) {
       sayCardSentence(phase, conf.modes[suitUi.index]);
-    } else if (phase === 'word' && state.agent && state.agent.secretWord) {
-      saySuitLine('nar-word-voice', 'Now pick a spy voice for it.');
     } else {
       saySuitLine(conf.say || conf.frame, conf.title);
     }
@@ -6769,16 +6714,18 @@ function wireSuit() {
    point is"), and the sentence's four icons did not say what to do. Now it
    is a game:
 
-   🚪 THE DOORS come first. Six family doors and a ✨ SECRET DOOR. A door
-      swings open like a door in a game (with a creak), and its power cards
-      are dealt face-down and flip over. The secret door is how a child
-      makes up a power of their own (draw it or say it). A power from
-      session 2, if there is one, waits as a ⏪ tile beside them (§7.4).
-      This departs from v3 §7.1 "invent first": the doors are no longer
-      locked until the child has drawn - so `inventedFirst` is null now.
+   🚪 THE DOORS come first: six family doors. A door swings open like a
+      door in a game (with a creak), and its power cards are dealt
+      face-down and flip over. A power from session 2, if there is one,
+      waits as a ⏪ tile beside them (§7.4). This departs from v3 §7.1
+      "invent first", so `inventedFirst` is null now. (A ✨ secret door to
+      make up an own power was there from v80 to v88; removed in v89 to
+      keep the session short.)
    🔋 CHARGE THE POWER. A battery under the agent, one cell per question:
-      🎛️ which devices (only for "Control school devices") · 🕐 When ·
-      👥 Who · 🔌 Switch on · 🎯 What happens then. One question at a time,
+      📜 which rules (only for "Change a school rule") · 🎛️ which devices
+      (only for "Control school devices") · 👥 Who · 🔌 Switch on ·
+      🎯 What happens then. (🕐 When was removed in v89, to keep the
+      session short - Filip: "for later, or asking them".) One at a time,
       said aloud; each card picked sends a spark into its cell, which
       lights up with a rising note. Then ⚡ Power on!: the cells light one
       by one, the agent does the power, and the sentence reads itself back
@@ -6868,23 +6815,6 @@ const POWER_DOORS = [
     powers: ['pow-speak-for-friends', 'pow-call-ally', 'pow-team-up'] }
 ];
 
-// The seventh door: behind it, the child makes up a power of their own.
-const SECRET_DOOR = { id: 'door-secret', emoji: '✨', label: 'Secret door' };
-
-// The session-2 situation ids, so power × situation can be compared across
-// sessions (§7.3).
-const SITUATION_CARDS = [
-  { id: 'sit-too-loud', emoji: '🔊', label: 'Too loud' },
-  { id: 'sit-not-understood', emoji: '❓', label: 'Nobody gets what I mean' },
-  { id: 'sit-waiting', emoji: '⏳', label: 'Waiting' },
-  { id: 'sit-did-well', emoji: '🏆', label: 'I did it!' },
-  { id: 'sit-asked-answer', emoji: '✋', label: 'Asked to answer' },
-  { id: 'sit-unkind', emoji: '💢', label: 'Someone is unkind' },
-  { id: 'sit-plans-change', emoji: '🔄', label: 'Plans change' },
-  { id: 'sit-new-place', emoji: '🚪', label: 'Somewhere new' },
-  { id: 'sit-playtime', emoji: '⚽', label: 'Playtime' },
-  { id: 'sit-tricky-work', emoji: '🧠', label: 'Tricky work' }
-];
 
 // who-teacher means ANY adult at school, teacher or assistant (§7.3).
 const WHO_CARDS = [
@@ -6941,8 +6871,6 @@ const POWER_SLOTS = [
     cards: DEVICE_CARDS, only: 'pow-control-devices' },
   { id: 'rules',   icon: '📜', title: 'Which rule does your agent change?', say: 'nar-powers-rules',
     cards: RULE_CARDS, own: 'rulesOwn', only: 'pow-change-rule' },
-  { id: 'when',   icon: '🕐', title: 'When does your agent use it?',  say: 'nar-powers-when',
-    cards: SITUATION_CARDS, own: 'whenOwn', max: 3 },
   { id: 'who',    icon: '👥', title: 'Who does your power work on?',  say: 'nar-powers-who',
     cards: WHO_CARDS, own: 'whoOwn' },
   { id: 'how',    icon: '🔌', title: 'How do you switch it on?',      say: 'nar-powers-how',
@@ -6954,7 +6882,7 @@ const powersUi = {
   phase: 'doors',
   index: null,       // which agent.powers entry is being worked on
   door: null,        // the open door's id, or null for all of them
-  slot: 'when',
+  slot: 'who',
   busy: false,       // true while a power plays and reads itself back
   opening: false,    // true while a door swings open
   dealNext: false,   // deal the cards on the next paint (a door or a question)
@@ -7100,10 +7028,9 @@ function paintDoors() {
   powersUi.dealNext = false;
 
   if (!door) {
-    POWER_DOORS.concat([SECRET_DOOR]).forEach(d => {
+    POWER_DOORS.forEach(d => {
       const card = Assets.card(d.id, { fallback: d.emoji, label: d.label });
       card.classList.add('door-card');
-      if (d === SECRET_DOOR) card.classList.add('is-secret');
       card.addEventListener('click', () => openDoor(d, card));
       grid.appendChild(card);
     });
@@ -7152,12 +7079,9 @@ async function openDoor(door, card) {
   powersUi.opening = true;
   playSfx('sfx-door-open');
   if (fullMotion()) card.classList.add('is-opening');
-  logEvent(door === SECRET_DOOR ? 'powers_secret_open' : 'powers_door_open',
-           door === SECRET_DOOR ? {} : { family: door.id });
+  logEvent('powers_door_open', { family: door.id });
 
-  const whisper = door === SECRET_DOOR
-    ? ['nar-door-secret', 'The secret door… What will you make?']
-    : DOOR_WHISPERS[Math.floor(Math.random() * DOOR_WHISPERS.length)];
+  const whisper = DOOR_WHISPERS[Math.floor(Math.random() * DOOR_WHISPERS.length)];
   await Promise.all([
     pause(fullMotion() ? DOOR_OPEN_MS : 300),
     Assets.sayAndWait(whisper[0], { text: whisper[1], muted: state.muted, maxMs: 4000 })
@@ -7165,15 +7089,6 @@ async function openDoor(door, card) {
   if (!powersUi.opening) return;              // the child left meanwhile
   powersUi.opening = false;
 
-  if (door === SECRET_DOOR) {
-    card.classList.remove('is-opening');
-    openOwnCard({
-      title: 'Make up a power',
-      say: 'nar-powers-make',
-      onKeep: kept => chooseOwnPower(kept)
-    });
-    return;
-  }
   powersUi.door = door.id;
   powersUi.dealNext = true;
   paintPowers();
@@ -7247,17 +7162,6 @@ function sayCardStory(card) {
 
 /* A card's story line: `nar-story-` and its id (a power without "pow-"). */
 function storyId(id) { return 'nar-story-' + id.replace(/^pow-/, ''); }
-
-/* ✨ Behind the secret door: the child's own power, drawn or said. */
-function chooseOwnPower(card) {
-  const p = ensurePower();
-  p.power = 'own';
-  p.own = { png: card.png || null, audioId: card.audioId || null };
-  logEvent('powers_choose', { power: 'own', drawn: Boolean(p.own.png), said: Boolean(p.own.audioId) });
-  playPower(p);
-  scheduleSave();
-  arriveAtSlot(firstOpenSlot(p));
-}
 
 /* ⏪ From last time (§7.4). The session-2 drawing and recording are used,
    never copied or moved: they still belong to powerup.power. */

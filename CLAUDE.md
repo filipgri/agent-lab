@@ -717,6 +717,13 @@ to the start. No card screen.
     battery cell, `powers[].rules`): how school's expectations are found
     now. Shown like the "likes" cards; picked rules are crossed out on
     the stage.
+- **v89 (4 November 2026): shorter.** Filip: the session has to be
+  smooth, short and very simple. Removed: 🤫 the secret word (How my agent
+  talks is now carry the cards → ⭐ favourite → Next, which stamps it), 🕐
+  When in the Powers battery (for later, or asked aloud), and the ✨
+  secret door (six doors, two rows of three). The answers now also SAY
+  what they mean: "Yes" / "Not sure" / "No" under the little agents, and
+  spoken as the card lands (`nar-answer-…`).
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -778,6 +785,10 @@ Then, by hand:
 hand-edit the manifest, and never edit both.
 
 ## Settled decisions
+
+- **Short over complete (4 November 2026).** Filip cut the secret word,
+  the When question and the secret door so a session fits its time.
+  Their data fields stay; nothing new is written to them.
 
 - **No "School wants us to…" (4 November 2026).** Removed at Filip's
   request; the school's expectations are to be found another way. This

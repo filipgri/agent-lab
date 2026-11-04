@@ -677,15 +677,6 @@
       "people": false,
       "prompt": "The same door in pink, with two glowing linked rings on it.",
       "rev": "07578a17"
-    },
-    {
-      "id": "door-secret",
-      "file": "img/doors/door-secret.png",
-      "label": "Secret door",
-      "fallback": "✨",
-      "kind": "sticker",
-      "people": false,
-      "prompt": "The same door in gold, glowing brighter than the others, with a big sparkling question mark on it and light spilling out round its edges."
     }
   ],
   "display": [
@@ -1540,16 +1531,22 @@
       "rev": "b0edbc9f"
     },
     {
-      "id": "nar-word-make",
-      "file": "audio/narrator/nar-word-make.mp3",
-      "text": "Make up a secret word. Tap the microphone and say it.",
-      "rev": "f6563145"
+      "id": "nar-answer-yes",
+      "file": "audio/narrator/nar-answer-yes.mp3",
+      "text": "Yes!",
+      "rev": "871af59e"
     },
     {
-      "id": "nar-word-voice",
-      "file": "audio/narrator/nar-word-voice.mp3",
-      "text": "Now pick a spy voice for it.",
-      "rev": "ac08e706"
+      "id": "nar-answer-unsure",
+      "file": "audio/narrator/nar-answer-unsure.mp3",
+      "text": "Not sure.",
+      "rev": "2cbbb842"
+    },
+    {
+      "id": "nar-answer-no",
+      "file": "audio/narrator/nar-answer-no.mp3",
+      "text": "No.",
+      "rev": "a203a4df"
     },
     {
       "id": "nar-safe-talk",
@@ -1562,12 +1559,6 @@
       "file": "audio/narrator/nar-safe-stops.mp3",
       "text": "Where does your agent's power stop working?",
       "rev": "2d707604"
-    },
-    {
-      "id": "nar-powers-make",
-      "file": "audio/narrator/nar-powers-make.mp3",
-      "text": "Make up a power. Draw it or say it.",
-      "rev": "ade3d3ee"
     },
     {
       "id": "nar-powers-doors",
@@ -1592,12 +1583,6 @@
       "file": "audio/narrator/nar-door-creak.mp3",
       "text": "[whispers] It's opening… slowly…",
       "rev": "59773578"
-    },
-    {
-      "id": "nar-door-secret",
-      "file": "audio/narrator/nar-door-secret.mp3",
-      "text": "[whispers] The secret door… What will you make?",
-      "rev": "275c9685"
     },
     {
       "id": "nar-powers-charged",
@@ -1822,66 +1807,6 @@
       "rev": "3cdef865"
     },
     {
-      "id": "nar-story-sit-too-loud",
-      "file": "audio/narrator/nar-story-sit-too-loud.mp3",
-      "text": "Too loud! When school gets noisy, the power kicks in.",
-      "rev": "788c02c1"
-    },
-    {
-      "id": "nar-story-sit-not-understood",
-      "file": "audio/narrator/nar-story-sit-not-understood.mp3",
-      "text": "Nobody gets what your agent means? Then the power kicks in.",
-      "rev": "a0762941"
-    },
-    {
-      "id": "nar-story-sit-waiting",
-      "file": "audio/narrator/nar-story-sit-waiting.mp3",
-      "text": "Waiting, and waiting… That's when your agent uses it.",
-      "rev": "bae555f0"
-    },
-    {
-      "id": "nar-story-sit-did-well",
-      "file": "audio/narrator/nar-story-sit-did-well.mp3",
-      "text": "I did it! When your agent wins, the power appears.",
-      "rev": "4b58499d"
-    },
-    {
-      "id": "nar-story-sit-asked-answer",
-      "file": "audio/narrator/nar-story-sit-asked-answer.mp3",
-      "text": "Asked to answer, with everyone looking. That's the moment.",
-      "rev": "6b51aa37"
-    },
-    {
-      "id": "nar-story-sit-unkind",
-      "file": "audio/narrator/nar-story-sit-unkind.mp3",
-      "text": "Someone is unkind. Your agent's power is ready.",
-      "rev": "0bf48ea6"
-    },
-    {
-      "id": "nar-story-sit-plans-change",
-      "file": "audio/narrator/nar-story-sit-plans-change.mp3",
-      "text": "Plans change! Something new, all of a sudden. Your agent is ready.",
-      "rev": "ad0f0d47"
-    },
-    {
-      "id": "nar-story-sit-new-place",
-      "file": "audio/narrator/nar-story-sit-new-place.mp3",
-      "text": "Somewhere new! A new room, new faces. The power helps.",
-      "rev": "71543c46"
-    },
-    {
-      "id": "nar-story-sit-playtime",
-      "file": "audio/narrator/nar-story-sit-playtime.mp3",
-      "text": "Playtime! Out in the playground, the power is on.",
-      "rev": "6682bd66"
-    },
-    {
-      "id": "nar-story-sit-tricky-work",
-      "file": "audio/narrator/nar-story-sit-tricky-work.mp3",
-      "text": "Tricky work! When it gets hard, the power helps.",
-      "rev": "0b42b288"
-    },
-    {
       "id": "nar-story-who-me",
       "file": "audio/narrator/nar-story-who-me.mp3",
       "text": "Me! The power works on your agent.",
@@ -2096,12 +2021,6 @@
       "file": "audio/narrator/nar-story-to-everyone.mp3",
       "text": "For everyone at school! It goes up on the big screen.",
       "rev": "20b11fe7"
-    },
-    {
-      "id": "nar-powers-when",
-      "file": "audio/narrator/nar-powers-when.mp3",
-      "text": "When does your agent use this power? Pick up to three.",
-      "rev": "0a0ee7a7"
     },
     {
       "id": "nar-powers-who",

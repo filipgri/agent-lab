@@ -231,7 +231,6 @@ but …"* for the rest.
 | fam-floor | Turns | ✋ | | The same door in purple, with two glowing curved arrows chasing each other in a circle. |
 | fam-screens | Screens | 📺 | | The same door in teal, with a glowing screen on it. |
 | fam-together | Together | 🤝 | | The same door in pink, with two glowing linked rings on it. |
-| door-secret | Secret door | ✨ | | The same door in gold, glowing brighter than the others, with a big sparkling question mark on it and light spilling out round its edges. |
 
 ### 3.8 Display ⭐ — `assets/img/display/`
 
@@ -432,16 +431,15 @@ the app does not react to what a child chose (v3 §17).
 | nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
 | nar-likes-frame | Talking: said before every card | My agent likes… |
 | nar-suit-most | Talking: the favourite | Which one does your agent like the most? |
-| nar-word-make | Secret word | Make up a secret word. Tap the microphone and say it. |
-| nar-word-voice | Secret word: spy voice | Now pick a spy voice for it. |
+| nar-answer-yes | A card goes on ✓ | Yes! |
+| nar-answer-unsure | A card goes on ? | Not sure. |
+| nar-answer-no | A card goes on ✗ | No. |
 | nar-safe-talk | Safe place, step 1 | Where does your agent feel safe to talk? |
 | nar-safe-stops | Safe place, step 2 | Where does your agent's power stop working? |
-| nar-powers-make | The secret door | Make up a power. Draw it or say it. |
 | nar-powers-doors | Powers start: the doors | [whispers] Secret doors… Each one hides a power. |
 | nar-door-what | A door creaks open (one of three, at random) | [whispers] What's behind this door? |
 | nar-door-peek | A door creaks open (one of three, at random) | [whispers] Shh… Let's take a peek. |
 | nar-door-creak | A door creaks open (one of three, at random) | [whispers] It's opening… slowly… |
-| nar-door-secret | The secret door creaks open | [whispers] The secret door… What will you make? |
 | nar-powers-charged | Every cell of the battery is full | Fully charged! Now hold down Power on! |
 | nar-door-time | A family door has opened | The Time door! Powers to stop, slow and save time. |
 | nar-door-senses | A family door has opened | The Sound and light door! Powers for noise and brightness. |
@@ -479,16 +477,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-story-mode-pictures | A talks card, after "My agent likes…" | Picture cards! Pointing at a picture to say it. |
 | nar-story-mode-write | A talks card, after "My agent likes…" | Writing! Putting the words on paper. |
 | nar-story-mode-device | A talks card, after "My agent likes…" | A device! A tablet that talks for your agent. |
-| nar-story-sit-too-loud | A When card is picked | Too loud! When school gets noisy, the power kicks in. |
-| nar-story-sit-not-understood | A When card is picked | Nobody gets what your agent means? Then the power kicks in. |
-| nar-story-sit-waiting | A When card is picked | Waiting, and waiting… That's when your agent uses it. |
-| nar-story-sit-did-well | A When card is picked | I did it! When your agent wins, the power appears. |
-| nar-story-sit-asked-answer | A When card is picked | Asked to answer, with everyone looking. That's the moment. |
-| nar-story-sit-unkind | A When card is picked | Someone is unkind. Your agent's power is ready. |
-| nar-story-sit-plans-change | A When card is picked | Plans change! Something new, all of a sudden. Your agent is ready. |
-| nar-story-sit-new-place | A When card is picked | Somewhere new! A new room, new faces. The power helps. |
-| nar-story-sit-playtime | A When card is picked | Playtime! Out in the playground, the power is on. |
-| nar-story-sit-tricky-work | A When card is picked | Tricky work! When it gets hard, the power helps. |
 | nar-story-who-me | A Who card is picked | Me! The power works on your agent. |
 | nar-story-who-friend | A Who card is picked | A friend! The power works on a friend. |
 | nar-story-who-teacher | A Who card is picked | My teacher! The power works on the grown-ups at school. |
@@ -525,7 +513,6 @@ the app does not react to what a child chose (v3 §17).
 | nar-story-to-friend | Who the bottle is for | For a friend at school! Tap the microphone and say their name. |
 | nar-story-to-teacher | Who the bottle is for | For your teacher at school! Tap the microphone and say their name. |
 | nar-story-to-everyone | Who the bottle is for | For everyone at school! It goes up on the big screen. |
-| nar-powers-when | When slot | When does your agent use this power? Pick up to three. |
 | nar-powers-who | Who slot | Who does the power work on? Pick as many as you like. |
 | nar-powers-how | How slot | How does your agent switch it on? A badge? A secret word? |
 | nar-powers-devices | Devices cell | Which ones does your agent control? Pick as many as you like. |
@@ -873,6 +860,21 @@ longer played; files already made stay where they are.
 | nar-mode-hand-up | Hand up. | school has its own cards now |
 | nar-mode-quiet | Being quiet. | school has its own cards now |
 | nar-bottle-friend | Tap your friend's agent. | v84: the list of every agent is gone - children did not know which was their friend's |
+| nar-word-make | Make up a secret word. Tap the microphone and say it. | v89: removed to keep the session short |
+| nar-word-voice | Now pick a spy voice for it. | v89: removed to keep the session short |
+| nar-powers-make | Make up a power. Draw it or say it. | v89: removed to keep the session short |
+| nar-door-secret | [whispers] The secret door… What will you make? | v89: removed to keep the session short |
+| nar-story-sit-too-loud | Too loud! When school gets noisy, the power kicks in. | v89: removed to keep the session short |
+| nar-story-sit-not-understood | Nobody gets what your agent means? Then the power kicks in. | v89: removed to keep the session short |
+| nar-story-sit-waiting | Waiting, and waiting… That's when your agent uses it. | v89: removed to keep the session short |
+| nar-story-sit-did-well | I did it! When your agent wins, the power appears. | v89: removed to keep the session short |
+| nar-story-sit-asked-answer | Asked to answer, with everyone looking. That's the moment. | v89: removed to keep the session short |
+| nar-story-sit-unkind | Someone is unkind. Your agent's power is ready. | v89: removed to keep the session short |
+| nar-story-sit-plans-change | Plans change! Something new, all of a sudden. Your agent is ready. | v89: removed to keep the session short |
+| nar-story-sit-new-place | Somewhere new! A new room, new faces. The power helps. | v89: removed to keep the session short |
+| nar-story-sit-playtime | Playtime! Out in the playground, the power is on. | v89: removed to keep the session short |
+| nar-story-sit-tricky-work | Tricky work! When it gets hard, the power helps. | v89: removed to keep the session short |
+| nar-powers-when | When does your agent use this power? Pick up to three. | v89: removed to keep the session short |
 | nar-school-frame | School wants us to… | v87: "School wants us to…" removed |
 | nar-story-school-talk-lot | Talk a lot! Lots of talking, all day long. | v87: "School wants us to…" removed |
 | nar-story-school-only-talk | Only talk! Words out loud, and nothing else. | v87: "School wants us to…" removed |
@@ -897,6 +899,7 @@ longer played; files already made stay where they are.
 |---|---|---|---|
 | mode-hand-up | Hand up | A bean figure with one mitten hand raised high. | school has its own cards now |
 | mode-quiet | Being quiet | A calm bean figure holding a mitten hand where its mouth would be, with a small crossed-out sound wave beside it. | school has its own cards now |
+| door-secret | Secret door | The same door in gold, glowing brighter than the others, with a big sparkling question mark on it and light spilling out round its edges. | v89: the secret door was removed |
 | school-talk-lot | Talk a lot | Copy of `mode-talk`. | v87: "School wants us to…" removed |
 | school-only-talk | Only talk | A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line. | v87: "School wants us to…" removed |
 | school-makaton | Learn Makaton | Copy of `mode-hands`. | v87: "School wants us to…" removed |

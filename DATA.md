@@ -7,7 +7,17 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v88** (4 November 2026). `schemaVersion` is still **3**.
+Last updated: **v89** (4 November 2026). `schemaVersion` is still **3**.
+
+> **v89: shorter.** Three things are no longer asked, to keep the session
+> short (their fields stay in every record, empty from v89):
+> 🤫 **the secret word** (`secretWord`; `secret_word_record` and
+> `secret_word_voice` only before v89 - a bottle can still carry one made
+> earlier); 🕐 **When** in Powers (`powers[].when` / `whenOwn`; Filip:
+> "for later, or asking them"); and the ✨ **secret door** (a power can no
+> longer be `"own"`; `powers_secret_open` was logged from v80 to v88).
+> How my agent talks now ends after ⭐ the favourite: its Next stamps the
+> mission (`stamp`) and goes on to Powers.
 
 > **v88: gestures, and "Which rule?".** Every gesture has a tap that does
 > the same, and the log says which was used: `via` on `suit_sort`

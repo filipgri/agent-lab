@@ -4121,3 +4121,17 @@ body[data-motion="full"] .suit-card-slot .pic-card.drag-hint { animation: drag-h
   #powers-slot-cards[data-slot="rules"] .when-own { width: 98px; }
   #powers-slot-cards[data-slot="rules"] .pic-card-label { font-size: 14px; }
 }
+
+/* v89: each answer says what it means, under its little agent - "Yes",
+   "Not sure", "No" - as well as showing ✓ ? ✗ and nodding, tilting or
+   shaking (Filip: the check mark should say yes too). */
+.suit-pile { flex-direction: column; gap: 2px; padding: 6px 6px 8px; }
+.pile-agent { width: 70px; height: 70px; }
+.pile-word { font-size: 16px; font-weight: 800; line-height: 1.1; color: var(--text); }
+.suit-pile[data-pile="yes"]    .pile-word { color: #6ee7a5; }
+.suit-pile[data-pile="unsure"] .pile-word { color: #f7c97a; }
+.suit-pile[data-pile="no"]     .pile-word { color: #f4a19c; }
+
+/* v89: six doors, no secret door - two rows of three, a little bigger. */
+.powers-door-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 440px; }
+@media (orientation: landscape) { .powers-door-grid { max-width: 420px; } }
