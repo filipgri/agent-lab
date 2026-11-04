@@ -37,7 +37,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=95">
+  <link rel="stylesheet" href="./style.css?v=96">
 </head>
 <body>
 
@@ -527,7 +527,9 @@
                 <div id="powers-door-cards" class="power-when powers-cards" hidden></div>
                 <div class="powers-door-tools">
                   <button id="powers-door-back" class="btn btn-big" hidden><span class="door-back-icon" aria-hidden="true">🚪</span><span class="btn-label">Other doors</span></button>
-                  <button id="powers-chosen-go" class="btn btn-big btn-next" hidden>✓ <span class="btn-label">This one</span></button>
+                  <!-- v96: not "✓ This one" - tapping a card already chooses it. This
+                       GIVES it to the agent (or carry the card onto the agent). -->
+                  <button id="powers-chosen-go" class="btn btn-big btn-next" hidden>⚡ <span class="btn-label">Give it to my agent</span></button>
                 </div>
               </div>
 
@@ -932,14 +934,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=95"></script>
-<script src="./storage.js?v=95"></script>
-<script src="./audio.js?v=95"></script>
-<script src="./effects.js?v=95"></script>
-<script src="./assets.js?v=95"></script>
-<script src="./stickers.js?v=95"></script>
-<script src="./parts.js?v=95"></script>
-<script src="./app.js?v=95"></script>
+<script src="./boot-guard.js?v=96"></script>
+<script src="./storage.js?v=96"></script>
+<script src="./audio.js?v=96"></script>
+<script src="./effects.js?v=96"></script>
+<script src="./assets.js?v=96"></script>
+<script src="./stickers.js?v=96"></script>
+<script src="./parts.js?v=96"></script>
+<script src="./app.js?v=96"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->

@@ -4282,3 +4282,61 @@ body[data-motion="calm"] .landing-bottle.is-landing { animation: fade-in 200ms e
   height: 100%; aspect-ratio: 1; font-size: 90px; font-size: 13cqw;
   display: grid; place-items: center;
 }
+
+/* v96: ⚡ GIVING THE POWER TO THE AGENT (givePower() in app.js).
+   The door's buttons may take two rows in a narrow column: ⚡ Give it to my
+   agent wraps to the TOP row (wrap-reverse), 🚪 Other doors under it. */
+#powers-doors .powers-door-tools { flex-wrap: wrap-reverse; justify-content: center; row-gap: 10px; }
+/* The card carried (or flying) to the agent: a small copy of its picture. */
+.give-ghost {
+  position: fixed; z-index: 80; pointer-events: none;
+  width: 120px; aspect-ratio: 4 / 3;
+  transform: translate(-50%, -50%);
+  border-radius: 16px; background: var(--navy-3);
+  box-shadow: 0 10px 24px rgba(0,0,0,.45), 0 0 0 3px var(--accent);
+  display: grid; place-items: center; overflow: hidden;
+  font-size: 54px; line-height: 1;
+}
+.give-ghost img { width: 100%; height: 100%; object-fit: contain; }
+.give-ghost .pic-card-emoji { font-size: 54px; }
+.give-ghost .pic-card-img ~ .pic-card-emoji { display: none; }
+.pic-card.is-lifted { opacity: .4; }
+/* The agent waiting for a card held over it, and receiving the power. */
+#powers-stage { transition: box-shadow 160ms ease-out; }
+#powers-stage.is-target { box-shadow: 0 0 0 4px var(--accent), 0 0 30px rgba(255, 210, 63, .8); }
+#powers-stage.is-receiving { box-shadow: 0 0 0 5px var(--accent), 0 0 46px rgba(255, 210, 63, .9); }
+body[data-motion="full"] #powers-stage.is-receiving { animation: give-glow 1.1s ease-in-out infinite; }
+@keyframes give-glow {
+  0%, 100% { box-shadow: 0 0 0 4px var(--accent), 0 0 26px rgba(255, 210, 63, .6); }
+  50%      { box-shadow: 0 0 0 7px var(--accent), 0 0 60px rgba(255, 210, 63, 1); }
+}
+/* During the moment the door's cards and buttons step back. */
+[data-mission="powers"].is-giving #powers-doors { opacity: .15; pointer-events: none; transition: opacity 250ms ease-out; }
+[data-mission="powers"].is-giving .suit-phases { pointer-events: none; }
+/* "Take me there": the chosen card hops towards the agent, twice. */
+body[data-motion="full"] .pic-card.give-hint { animation: give-hint 1.2s ease-in-out 2; }
+@keyframes give-hint {
+  0%, 60%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(var(--hint-x, 0), var(--hint-y, -14px)); }
+}
+
+/* The power plugged into its battery: the questions are about THIS. */
+.powers-battery .battery-power {
+  flex: 0 0 auto; width: 124px; min-height: 64px; padding: 4px 4px 5px;
+  pointer-events: none;
+  border-radius: 12px;
+  background: var(--navy-3);
+  box-shadow: 0 0 0 3px var(--accent);
+  gap: 2px;
+}
+.battery-power .pic-card-art { aspect-ratio: 16 / 10; min-height: 0; width: 100%; font-size: 30px; }
+.battery-power .pic-card-emoji { font-size: 30px; }
+.battery-power .pic-card-label { font-size: 12px; line-height: 1.15; letter-spacing: 0; text-wrap: balance; }
+/* Landscape: the battery is only as wide as the agent above it, so the
+   power is its picture alone - the narrator names it before every question
+   (arriveAtSlot), and a name cut to "Slow everybody…" helps nobody. */
+@media (orientation: landscape) {
+  .powers-battery .battery-power { width: 66px; padding: 4px; }
+  .battery-power .pic-card-art { aspect-ratio: 1; }
+  .battery-power .pic-card-label { display: none; }
+}

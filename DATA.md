@@ -7,7 +7,16 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v94** (4 November 2026). `schemaVersion` is still **3**.
+Last updated: **v96** (4 November 2026). `schemaVersion` is still **3**.
+
+> **v96: the power is GIVEN to the agent.** Tapping a power card chooses
+> it (`powers_choose`, as before); the child then gives it to the agent -
+> by carrying the card onto the agent or with ⚡ Give it to my agent -
+> and only then do the questions start. That step is `powers_phase` with
+> `how: "give"` and `via: "drag"/"tap"` (before v96 it was ✓ This one,
+> `how: "next"`). Carrying a card that was not chosen yet logs
+> `powers_choose` first. ⏪ Last time logs the same `powers_phase`
+> (`via: "tap"`) since v96. No field changed.
 
 > **v94: no "What happens then?".** The 🎯 question at the end of the
 > Powers battery is no longer asked (Filip: "too abstract for kids").
@@ -472,7 +481,7 @@ Every place tapped is also a `label_speak`.
 | `powers_door_open` | A family door was opened (it swings open, then its cards are dealt). | `{ family }` | ✅ |
 | `powers_secret_open` | The ✨ secret door was opened: the ✏️ sheet follows, to make up a power. Cancelling the sheet makes nothing. | `{}` | ✅ v80 |
 | `powers_choose` | A power was chosen: a card in a door, ✨ an own power from the secret door, or ⏪ Last time. Choosing again changes it. | `{ power }`, plus `{ drawn, said }` for `"own"` | ✅ |
-| `powers_phase` | Another step opened (🚪 🔋 ⚡). | `{ to: "doors"/"sentence"/"mine", how: "next"/"tab"/"back" }` — `back` is 🚪 back to all the doors from inside one (`to: "make"` only before v80) | ✅ |
+| `powers_phase` | Another step opened (🚪 🔋 ⚡). | `{ to: "doors"/"sentence"/"mine", how: "next"/"tab"/"back"/"give" }` — `back` is 🚪 back to all the doors from inside one (`to: "make"` only before v80). **`give`** (v96): the chosen power was given to the agent, which opens its questions - with `via`: `"drag"` (its card carried onto the agent) or `"tap"` (⚡ Give it to my agent, or ⏪ Last time). Before v96 that step was `how: "next"` | ✅ |
 | `powers_slot_open` | Another question (a battery cell) opened. | `{ slot, how: "next"/"tab" }` — `tab` is tapping a cell | ✅ |
 | `powers_slot` | A card in a question turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `slot` is `rules` (v88)/`devices`/`when`/`who`/`how`; `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
 | `powers_slot_skip` | ➡️ on a slot that was still empty. | `{ slot }` | ✅ |

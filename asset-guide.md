@@ -447,6 +447,27 @@ the app does not react to what a child chose (v3 §17).
 | nar-door-other | After a door introduces itself | Pick one, or try another door! |
 | nar-powers-charged | Every cell of the battery is full | Fully charged! Now hold down Power on! |
 | nar-powers-hold | Arriving at the last question, where Power on! appears | When you're ready, hold down Power on! |
+| nar-powers-give | A power card is picked, the first time: carry it over | Want this power? Carry it to your agent! |
+| nar-gets-slow-everybody | The power is given to the agent | Your agent can slow everybody down! |
+| nar-gets-pause | The power is given to the agent | Your agent can pause the whole school! |
+| nar-gets-say-again | The power is given to the agent | Your agent can make words come again! |
+| nar-gets-turn-down | The power is given to the agent | Your agent can turn the classroom down! |
+| nar-gets-dim-lights | The power is given to the agent | Your agent can dim the classroom lights! |
+| nar-gets-quiet-bubble | The power is given to the agent | Your agent can make a quiet bubble! |
+| nar-gets-translator | The power is given to the agent | Your agent can turn pictures into words! |
+| nar-gets-my-way | The power is given to the agent | Your agent can make everyone talk its way! |
+| nar-gets-get-me | The power is given to the agent | Your agent has a get-what-I-mean ray! |
+| nar-gets-control-teachers | The power is given to the agent | Your agent can control the teachers! |
+| nar-gets-pass | The power is given to the agent | Your agent can say pass, and skip it! |
+| nar-gets-invisible | The power is given to the agent | Your agent has an invisibility cloak! |
+| nar-gets-control-displays | The power is given to the agent | Your agent can control all the school screens! |
+| nar-gets-control-devices | The power is given to the agent | Your agent can control the school devices! |
+| nar-gets-change-rule | The power is given to the agent | Your agent can change a school rule! |
+| nar-gets-speak-for-friends | The power is given to the agent | Your agent can speak for its friends! |
+| nar-gets-call-ally | The power is given to the agent | Your agent can call an ally! |
+| nar-gets-team-up | The power is given to the agent | Your agent can team up with a friend! |
+| nar-gets-v2 | The power is given to the agent | Your agent has its power from last time! |
+| nar-powers-charge-up | After the power is given, before the questions | Now let's charge it up! |
 | nar-door-time | A family door has opened | The Time door! Powers to stop, slow and save time. |
 | nar-door-senses | A family door has opened | The Sound and light door! Powers for noise and brightness. |
 | nar-door-language | A family door has opened | The Words door! Powers that help everyone understand. |

@@ -768,6 +768,27 @@ to the start. No card screen.
   face, and the dark strip that pinned the heading while the gallery
   scrolled (a solid colour on the page's gradient). Now the words and a
   bare 🔊 (still a 64px target), and the heading scrolls with the agents.
+- **v96 (4 November 2026): the power is GIVEN to the agent.** Filip: ✓
+  This one "takes you to Who does your power work on" - picking a power
+  and then a question about something else made no sense to a child.
+  Three things (`givePower()` and its helpers, section 32):
+  - **Give it, don't just pick it.** Tapping a card chooses it (story,
+    then once per power "Want this power? Carry it to your agent!" and the
+    card hops towards the agent). Carrying the card onto the agent
+    (`wireGiveDrag`), or ⚡ Give it to my agent, gives it. The 🔋 tab only
+    appears once the power has been given (`powersUi.givenId`).
+  - **A power-up moment:** the card flies into the agent, the agent glows
+    and does the power, the heading becomes the power, and the narrator
+    says "Your agent can slow everybody down!" (`nar-gets-…`, one per
+    power) and "Now let's charge it up!". A tap skips it. ⏪ Last time
+    goes through the same moment.
+  - **The power stays on screen:** plugged into the left end of the
+    battery (picture and name in portrait, picture only in landscape,
+    where a name cut short helped nobody), and the narrator names it
+    before each question after the first ("Turn the classroom down. How
+    does your agent switch it on?").
+  21 new lines from ElevenLabs (782 credits). `powers_phase` gains
+  `how: "give"` and `via` (DATA.md).
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.

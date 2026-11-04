@@ -6893,7 +6893,11 @@ const powersUi = {
   busy: false,       // true while a power plays and reads itself back
   opening: false,    // true while a door swings open
   dealNext: false,   // deal the cards on the next paint (a door or a question)
-  chargedFor: null   // the power whose battery has said "Fully charged!"
+  chargedFor: null,  // the power whose battery has said "Fully charged!"
+  givenId: null,     // the power (its id) the agent has been GIVEN - until
+                     // then there is no 🔋, so the questions never come
+                     // before the power-up moment (v96)
+  hintedFor: null    // the power "Carry it to your agent!" was said for
 };
 let powersTimers = [];
 
@@ -6950,8 +6954,13 @@ function stopPowers() {
   clearTimeout(powerFxTimer);
   powersUi.busy = false;
   powersUi.opening = false;
+  giveUi.token++;                       // a power-up moment in progress ends
+  giveUi.skip = null;
   const panel = $('[data-mission="powers"]');
-  if (panel) panel.classList.remove('is-busy');
+  if (panel) panel.classList.remove('is-busy', 'is-giving');
+  const stage = $('#powers-stage');
+  if (stage) stage.classList.remove('is-receiving', 'is-target');
+  $$('.give-ghost').forEach(g => g.remove());
   clearPowerFx();
 }
 
@@ -6983,7 +6992,7 @@ function paintPowers() {
   const phase = powersUi.phase;
   const p = currentPower();
   const tab = name => $('[data-powers-phase="' + name + '"]');
-  tab('sentence').hidden = !(p && p.power);
+  tab('sentence').hidden = !(p && p.power && powersUi.givenId === p.id);
   tab('mine').hidden = !state.agent.powers.some(x => x.power);
   $$('[data-powers-phase]').forEach(b =>
     b.classList.toggle('is-on', b.dataset.powersPhase === phase));
@@ -7062,6 +7071,7 @@ function paintDoors() {
   // one - the mystery of what is behind it (Full motion only).
   door.powers.forEach((id, i) => {
     const card = modeCard(powerCard(id), Boolean(p && p.power === id), () => choosePower(id));
+    wireGiveDrag(card, id);
     if (deal) dealCard(card, i);
     cards.appendChild(card);
   });
@@ -7142,20 +7152,32 @@ function ensurePower() {
   return p;
 }
 
-/* A card from a door: the agent does it straight away, and ✓ This one
-   carries on to charging it. */
-function choosePower(id) {
+/* A card from a door: the agent does it straight away and the narrator
+   tells its story. Then, the first time, "Want this power? Carry it to
+   your agent!" - and the card nudges towards the agent. Choosing is NOT
+   giving: ⚡ Give it to my agent, or carrying the card onto the agent,
+   gives it (givePower). `quiet` when the card was carried straight there:
+   the power-up moment does the talking. */
+function choosePower(id, opts) {
   if (powersUi.busy) return;
-  doorSayToken++;                      // "…or try another door" is not needed now
+  const token = ++doorSayToken;        // "…or try another door" is not needed now
   const p = ensurePower();
+  if (p.power !== id) powersUi.givenId = null;   // a different power: give it again
   p.power = id;
   if (id === 'pow-control-devices' && !p.devices) p.devices = [];
   if (id === 'pow-change-rule') { p.rules = p.rules || []; p.rulesOwn = p.rulesOwn || []; }
   logEvent('powers_choose', { power: id });
-  sayPowerStory(id);
   playPower(p);
   paintPowers();
   scheduleSave();
+  if (opts && opts.quiet) return;
+  sayPowerStory(id).then(() => {
+    if (token !== doorSayToken || powersUi.phase !== 'doors' || powersUi.busy) return;
+    if (p.power !== id || powersUi.hintedFor === p.id) return;
+    powersUi.hintedFor = p.id;
+    sayPowersLine('nar-powers-give', 'Want this power? Carry it to your agent!');
+    nudgeTowardsAgent($('#powers-door-cards .pic-card.is-on'));
+  });
 }
 
 /* Tapping a power card: the narrator tells the power as a tiny story -
@@ -7166,10 +7188,10 @@ function choosePower(id) {
    as the card speaking, like any label. The read-back after ⚡ Power on!
    still uses the short label line. */
 function sayPowerStory(id) {
-  if (state.muted) return;
+  if (state.muted) return Promise.resolve();
   logEvent('label_speak', { id: id });
   const card = powerCard(id);
-  Assets.say(storyId(id), { text: card ? card.label + '!' : '' });
+  return Assets.sayAndWait(storyId(id), { text: card ? card.label + '!' : '', maxMs: 8000 });
 }
 
 /* The same for a card in a battery question - "Too loud! When school gets
@@ -7193,9 +7215,10 @@ function chooseLastTime() {
   p.power = 'v2';
   p.own = { png: v2.png || null, audioId: v2.audioId || null };
   logEvent('powers_choose', { power: 'v2' });
-  playPower(p);
   scheduleSave();
-  arriveAtSlot(firstOpenSlot(p));
+  // Choosing it IS giving it: there is no story to hear first.
+  const tile = $('.door-lasttime');
+  givePower('tap', tile ? tile.getBoundingClientRect() : null, tile ? tile.innerHTML : '⏪');
 }
 
 /* ---- 🔋 charging the power ---- */
@@ -7221,21 +7244,200 @@ function slotFill(p, slot) {
 
 /* Arrive at a question: the cell lights as "here", the cards are dealt,
    and the question is said - every time, so it never depends on reading. */
-function arriveAtSlot(slotId) {
+/* Arrive at a question. The narrator NAMES the power first ("Slow
+   everybody down. Who does the power work on?") so it is clear what the
+   question is about (v96, Filip: the questions came out of nowhere) - except
+   straight after the power-up moment, which has just said it (`named:
+   false`). At the last question, what ⚡ is for follows. Tapping a card
+   (toggleSlotCard) moves the token on, so nothing queued here talks over
+   that card's story. */
+function arriveAtSlot(slotId, opts) {
   powersUi.slot = slotId;
   powersUi.dealNext = true;
   startPowersPhase('sentence');
+  if (state.muted) return;
+  const p = currentPower();
   const slot = slotById(slotId);
-  const slots = slotsFor(currentPower());
+  const slots = slotsFor(p);
   const last = slots[slots.length - 1].id === slotId;
-  if (!last || state.muted) { sayPowersLine(slot.say, slot.title); return; }
-  // The last question - and then what ⚡ is for, the first time it appears.
+  const lines = [];
+  if (!(opts && opts.named === false) && p && powerCard(p.power)) {
+    lines.push(['nar-' + p.power, powerLabel(p) + '.']);
+  }
+  lines.push([slot.say, slot.title]);
+  if (last) lines.push(['nar-powers-hold', 'When you are ready, hold down Power on!']);
   const token = ++doorSayToken;
-  Assets.sayAndWait(slot.say, { text: slot.title, maxMs: 6000 }).then(() => {
-    if (token === doorSayToken && powersUi.slot === slotId && powersUi.phase === 'sentence' && !powersUi.busy) {
-      sayPowersLine('nar-powers-hold', 'When you are ready, hold down Power on!');
+  (async () => {
+    for (const line of lines) {
+      if (token !== doorSayToken || powersUi.slot !== slotId ||
+          powersUi.phase !== 'sentence' || powersUi.busy) return;
+      await Assets.sayAndWait(line[0], { text: line[1], maxMs: 6000 });
     }
+  })();
+}
+
+/* ---- ⚡ GIVING THE POWER TO THE AGENT (v96) ----
+   Filip: ✓ This one "takes you to Who does your power work on" - the jump
+   from picking a power to its questions made no sense to a child. Now
+   picking is not enough: the power is GIVEN to the agent, by carrying its
+   card onto the agent or with ⚡ Give it to my agent. Then a short moment:
+   the card flies into the agent, the agent glows and does the power, and
+   the narrator says "Your agent can slow everybody down! Now let's charge
+   it up!" Only then does the battery appear - with the power plugged into
+   it (paintBattery), so the questions are visibly about it. A tap anywhere
+   skips the moment. Logged as `powers_phase` with how "give" and `via`. */
+const GIVE_FLY_MS = 700;
+const giveUi = { token: 0, skip: null };
+
+/* `nar-gets-…` for a card power ("Your agent can pause the whole school!"),
+   `nar-gets-v2` for ⏪ last time. */
+function givesLine(p) {
+  if (p.power === 'v2') return ['nar-gets-v2', 'Your agent has its power from last time!'];
+  return ['nar-gets-' + p.power.replace(/^pow-/, ''), 'Your agent can ' + powerLabel(p).toLowerCase() + '!'];
+}
+
+async function givePower(via, fromRect, art) {
+  const p = currentPower();
+  if (!p || !p.power || powersUi.busy) return;
+  const token = ++giveUi.token;
+  powersUi.busy = true;
+  powersUi.givenId = p.id;
+  doorSayToken++;                                  // no hint or invitation after this
+  logEvent('powers_phase', { to: 'sentence', how: 'give', via: via });
+
+  const panel = $('[data-mission="powers"]');
+  const stage = $('#powers-stage');
+  panel.classList.add('is-giving');                // the cards and buttons step back
+  $('#powers-title').textContent = powerEmoji(p) + ' ' + powerLabel(p);
+  flyToAgent(fromRect, art);
+  playSfx('sfx-powerup');
+
+  let skip;
+  const skipped = new Promise(resolve => { skip = resolve; });
+  giveUi.skip = skip;
+  const moment = (async () => {
+    await pause(fullMotion() ? GIVE_FLY_MS : 150);
+    if (token !== giveUi.token) return;
+    stage.classList.add('is-receiving');           // the agent glows...
+    playPower(p);                                  // ...and does the power
+    const line = givesLine(p);
+    await Promise.all([
+      pause(fullMotion() ? 2400 : 1400),
+      (async () => {
+        if (state.muted) return;
+        await Assets.sayAndWait(line[0], { text: line[1], maxMs: 5000 });
+        if (token !== giveUi.token) return;
+        await Assets.sayAndWait('nar-powers-charge-up', { text: "Now let's charge it up!", maxMs: 4000 });
+      })()
+    ]);
+  })();
+  await Promise.race([moment, skipped]);
+  if (token !== giveUi.token) return;              // the child left meanwhile
+  giveUi.skip = null;
+  Assets.stopSaying();
+  panel.classList.remove('is-giving');
+  stage.classList.remove('is-receiving');
+  powersUi.busy = false;
+  arriveAtSlot(firstOpenSlot(p), { named: false });
+}
+
+/* A tap during the moment skips it (the power is given either way). */
+function skipGive() {
+  if (giveUi.skip) giveUi.skip();
+}
+
+/* The card shrinks into the agent - Full motion only. `art` is the card's
+   picture (its .pic-card-art), shown on the flying copy. The clean-up is a
+   timer (CLAUDE.md), and stopPowers() sweeps up a copy still in the air. */
+function flyToAgent(fromRect, art) {
+  if (!fullMotion() || !fromRect || !fromRect.width) return;
+  const to = $('#powers-stage').getBoundingClientRect();
+  const x = fromRect.left + fromRect.width / 2, y = fromRect.top + fromRect.height / 2;
+  const ghost = document.createElement('div');
+  ghost.className = 'drag-ghost give-ghost';
+  ghost.innerHTML = art || '⚡';
+  ghost.style.left = x + 'px';
+  ghost.style.top = y + 'px';
+  document.body.appendChild(ghost);
+  const dx = to.left + to.width / 2 - x, dy = to.top + to.height / 2 - y;
+  ghost.animate([
+    { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+    { transform: 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px)) scale(.2)', opacity: .3 }
+  ], { duration: GIVE_FLY_MS, easing: 'cubic-bezier(.5, 0, .7, 1)', fill: 'forwards' });
+  setTimeout(() => ghost.remove(), GIVE_FLY_MS + 50);
+}
+
+/* The chosen card hops towards the agent twice: "take me there". */
+function nudgeTowardsAgent(card) {
+  if (!card || !fullMotion()) return;
+  const a = card.getBoundingClientRect(), b = $('#powers-stage').getBoundingClientRect();
+  const dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+  const len = Math.hypot(dx, dy) || 1;
+  card.style.setProperty('--hint-x', Math.round(dx / len * 18) + 'px');
+  card.style.setProperty('--hint-y', Math.round(dy / len * 18) + 'px');
+  card.classList.add('give-hint');
+  powersTimers.push(setTimeout(() => card.classList.remove('give-hint'), 2600));
+}
+
+/* Carry a door's card onto the agent: that chooses it (if it was not
+   already) AND gives it. Claimed only after 8px, so the list still scrolls
+   (pan-y), and the click that ends a drag is swallowed (CLAUDE.md). A drop
+   anywhere near the agent counts - children are not precise. */
+function wireGiveDrag(card, id) {
+  card.style.touchAction = 'pan-y';
+  card.addEventListener('pointerdown', down => {
+    if (powersUi.busy) return;
+    const start = { x: down.clientX, y: down.clientY };
+    const stage = $('#powers-stage');
+    const overAgent = (x, y) => {
+      const r = stage.getBoundingClientRect();
+      return x > r.left - 40 && x < r.right + 40 && y > r.top - 40 && y < r.bottom + 40;
+    };
+    let ghost = null;
+    const move = e => {
+      if (!ghost) {
+        if (Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+        ghost = document.createElement('div');
+        ghost.className = 'drag-ghost give-ghost';
+        ghost.innerHTML = card.querySelector('.pic-card-art').innerHTML;
+        document.body.appendChild(ghost);
+        card.classList.add('is-lifted');
+      }
+      ghost.style.left = e.clientX + 'px';
+      ghost.style.top = e.clientY + 'px';
+      stage.classList.toggle('is-target', overAgent(e.clientX, e.clientY));
+    };
+    const end = e => {
+      const dropped = ghost && e.type === 'pointerup' && overAgent(e.clientX, e.clientY);
+      const art = ghost ? ghost.innerHTML : '';
+      const at = ghost ? ghost.getBoundingClientRect() : null;
+      if (ghost) {
+        card.dataset.dragged = '1';                // swallow the click that may follow
+        setTimeout(() => { delete card.dataset.dragged; }, 60);
+      }
+      cleanUp();
+      if (!dropped) return;
+      const p = currentPower();
+      if (!p || p.power !== id) choosePower(id, { quiet: true });
+      givePower('drag', at, art);
+    };
+    const cleanUp = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+      if (ghost) ghost.remove();
+      card.classList.remove('is-lifted');
+      stage.classList.remove('is-target');
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
   });
+  card.addEventListener('click', e => {
+    if (!card.dataset.dragged) return;
+    delete card.dataset.dragged;
+    e.stopImmediatePropagation();
+  }, true);
 }
 
 /* The battery under the agent: one cell per question, and a cap that
@@ -7246,6 +7448,15 @@ function paintBattery() {
   const show = powersUi.phase === 'sentence' && p && p.power;
   battery.hidden = !show;
   if (!show) return;
+  // The power itself, plugged into the battery: the questions are about
+  // THIS (v96). A picture card in miniature; ⏪ shows its drawing.
+  battery.querySelectorAll('.battery-power').forEach(el => el.remove());
+  const plug = Assets.card(p.power, { fallback: powerEmoji(p), label: powerLabel(p), className: 'battery-power' });
+  plug.tabIndex = -1;
+  if (p.power === 'v2' && p.own && p.own.png) {
+    plug.querySelector('.pic-card-art').innerHTML = '<img class="pic-card-img is-cutout" alt="" src="' + p.own.png + '">';
+  }
+  battery.insertBefore(plug, battery.firstChild);
   const cells = $('#powers-cells');
   cells.innerHTML = '';
   const slots = slotsFor(p);
@@ -7399,6 +7610,7 @@ const SPARK_MS = 600;                // a spark's flight (style.css, .fly-spark)
 
 function toggleSlotCard(slot, card, button) {
   if (powersUi.busy) return;
+  doorSayToken++;                      // the question's queued lines stop here
   const p = currentPower();
   if (!p[slot.id]) p[slot.id] = [];
   const list = p[slot.id];
@@ -7631,6 +7843,7 @@ function paintShelf() {
     edit.textContent = '🔋';
     edit.addEventListener('click', () => {
       powersUi.index = index;
+      powersUi.givenId = p.id;
       logEvent('powers_edit', { index: index });
       arriveAtSlot(slotsFor(p)[0].id);
     });
@@ -7865,9 +8078,14 @@ function wirePowers() {
     logEvent('powers_phase', { to: 'doors', how: 'back' });
     paintPowers();
   });
+  // ⚡ Give it to my agent: the same as carrying the chosen card there.
   $('#powers-chosen-go').addEventListener('click', () => {
-    logEvent('powers_phase', { to: 'sentence', how: 'next' });
-    arriveAtSlot(firstOpenSlot(currentPower()));
+    const card = $('#powers-door-cards .pic-card.is-on');
+    givePower('tap', card ? card.getBoundingClientRect() : null,
+              card ? card.querySelector('.pic-card-art').innerHTML : '');
+  });
+  $('[data-mission="powers"]').addEventListener('pointerdown', () => {
+    if ($('[data-mission="powers"]').classList.contains('is-giving')) skipGive();
   });
   $('#powers-slot-next').addEventListener('click', nextSlot);
   // ⚡ Hold to charge, or tap (startCharge).

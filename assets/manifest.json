@@ -1603,6 +1603,132 @@
       "rev": "e85c5ab2"
     },
     {
+      "id": "nar-powers-give",
+      "file": "audio/narrator/nar-powers-give.mp3",
+      "text": "Want this power? Carry it to your agent!",
+      "rev": "98d12a00"
+    },
+    {
+      "id": "nar-gets-slow-everybody",
+      "file": "audio/narrator/nar-gets-slow-everybody.mp3",
+      "text": "Your agent can slow everybody down!",
+      "rev": "5d6b40d7"
+    },
+    {
+      "id": "nar-gets-pause",
+      "file": "audio/narrator/nar-gets-pause.mp3",
+      "text": "Your agent can pause the whole school!",
+      "rev": "11046262"
+    },
+    {
+      "id": "nar-gets-say-again",
+      "file": "audio/narrator/nar-gets-say-again.mp3",
+      "text": "Your agent can make words come again!",
+      "rev": "c8990591"
+    },
+    {
+      "id": "nar-gets-turn-down",
+      "file": "audio/narrator/nar-gets-turn-down.mp3",
+      "text": "Your agent can turn the classroom down!",
+      "rev": "bba790b2"
+    },
+    {
+      "id": "nar-gets-dim-lights",
+      "file": "audio/narrator/nar-gets-dim-lights.mp3",
+      "text": "Your agent can dim the classroom lights!",
+      "rev": "a7cf234a"
+    },
+    {
+      "id": "nar-gets-quiet-bubble",
+      "file": "audio/narrator/nar-gets-quiet-bubble.mp3",
+      "text": "Your agent can make a quiet bubble!",
+      "rev": "df1791c3"
+    },
+    {
+      "id": "nar-gets-translator",
+      "file": "audio/narrator/nar-gets-translator.mp3",
+      "text": "Your agent can turn pictures into words!",
+      "rev": "cf0d0a5b"
+    },
+    {
+      "id": "nar-gets-my-way",
+      "file": "audio/narrator/nar-gets-my-way.mp3",
+      "text": "Your agent can make everyone talk its way!",
+      "rev": "6f7d1f3e"
+    },
+    {
+      "id": "nar-gets-get-me",
+      "file": "audio/narrator/nar-gets-get-me.mp3",
+      "text": "Your agent has a get-what-I-mean ray!",
+      "rev": "a82818e7"
+    },
+    {
+      "id": "nar-gets-control-teachers",
+      "file": "audio/narrator/nar-gets-control-teachers.mp3",
+      "text": "Your agent can control the teachers!",
+      "rev": "af4adf0e"
+    },
+    {
+      "id": "nar-gets-pass",
+      "file": "audio/narrator/nar-gets-pass.mp3",
+      "text": "Your agent can say pass, and skip it!",
+      "rev": "cbb0e7c0"
+    },
+    {
+      "id": "nar-gets-invisible",
+      "file": "audio/narrator/nar-gets-invisible.mp3",
+      "text": "Your agent has an invisibility cloak!",
+      "rev": "8ce4c9e5"
+    },
+    {
+      "id": "nar-gets-control-displays",
+      "file": "audio/narrator/nar-gets-control-displays.mp3",
+      "text": "Your agent can control all the school screens!",
+      "rev": "d8e5fb02"
+    },
+    {
+      "id": "nar-gets-control-devices",
+      "file": "audio/narrator/nar-gets-control-devices.mp3",
+      "text": "Your agent can control the school devices!",
+      "rev": "7b2ed5c6"
+    },
+    {
+      "id": "nar-gets-change-rule",
+      "file": "audio/narrator/nar-gets-change-rule.mp3",
+      "text": "Your agent can change a school rule!",
+      "rev": "39e4a98c"
+    },
+    {
+      "id": "nar-gets-speak-for-friends",
+      "file": "audio/narrator/nar-gets-speak-for-friends.mp3",
+      "text": "Your agent can speak for its friends!",
+      "rev": "7020bd0d"
+    },
+    {
+      "id": "nar-gets-call-ally",
+      "file": "audio/narrator/nar-gets-call-ally.mp3",
+      "text": "Your agent can call an ally!",
+      "rev": "4821e584"
+    },
+    {
+      "id": "nar-gets-team-up",
+      "file": "audio/narrator/nar-gets-team-up.mp3",
+      "text": "Your agent can team up with a friend!",
+      "rev": "cd28b77d"
+    },
+    {
+      "id": "nar-gets-v2",
+      "file": "audio/narrator/nar-gets-v2.mp3",
+      "text": "Your agent has its power from last time!",
+      "rev": "373d84b8"
+    },
+    {
+      "id": "nar-powers-charge-up",
+      "file": "audio/narrator/nar-powers-charge-up.mp3",
+      "text": "Now let's charge it up!",
+      "rev": "32a6fa82"
+    },
+    {
       "id": "nar-door-time",
       "file": "audio/narrator/nar-door-time.mp3",
       "text": "The Time door! Powers to stop, slow and save time.",
