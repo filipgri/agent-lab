@@ -67,7 +67,7 @@ const MISSIONS = [
   { id: 'make',   icon: '🎨', opensIn: 2, title: 'Make your agent',     prompt: 'Make your agent.',                          narrate: 'nar-make-intro' },
   { id: 'suit',   icon: '🗣️', opensIn: 3, title: 'How my agent talks', prompt: 'How does your agent like to talk?',          narrate: 'nar-suit-likes' },
   { id: 'safe',   icon: '📍', opensIn: 3, title: 'Safe place',          prompt: 'Where does your agent feel safe to talk?',   narrate: 'nar-safe-talk', defaultOn: false },
-  { id: 'powers', icon: '⚡', opensIn: 3, title: 'Powers',              prompt: 'Make up a power. Draw it or say it.',        narrate: 'nar-powers-make' },
+  { id: 'powers', icon: '⚡', opensIn: 3, title: 'Powers',              prompt: "Pick a door. Find your agent's power.",      narrate: 'nar-powers-doors' },
   { id: 'bottle', icon: '🍾', opensIn: 3, title: 'The bottle',          prompt: 'What will your agent hand over?',            narrate: 'nar-bottle-intro' }
 ];
 
@@ -239,6 +239,7 @@ let saveTimer = null;
 
 function scheduleSave() {
   if (!state.agent) return;
+  paintStamp();                      // a change may have finished the mission
 
   /* If the editor is open ON the Power-up look and something changed, the
      child has deliberately made the Power-up different from the Cover. From
@@ -304,7 +305,12 @@ function showScreen(name) {
      done    - stamped (✓ over the icon)
      passed  - grey stamp
      current - glowing
-     locked  - padlock with a question mark (the mystery)
+     open    - not reached yet
+
+   A mission that is not open is NOT SHOWN AT ALL (Filip, 3 November 2026).
+   It used to be a padlock with a "?" - but in session 3 the only closed
+   mission is Safe place, switched off by an adult, and a lock in the middle
+   of the strip promised children something they could never open.
 
    None of this needs a new field in the data model. "How far have we got?"
    is worked out from the mission statuses plus wherever the child is now.
@@ -380,42 +386,28 @@ function renderStrip() {
     strip.innerHTML = '';
 
     MISSIONS.forEach((mission, index) => {
+      // Switched off, or its session has not come: not on the strip.
+      if (!missionIsOpen(mission)) return;
+
       const status  = state.agent.missions[mission.id];   // done | passed | todo
       const isNow   = state.screen === 'mission' && index === state.missionIndex;
-      // v2 §3: a mission is locked until its session, or if an adult has
-      // switched it off for this rotation.
-      const locked  = !missionIsOpen(mission);
 
       const button = document.createElement('button');
       button.className = 'pip';
       button.dataset.index = index;
 
-      if (locked)               button.classList.add('is-locked');
-      else if (isNow)           button.classList.add('is-current');
+      if (isNow)                    button.classList.add('is-current');
       else if (status === 'done')   button.classList.add('is-done');
       else if (status === 'passed') button.classList.add('is-passed');
-      else                         button.classList.add('is-open');
+      else                          button.classList.add('is-open');
 
-      button.innerHTML = locked
-        ? '<span class="pip-icon">🔒</span><span class="pip-q">?</span>'
-        : '<span class="pip-icon">' + mission.icon + '</span>' +
-          (status === 'done'   ? '<span class="pip-stamp">✓</span>' : '') +
-          (status === 'passed' ? '<span class="pip-stamp pip-stamp-grey">✓</span>' : '');
+      button.innerHTML = '<span class="pip-icon">' + mission.icon + '</span>' +
+        (status === 'done'   ? '<span class="pip-stamp">✓</span>' : '') +
+        (status === 'passed' ? '<span class="pip-stamp pip-stamp-grey">✓</span>' : '');
+      button.setAttribute('aria-label', mission.title);
 
-      button.setAttribute('aria-label', locked ? 'Locked' : mission.title);
-
-      if (locked) {
-        /* v2 §3: a locked mission explains itself rather than doing nothing.
-           It is NOT disabled, because a disabled button cannot be tapped and
-           so the child never hears why. */
-        button.addEventListener('click', () => {
-          logEvent('locked_tap', { mission: mission.id });
-          speakLine('nar-locked');
-        });
-      } else {
-        // Spec §6: tapping a done or passed icon goes back to that mission.
-        button.addEventListener('click', () => goToMission(index, 'back_to'));
-      }
+      // Spec §6: tapping a done or passed icon goes back to that mission.
+      button.addEventListener('click', () => goToMission(index, 'back_to'));
       strip.appendChild(button);
     });
 
@@ -476,7 +468,11 @@ function renderPreview() {
    v2 §5.1 splits the name into two reels, each of which can be locked. */
 let pendingCodename = { codename: '', emoji: '', word: '', animal: '' };
 
-// Which reels the child has decided to keep. A locked reel does not spin.
+/* Which reels the child has decided to keep. A locked reel does not spin.
+   The 🔒 buttons under the reels were removed on 4 November 2026 (Filip:
+   "do we need these?") - Roll and Type are enough, and two small padlocks
+   under the name read as something locked away. So both stay false; the
+   logic is kept so `codename_spin` keeps its shape in the data. */
 const reelLocks = { word: false, animal: false };
 
 let spinning = false;
@@ -556,12 +552,6 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function toggleReelLock(reel) {
-  reelLocks[reel] = !reelLocks[reel];
-  logEvent('codename_lock', { reel: reel, on: reelLocks[reel] });
-  paintCodename();
-}
-
 function paintCodename() {
   const wordEl   = $('#reel-word');
   const animalEl = $('#reel-animal');
@@ -570,15 +560,6 @@ function paintCodename() {
   if (!wordEl.classList.contains('is-spinning')) wordEl.textContent = pendingCodename.word;
   if (!animalEl.classList.contains('is-spinning')) animalEl.textContent = pendingCodename.animal;
   $('#codename-emoji').textContent = pendingCodename.emoji || '🕵️';
-
-  [['word', '#lock-word'], ['animal', '#lock-animal']].forEach(([reel, sel]) => {
-    const button = $(sel);
-    if (!button) return;
-    const on = reelLocks[reel];
-    button.textContent = on ? '🔒' : '🔓';
-    button.classList.toggle('is-on', on);
-    button.setAttribute('aria-checked', on ? 'true' : 'false');
-  });
 
   // A typed name has no second reel, so it is hidden for one.
   $('#reel-animal').parentElement.hidden = !pendingCodename.animal;
@@ -604,8 +585,7 @@ function applyCodenameToAgent(source) {
 
 /* THE HERO (v2 §5.1, changed in v3). It used to be the animal's emoji; it
    is now an empty agent with the emblem as a badge on its chest - the agent
-   the child is about to make. Tapping it bounces it and says the name. There
-   is no recorded audio for a name, so this is always speechSynthesis. */
+   the child is about to make. Tapping it bounces it and says the name. */
 function tapEmblem() {
   const hero = $('#emblem-hero');
   if (hero && fullMotion()) {
@@ -614,8 +594,36 @@ function tapEmblem() {
     hero.classList.add('is-bouncing');
   }
   if (state.muted) return;
-  speakWithVoice(pendingCodename.codename || 'Your spy name');
+  sayCodename();
   logEvent('codename_speak', { codename: pendingCodename.codename });
+}
+
+/* A rolled name is said in the narrator's own voice, one word after the
+   other: every first word and every spy word has its own recording
+   (`nar-name-silent`, `nar-name-comet`…; Filip, 4 November - the iPad's
+   voice sounded robotic next to the narrator). A name the child TYPED can
+   only be read by the iPad's voice. A newer tap stops an older name. */
+let codenameSayToken = 0;
+function nameLineId(word) {
+  return 'nar-name-' + String(word).toLowerCase().replace(/[^a-z]/g, '');
+}
+async function sayCodename() {
+  sayNameWords({ word: pendingCodename.word, animal: pendingCodename.animal },
+               pendingCodename.codename);
+}
+
+/* A rolled name, word by word, in the narrator's voice; a typed one can
+   only be read by the iPad's voice. `parts` is { word, animal } - the
+   codename's two reels (the second is still called `animal`). */
+async function sayNameWords(parts, whole) {
+  const word = parts.word;
+  const spy = parts.animal;
+  const rolled = ADJECTIVES.indexOf(word) !== -1 && SPY_WORDS.some(s => s.name === spy);
+  if (!rolled) { speakWithVoice(whole || [word, spy].join(' ').trim() || 'Your spy name'); return; }
+  const token = ++codenameSayToken;
+  await Assets.sayAndWait(nameLineId(word), { text: word, maxMs: 2500 });
+  if (token !== codenameSayToken) return;
+  Assets.say(nameLineId(spy), { text: spy });
 }
 
 
@@ -1201,6 +1209,7 @@ function goToMission(index, reasonAction) {
   // (Mission 2's boost_copy, for one) lands after the arrival in the event log
   // and the research timeline reads in the order things actually happened.
   logEvent(reasonAction === 'back_to' ? 'back_to' : 'mission_enter', { mission: mission.id });
+  stampWasReady = null;
 
   /* Each mission sets itself up as it opens. Only Make uses the shared
      editor. The four v3 missions are "coming soon" placeholders at P0, so
@@ -1212,6 +1221,57 @@ function goToMission(index, reasonAction) {
   else if (mission.id === 'powers') enterPowers();
   else if (mission.id === 'bottle') enterBottle();
   else hideEditor();
+  paintStamp();
+}
+
+/* HAS THIS MISSION BEEN DONE? Stamp it waits quietly until it has (v84,
+   Filip: children reached for the big yellow Stamp it before anything
+   else). Never a lock: a waiting Stamp it still works, and Pass is always
+   there. "Done" is the smallest thing that makes the mission mean
+   something: a face on the agent, every "likes" card sorted, a safe place,
+   one power, one bottle kept or sent. */
+function missionReady(id) {
+  const a = state.agent;
+  if (!a) return true;
+  if (id === 'make') return Boolean(a.cover && ((a.cover.shapes || []).length ||
+                                                 a.cover.drawingPng || (a.cover.pixels || []).some(Boolean)));
+  if (id === 'suit') return TALK_MODES.every(m => pileOf('likes', m.id));
+  if (id === 'safe') return Boolean(a.safe && a.safe.talk);
+  if (id === 'powers') return a.powers.some(p => p.power);
+  if (id === 'bottle') return a.bottles.some(b => b.state !== 'open');
+  return true;
+}
+
+/* Lists that may be longer than their space fade at the bottom while
+   there is more below (style.css, .has-more). Measured after the browser
+   has laid the list out, and again whenever one is scrolled. */
+const FADE_LISTS = '#powers-slot-cards, #powers-door-cards, #powers-door-grid, ' +
+                   '#bottle-tokens, #suit-best-cards, #bottle-disguise';
+function updateFades() {
+  // Reading scrollHeight makes the browser lay the list out first, so
+  // this is right straight after a paint - no need to wait for a frame.
+  $$(FADE_LISTS).forEach(el => {
+    el.classList.toggle('has-more', el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+  });
+}
+document.addEventListener('scroll', e => {
+  if (e.target && e.target.matches && e.target.matches(FADE_LISTS)) updateFades();
+}, true);
+window.addEventListener('resize', updateFades);
+
+let stampWasReady = null;
+function paintStamp() {
+  const stamp = $('#btn-stamp');
+  if (!stamp || state.screen !== 'mission') return;
+  const ready = missionReady(currentMissionId());
+  stamp.classList.toggle('is-waiting', !ready);
+  // The moment it becomes ready, it pops once to say "now you can".
+  if (ready && stampWasReady === false) {
+    stamp.classList.remove('is-ready-now');
+    void stamp.offsetWidth;
+    stamp.classList.add('is-ready-now');
+  }
+  stampWasReady = ready;
 }
 
 // Stamp it ✓ : this mission is done, move on.
@@ -1818,8 +1878,6 @@ function wireUp() {
 
   // --- Start screen: the reels, the locks and the emblem (v2 §5.1) ---
   $('#btn-roll').addEventListener('click', () => rollCodename());
-  $('#lock-word').addEventListener('click', () => toggleReelLock('word'));
-  $('#lock-animal').addEventListener('click', () => toggleReelLock('animal'));
   $('#emblem-hero').addEventListener('click', tapEmblem);
   $('#btn-new').addEventListener('click', startNewAgent);
   $('#btn-continue').addEventListener('click', continueAgent);
@@ -3308,7 +3366,8 @@ function codeMove(event) {
    from this list is logged by its own id, so a new one is never silent. */
 const STROKE_WHERE = {
   'own-canvas': 'own_card',      // the shared ✏️ "draw it or say it" sheet
-  'powers-canvas': 'power',      // ⚡ Powers: "Make up a power" (v3 §7.1)
+  // 'power' was the ⚡ Powers canvas, gone since 3 November 2026 (v80):
+  // older logs still say it (DATA.md).
   'm3-canvas':  'feeling_code',  // v1 Mission 3 (retired)
   'draw-canvas': 'rule'          // v1 Mission 6's drawing sheet (retired)
 };
@@ -5876,49 +5935,69 @@ function wireQuickAgent() {
 /* ===========================================================================
    31. HOW MY AGENT TALKS (v3 §5, P3)
 
-   Redesigned on 3 November 2026, after Filip tried the first version: the
-   questions were too long, the room is too loud to rely on the voice, and
-   the agent acting a card out on a small thumbnail was easy to miss. So:
+   Redesigned twice on 3 November 2026, after Filip tried it. The room is
+   loud, so nothing may depend on hearing or reading, and the agent must be
+   big and DO the thing. So:
 
-   - ONE CARD AT A TIME. The agent stands big in the middle and ACTS OUT the
-     card - it moves, and the card's emoji appears by its head - and the
-     child sorts it onto one of three piles: 👍 Yes · 🤷 Not sure · 👎 No.
-     This is how a Talking Mat works (Murphy, University of Stirling), a
-     method built for children who find talking about talking hard.
+   - ONE CARD AT A TIME, big. The card's picture moves (talking beats and
+     sends out rings, signing hands wave…), the agent acts it out beside it,
+     and the sentence is SAID: "My agent likes… Talking." This is how a
+     Talking Mat works (Murphy, University of Stirling), a method built for
+     children who find talking about talking hard.
+   - The child answers with THE AGENT, not a symbol: three small copies of
+     their own agent - one nods ✓, one tilts its head ?, one shakes it ✗ -
+     and the big agent does the same when one is tapped. The data is the
+     same three piles as before (yes / unsure / no).
    - Four parts, each a short heading with an icon:
-       🗣️ My agent likes…   suit.likes / likesUnsure / likesNot
-       ⭐ Which is best?    suit.best - one card from the 👍 pile
-       🏫 School wants…     suit.school / schoolUnsure / schoolNot
-                            (the same cards, plus Hand up and Being quiet)
-       🤫 A secret word     secretWord - an invented word, said with 🎤,
-                            given one of the six spy voices from session 2
-   - ✏️ My own sits under the piles in both sorting parts, and a kept own
-     card counts as 👍 (it can be the best one too).
-   - THE APP NEVER COMPARES THE PILES. A child who likes drawing and whose
-     school wants hands up is told nothing about it: that gap is for the
+       🗣️ My agent likes…        suit.likes / likesUnsure / likesNot
+       ⭐ Which one does your
+          agent like the most?    suit.best - one card from the ✓ pile
+       🏫 School wants us to…    suit.school / schoolUnsure / schoolNot,
+                                 with cards of its own (SCHOOL_CARDS)
+       🤫 A secret word          secretWord - an invented word, said with 🎤,
+                                 given one of the six spy voices
+   - No ✏️ My own here any more: nobody used it in session 2 (Filip). The
+     fields stay in the data; nothing new goes into them.
+   - THE APP NEVER COMPARES THE PILES. A child whose agent likes drawing and
+     whose school wants talk is told nothing about it: that gap is for the
      analysis and for next session's questions, never for a reaction.
-   - The secret handshake moved to a sheet that Powers opens (see below).
+   - The secret handshake lives on a sheet that Powers opens (see below).
    ======================================================================== */
 
-// `act` is how the agent acts the card out: a wiggle, a jump, rising up a
-// little, or going small and quiet (style.css, .act-*).
+/* `act` is how the agent acts the card out (style.css, .act-*); `anim` is
+   how the card's picture moves while it is on screen (.pic-card[data-anim]).
+   Both are Full motion only - the card and its emoji carry the meaning. */
 const TALK_MODES = [
-  { id: 'mode-talk',      emoji: '🗣️', label: 'Talking',          act: 'jump' },
+  { id: 'mode-talk',      emoji: '🗣️', label: 'Talking',          act: 'jump',   anim: 'beat' },
   // "Hands" looked like a high five (Filip, 3 November): it means signing.
-  { id: 'mode-hands',     emoji: '🤟', label: 'Signing',          act: 'wiggle' },
-  { id: 'mode-handshake', emoji: '🤝', label: 'Secret handshake', act: 'wiggle' },
-  { id: 'mode-draw',      emoji: '✏️', label: 'Drawing',          act: 'wiggle' },
-  { id: 'mode-act',       emoji: '🎭', label: 'Acting it out',    act: 'jump' },
+  { id: 'mode-hands',     emoji: '🤟', label: 'Signing',          act: 'wiggle', anim: 'wave' },
+  { id: 'mode-handshake', emoji: '🤝', label: 'Secret handshake', act: 'wiggle', anim: 'shake' },
+  { id: 'mode-draw',      emoji: '✏️', label: 'Drawing',          act: 'wiggle', anim: 'scribble' },
+  { id: 'mode-act',       emoji: '🎭', label: 'Acting it out',    act: 'jump',   anim: 'bounce' },
   // "Pictures" was not clear either: it means picture cards to point at.
-  { id: 'mode-pictures',  emoji: '🎴', label: 'Picture cards',    act: 'rise' },
-  { id: 'mode-write',     emoji: '📝', label: 'Writing',          act: 'wiggle' },
-  { id: 'mode-device',    emoji: '📱', label: 'A device',         act: 'rise' }
+  { id: 'mode-pictures',  emoji: '🎴', label: 'Picture cards',    act: 'rise',   anim: 'flip' },
+  { id: 'mode-write',     emoji: '📝', label: 'Writing',          act: 'wiggle', anim: 'scribble' },
+  { id: 'mode-device',    emoji: '📱', label: 'A device',         act: 'rise',   anim: 'glow' }
 ];
 
-// v3 §5: these two appear only in "School wants…".
-const SCHOOL_ONLY_MODES = [
-  { id: 'mode-hand-up', emoji: '🙋', label: 'Hand up',     act: 'rise' },
-  { id: 'mode-quiet',   emoji: '🤫', label: 'Being quiet', act: 'hush' }
+/* "School wants us to…" has cards of its own (Filip, 3 November): a secret
+   handshake, drawing or acting are not things school asks for, "Hand up"
+   told us nothing and "Being quiet" was too abstract. These are things a
+   school really does ask of how children communicate. Five of them match a
+   "likes" card - DATA.md lists the pairs, so the two can still be compared:
+     school-talk-lot ↔ mode-talk      school-makaton  ↔ mode-hands
+     school-write    ↔ mode-write     school-pictures ↔ mode-pictures
+     school-device   ↔ mode-device                                        */
+const SCHOOL_CARDS = [
+  { id: 'school-talk-lot',  emoji: '🗣️', label: 'Talk a lot',            act: 'jump',   anim: 'beat' },
+  { id: 'school-only-talk', emoji: '👄', label: 'Only talk',             act: 'jump',   anim: 'beat' },
+  { id: 'school-makaton',   emoji: '🤟', label: 'Learn Makaton',         act: 'wiggle', anim: 'wave' },
+  { id: 'school-look',      emoji: '👀', label: "Look at who's talking", act: 'rise',   anim: 'look' },
+  { id: 'school-quick',     emoji: '⚡', label: 'Answer quickly',        act: 'jump',   anim: 'dart' },
+  { id: 'school-speak-up',  emoji: '📢', label: 'Speak up',              act: 'jump',   anim: 'beat' },
+  { id: 'school-write',     emoji: '📝', label: 'Write it down',         act: 'wiggle', anim: 'scribble' },
+  { id: 'school-pictures',  emoji: '🎴', label: 'Use picture cards',     act: 'rise',   anim: 'flip' },
+  { id: 'school-device',    emoji: '📱', label: 'Use a device',          act: 'rise',   anim: 'glow' }
 ];
 
 // The three piles of each sorting part, and where each is saved.
@@ -5927,18 +6006,29 @@ const SUIT_PILES = {
   school: { yes: 'school', unsure: 'schoolUnsure', no: 'schoolNot' }
 };
 
+/* How the agent answers: it nods, tilts its head or shakes it, with a mark
+   by its head and a few notes (rising for yes, falling for no). */
+const SUIT_ANSWERS = {
+  yes:    { mark: '✓', act: 'nod',   notes: [2, 4] },
+  unsure: { mark: '?', act: 'tilt',  notes: [3, 2, 3] },
+  no:     { mark: '✗', act: 'shake', notes: [4, 1] }
+};
+
+/* `frame` is the start of the sentence, said before every card: "My agent
+   likes…" then "Talking." The words on screen and the words spoken are the
+   same (Filip: the heading was never said). */
 const SUIT_PHASES = {
-  likes:  { title: 'My agent likes…', say: 'nar-suit-likes',
-            modes: TALK_MODES, own: 'likesOwn' },
-  best:   { title: 'Which is best?', say: 'nar-suit-best' },
-  school: { title: 'School wants…', say: 'nar-suit-school',
-            modes: TALK_MODES.concat(SCHOOL_ONLY_MODES), own: 'schoolOwn' },
+  likes:  { title: 'My agent likes…', frame: 'nar-likes-frame', modes: TALK_MODES },
+  best:   { title: 'Which one does your agent like the most?', say: 'nar-suit-most' },
+  school: { title: 'School wants us to…', frame: 'nar-school-frame', modes: SCHOOL_CARDS },
   word:   { title: 'Make up a secret word', say: 'nar-word-make' }
 };
 const SUIT_ORDER = ['likes', 'best', 'school', 'word'];
+const SUIT_FLY_MS = 560;             // a sorted card flying to its pile (style.css)
 
-const suitUi = { phase: 'likes', index: 0 };
+const suitUi = { phase: 'likes', index: 0, moving: false };
 let suitTimer = null;                 // the short pause before the next part
+let suitSayToken = 0;                 // stops an old sentence finishing late
 
 /* ---- shared card helpers (used by Quick agent, Safe place and Powers) ---- */
 
@@ -5948,6 +6038,7 @@ let suitTimer = null;                 // the short pause before the next part
 function modeCard(mode, on, onTap) {
   const button = Assets.card(mode.id, { fallback: mode.emoji, label: mode.label });
   if (on) button.classList.add('is-on');
+  if (mode.anim) button.dataset.anim = mode.anim;
   button.setAttribute('aria-pressed', on ? 'true' : 'false');
   button.addEventListener('click', onTap);
   return button;
@@ -5996,8 +6087,23 @@ function ownCardButton(onTap) {
   return own;
 }
 
+/* An empty agent-view, ready for renderAgentView() to draw into. */
+function agentViewHtml(extraClass) {
+  return '<span class="agent-view ' + (extraClass || '') + '">' +
+    '<canvas class="agent-pixels" width="16" height="16"></canvas>' +
+    '<img class="agent-drawing" alt="" hidden>' +
+    '<svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg>' +
+    '<span class="sticker-layer"></span></span>';
+}
+
+/* A few notes, one after another - the answers and the power battery. */
+function playNotes(steps, gapMs) {
+  if (state.muted) return;
+  steps.forEach((step, i) => setTimeout(() => Voice.note(step), i * (gapMs || 110)));
+}
+
 function modeById(id) {
-  return TALK_MODES.concat(SCHOOL_ONLY_MODES).find(m => m.id === id) || null;
+  return TALK_MODES.concat(SCHOOL_CARDS).find(m => m.id === id) || null;
 }
 
 /* Which pile a card is on in one sorting part: 'yes', 'unsure', 'no', or
@@ -6008,12 +6114,10 @@ function pileOf(step, modeId) {
     state.agent.suit[piles[pile]].indexOf(modeId) !== -1) || null;
 }
 
-/* The cards that can be "best": everything on the 👍 pile, and the child's
-   own cards. An own card is named "own-0", "own-1"… by its place. */
+/* The cards that can be "the most": everything on the ✓ pile. */
 function bestChoices() {
-  const suit = state.agent.suit;
-  return suit.likes.map(id => ({ id: id, mode: modeById(id) }))
-    .concat(suit.likesOwn.map((card, i) => ({ id: 'own-' + i, card: card })));
+  return state.agent.suit.likes.map(id => ({ id: id, mode: modeById(id) }))
+    .filter(choice => choice.mode);
 }
 
 /* Has the child finished this part? Used to decide where to start when the
@@ -6029,18 +6133,24 @@ function enterSuit() {
   if (!state.agent) return;
   hideEditor();
   renderAgentView($('#suit-stage'), state.agent.cover, false);
+  // The three small agents on the answer buttons are this agent too.
+  $$('.suit-pile .agent-view').forEach(view => renderAgentView(view, state.agent.cover, false));
   startSuitPhase(SUIT_ORDER.find(p => !suitPhaseDone(p)) || 'likes');
 }
 
-/* Called by leaveCurrent(): nothing carries on into the next screen. */
+/* Called by leaveCurrent(): nothing carries on into the next screen - no
+   timer, and no half-said sentence finishing on the next screen. */
 function stopSuit() {
   clearTimeout(suitTimer);
   clearTimeout(actTimer);
+  suitSayToken++;
+  suitUi.moving = false;
 }
 
 function startSuitPhase(phase) {
   clearTimeout(suitTimer);
-  // Nothing on the 👍 pile means there is nothing to choose from.
+  suitUi.moving = false;
+  // Nothing on the ✓ pile means there is nothing to choose from.
   if (phase === 'best' && bestChoices().length === 0) phase = 'school';
   suitUi.phase = phase;
 
@@ -6053,6 +6163,9 @@ function startSuitPhase(phase) {
   }
   paintSuit();
   if (conf.modes) presentCard();
+  else saySuitLine(conf.say, conf.title);
+  // The last answer's mark must not stay by the agent's head.
+  if (phase === 'best') actOut({ emoji: '⭐', act: 'jump' });
   if (phase === 'word') actOut({ emoji: '🤫', act: 'hush' });
 }
 
@@ -6069,7 +6182,7 @@ function paintSuit() {
   $('#suit-title').textContent = SUIT_PHASES[phase].title;
   $$('[data-suit-phase]').forEach(b => {
     b.classList.toggle('is-on', b.dataset.suitPhase === phase);
-    // ⭐ only makes sense once something is on the 👍 pile.
+    // ⭐ only makes sense once something is on the ✓ pile.
     b.disabled = b.dataset.suitPhase === 'best' && bestChoices().length === 0;
   });
   $('#suit-sort').hidden = !SUIT_PHASES[phase].modes;
@@ -6078,11 +6191,38 @@ function paintSuit() {
   if (SUIT_PHASES[phase].modes) paintSort();
   if (phase === 'best') paintBest();
   if (phase === 'word') paintWord();
+  updateFades();
+}
+
+/* ---- saying it ---- */
+
+/* One line, with its words as the stand-in if the recording is missing. */
+function saySuitLine(id, text) {
+  if (state.muted || !id) return;
+  suitSayToken++;
+  Assets.say(id, { text: text });
+}
+
+/* The sentence for one card: "My agent likes…" and then the card. A newer
+   sentence (the next card) cancels this one - say() stops the line that is
+   playing, and the token stops the second half starting afterwards. */
+async function sayCardSentence(phase, mode) {
+  if (state.muted) return;
+  const token = ++suitSayToken;
+  const conf = SUIT_PHASES[phase];
+  await Assets.sayAndWait(conf.frame, { text: conf.title, maxMs: 3500 });
+  if (token !== suitSayToken) return;
+  // The sentence ends with the card's short story - "Signing! Talking with
+  // hands, like Makaton." - which says what the card MEANS, plainly and
+  // without leaning either way: this is a Talking Mat, and the answer is
+  // the child's (Filip, 4 November: deepen the narration).
+  Assets.say(storyId(mode.id), { text: mode.label + '.' });
 }
 
 /* ---- sorting ---- */
 
-function paintSort() {
+/* `dealt` is true when this card has just arrived, so it slides in. */
+function paintSort(dealt) {
   const phase = suitUi.phase;
   const modes = SUIT_PHASES[phase].modes;
   const mode = modes[suitUi.index];
@@ -6090,8 +6230,14 @@ function paintSort() {
   const slot = $('#suit-card');
   slot.innerHTML = '';
   if (mode) {
-    // Tapping the card shows it acted out again, and says its label.
-    slot.appendChild(modeCard(mode, false, () => { actOut(mode); speakLabel(mode.id); }));
+    // Tapping the card shows it acted out again, and says the sentence.
+    const card = modeCard(mode, false, () => {
+      logEvent('label_speak', { id: mode.id });
+      actOut(mode);
+      sayCardSentence(phase, mode);
+    });
+    if (dealt && fullMotion()) card.classList.add('is-dealt');
+    slot.appendChild(card);
   } else {
     slot.innerHTML = '<div class="suit-card-done" aria-label="All sorted">✓</div>';
   }
@@ -6111,20 +6257,19 @@ function paintSort() {
     if (i === suitUi.index) dot.classList.add('is-here');
     dots.appendChild(dot);
   });
-
-  paintSuitOwn();
 }
 
-/* The card on screen: the agent acts it out, and the card says its label.
+/* The card on screen: the agent acts it out, and the sentence is said.
    Not logged - the child did nothing yet. A tap on the card is logged. */
 function presentCard() {
   const mode = SUIT_PHASES[suitUi.phase].modes[suitUi.index];
   if (!mode) return;
   actOut(mode);
-  speakLine('nar-' + mode.id);
+  sayCardSentence(suitUi.phase, mode);
 }
 
 function sortCard(pile) {
+  if (suitUi.moving) return;             // the last card is still flying
   const step = suitUi.phase;
   const modes = SUIT_PHASES[step].modes;
   const mode = modes && modes[suitUi.index];
@@ -6138,95 +6283,56 @@ function sortCard(pile) {
     if (at !== -1) suit[piles[p]].splice(at, 1);
   });
   suit[piles[pile]].push(mode.id);
-  // The best one has to be a 👍 card.
+  // The favourite has to be a ✓ card.
   if (step === 'likes' && pile !== 'yes' && suit.best === mode.id) suit.best = null;
 
   logEvent('suit_sort', { step: step, mode: mode.id, pile: pile });
-  playSfx('sfx-pop');
   scheduleSave();
 
-  suitUi.index += 1;
-  paintSort();
-  if (suitUi.index < modes.length) { presentCard(); return; }
+  // The agent answers - nods, tilts or shakes its head - and the card flies
+  // to the pile that was tapped.
+  const answer = SUIT_ANSWERS[pile];
+  actOut({ emoji: answer.mark, act: answer.act, mark: pile });
+  playNotes(answer.notes);
+  suitSayToken++;                        // the old card's sentence stops here
+  Assets.stopSaying();
 
-  // The last card: a tick, a breath, and on to the next part.
-  suitTimer = setTimeout(() => {
-    const next = step === 'likes' ? 'best' : 'word';
-    logEvent('suit_phase', { to: next, how: 'auto' });
-    startSuitPhase(next);
-  }, 900);
+  const card = $('#suit-card .pic-card');
+  suitUi.moving = true;
+  if (card && fullMotion()) card.classList.add('fly-' + pile);
+  suitTimer = setTimeout(nextCard, card && fullMotion() ? SUIT_FLY_MS : 0);
+
+  function nextCard() {
+    suitUi.moving = false;
+    suitUi.index += 1;
+    paintSort(true);
+    if (suitUi.index < modes.length) { presentCard(); return; }
+    // The last card: a tick, a breath, and on to the next part.
+    suitTimer = setTimeout(() => {
+      const next = step === 'likes' ? 'best' : 'word';
+      logEvent('suit_phase', { to: next, how: 'auto' });
+      startSuitPhase(next);
+    }, 1200);
+  }
 }
 
 function suitBack() {
-  if (suitUi.index === 0) return;
+  if (suitUi.index === 0 || suitUi.moving) return;
   clearTimeout(suitTimer);
   suitUi.index -= 1;
   logEvent('suit_back', { step: suitUi.phase });
-  paintSort();
+  paintSort(true);
   presentCard();
 }
 
-/* ✏️ My own, under the piles. A kept card counts as 👍. */
-function paintSuitOwn() {
-  const step = suitUi.phase;
-  const ownKey = SUIT_PHASES[step].own;
-  const box = $('#suit-own-row');
-  box.innerHTML = '';
-  box.appendChild(ownCardButton(() => openOwnCard({
-    title: SUIT_PHASES[step].title,
-    say: SUIT_PHASES[step].say,
-    onKeep: card => {
-      state.agent.suit[ownKey].push(card);
-      logEvent('suit_own', { step: step, drawn: Boolean(card.png), said: Boolean(card.audioId) });
-      paintSuit();
-      scheduleSave();
-    }
-  })));
-  state.agent.suit[ownKey].forEach((card, index) => {
-    box.appendChild(ownCardTile(card, step + '-' + index,
-      () => removeSuitOwn(step, index),
-      () => paintSuitOwn()));
-  });
-}
-
-async function removeSuitOwn(step, index) {
-  const suit = state.agent.suit;
-  const list = suit[SUIT_PHASES[step].own];
-  const card = list[index];
-  if (!card) return;
-  if (card.audioId) { Voice.forget(card.audioId); await Storage.deleteAudio(card.audioId); }
-  list.splice(index, 1);
-  // Own cards are named by their place, so the best one may have moved.
-  if (step === 'likes' && suit.best && suit.best.indexOf('own-') === 0) {
-    const was = Number(suit.best.slice(4));
-    if (was === index) suit.best = null;
-    else if (was > index) suit.best = 'own-' + (was - 1);
-  }
-  logEvent('suit_own_remove', { step: step });
-  paintSuit();
-  scheduleSave();
-}
-
-/* ---- ⭐ which is best ---- */
+/* ---- ⭐ the one the agent likes the most ---- */
 
 function paintBest() {
   const box = $('#suit-best-cards');
   box.innerHTML = '';
   const best = state.agent.suit.best;
   bestChoices().forEach(choice => {
-    if (choice.mode) {
-      box.appendChild(modeCard(choice.mode, best === choice.id, () => chooseBest(choice)));
-      return;
-    }
-    // One of the child's own cards: its drawing, or 🎤 if it was said.
-    const tile = document.createElement('button');
-    tile.className = 'when-own' + (best === choice.id ? ' is-on' : '');
-    tile.innerHTML = (choice.card.png
-        ? '<img class="own-card-thumb" alt="" src="' + choice.card.png + '">'
-        : '<span class="when-own-icon">🎤</span>') +
-      '<span class="when-own-label">My own</span>';
-    tile.addEventListener('click', () => chooseBest(choice));
-    box.appendChild(tile);
+    box.appendChild(modeCard(choice.mode, best === choice.id, () => chooseBest(choice)));
   });
   // ➡️ appears once one is chosen: this part asks for exactly one.
   $('#suit-best-go').hidden = !best;
@@ -6235,8 +6341,9 @@ function paintBest() {
 function chooseBest(choice) {
   state.agent.suit.best = choice.id;
   logEvent('suit_best', { best: choice.id });
-  if (choice.mode) { actOut(choice.mode); speakLabel(choice.mode.id); }
-  else playSfx('sfx-pop');
+  actOut(choice.mode);
+  saySuitLine('nar-' + choice.mode.id, choice.mode.label + '.');
+  playNotes([2, 4, 7]);
   paintBest();
   scheduleSave();
 }
@@ -6310,25 +6417,31 @@ async function playWord() {
 /* The card's emoji appears by the agent's head and STAYS while the card is
    on screen, because it says what the agent is doing - so it shows in Calm
    and Off as well. The movement is decoration, so Full motion only, and
-   its clean-up is a timer, not animationend (CLAUDE.md). */
+   its clean-up is a timer, not animationend (CLAUDE.md).
+
+   An answer is acted out the same way: the agent nods (✓), tilts its head
+   (?) or shakes it (✗), with the mark by its head in the answer's colour.
+   A talking card sends rings out from the emoji, like sound. */
 let actTimer = null;
+const ACT_MOVES = ['act-wiggle', 'act-jump', 'act-hush', 'act-rise', 'act-nod', 'act-tilt', 'act-shake'];
 function actOut(mode) {
   const stageEl = $('#suit-stage');
   const act = $('#suit-act');
   if (!stageEl || !act) return;
 
   act.textContent = mode.emoji;
+  act.dataset.mark = mode.mark || '';
+  act.classList.toggle('has-rings', mode.anim === 'beat');
   act.classList.remove('is-showing');
   void act.offsetWidth;                       // restart the pop
   act.classList.add('is-showing');
 
-  const moves = ['act-wiggle', 'act-jump', 'act-hush', 'act-rise'];
-  moves.forEach(c => stageEl.classList.remove(c));
+  ACT_MOVES.forEach(c => stageEl.classList.remove(c));
   if (!fullMotion() || !mode.act) return;
   void stageEl.offsetWidth;
   stageEl.classList.add('act-' + mode.act);
   clearTimeout(actTimer);
-  actTimer = setTimeout(() => moves.forEach(c => stageEl.classList.remove(c)), 1000);
+  actTimer = setTimeout(() => ACT_MOVES.forEach(c => stageEl.classList.remove(c)), 1400);
 }
 
 /* ---- the secret handshake ---- */
@@ -6375,7 +6488,7 @@ function handshakeTap(event) {
 
   handshake.taps.push(Math.round(now - handshake.start));
   lightPad();
-  playSfx('sfx-handshake-tap');
+  handshakeNote(handshake.taps.length - 1);
   paintHandshakeDots(handshake.taps, handshake.taps.length);
 
   clearTimeout(handshake.endTimer);
@@ -6415,7 +6528,7 @@ function playHandshake(isReplay) {
   saved.taps.forEach((t, i) => {
     handshake.playTimers.push(setTimeout(() => {
       lightPad();
-      playSfx('sfx-handshake-tap');
+      handshakeNote(i);
       paintHandshakeDots(saved.taps, i + 1);
     }, t));
   });
@@ -6431,6 +6544,14 @@ function stopHandshakePlayback() {
 function stopHandshake() {
   if (handshake.recording) finishHandshake();
   stopHandshakePlayback();
+}
+
+/* Each tap is the next note up a pentatonic scale, so whatever rhythm a
+   child taps comes out as a little tune (Filip, 3 November: the knock
+   "sounded like poking holes"). Playing it back plays the same tune, and
+   the big screen plays it too (display.js). */
+function handshakeNote(i) {
+  if (!state.muted) Voice.note(i);
 }
 
 function lightPad() {
@@ -6487,12 +6608,19 @@ function wireSuit() {
   $('#suit-back').addEventListener('click', suitBack);
   $('#suit-best-go').addEventListener('click', () => goSuitPhase('school', 'next'));
   $('#word-mic').addEventListener('click', recordWord);
-  // The 🔊: the part's question - or, once a secret word exists, the line
-  // that asks for a spy voice.
+  // The 🔊: the sentence for the card on screen - or the part's question,
+  // or, once a secret word exists, the line that asks for a spy voice.
   $('#suit-say').addEventListener('click', () => {
     const phase = suitUi.phase;
-    speakLine(phase === 'word' && state.agent && state.agent.secretWord
-      ? 'nar-word-voice' : SUIT_PHASES[phase].say);
+    const conf = SUIT_PHASES[phase];
+    if (state.muted) { toast('Sound is off'); return; }
+    if (conf.modes && conf.modes[suitUi.index]) {
+      sayCardSentence(phase, conf.modes[suitUi.index]);
+    } else if (phase === 'word' && state.agent && state.agent.secretWord) {
+      saySuitLine('nar-word-voice', 'Now pick a spy voice for it.');
+    } else {
+      saySuitLine(conf.say || conf.frame, conf.title);
+    }
   });
 
   $('#handshake-pad').addEventListener('pointerdown', handshakeTap);
@@ -6508,43 +6636,81 @@ function wireSuit() {
 /* ===========================================================================
    32. POWERS (v3 §7, P5) - the heart of v3
 
-   One power is the aim; up to three are allowed. The agent stands BIG in
-   the middle and does the power (Filip, 3 November), and each step has a
-   short icon heading, because a loud room cannot rely on the voice.
+   One power is the aim; up to three are allowed. The agent stands BIG on
+   the left and does the power, and each step has a short heading that is
+   also SAID, because a loud room cannot rely on the voice alone.
 
-   ✨ MAKE UP A POWER (§7.1). A blank canvas and 🎤 - nothing else. The six
-      doors are NOT EVEN BUILT until the child has drawn, recorded or tapped
-      💡 Need ideas?, and `powers_ideas_open` records whether they invented
-      first. A child who draws and then picks a card keeps the drawing as
-      that power's picture.
-   🚪 IDEAS (§7.2). Six big doors in a fixed order; each holds its family's
-      power cards plus ✏️ My own. The families are a lens for the analysis,
-      not the children's words: on screen they are plain (Time, Turns…).
-   📝 THE SENTENCE (§7.3). 🕐 When · 👥 Who · 🔌 Switch on · 🎯 So that,
-      filled in any order. Then ⚡ Power on!: the agent does the power, and
-      the sentence reads itself back card by card, each slot lighting up as
-      it is read - so it can be followed in a loud room.
+   Redesigned on 3 November 2026 after Filip tried it. The blank canvas that
+   came first left children staring at a palette ("I am not sure what the
+   point is"), and the sentence's four icons did not say what to do. Now it
+   is a game:
+
+   🚪 THE DOORS come first. Six family doors and a ✨ SECRET DOOR. A door
+      swings open like a door in a game (with a creak), and its power cards
+      are dealt face-down and flip over. The secret door is how a child
+      makes up a power of their own (draw it or say it). A power from
+      session 2, if there is one, waits as a ⏪ tile beside them (§7.4).
+      This departs from v3 §7.1 "invent first": the doors are no longer
+      locked until the child has drawn - so `inventedFirst` is null now.
+   🔋 CHARGE THE POWER. A battery under the agent, one cell per question:
+      🎛️ which devices (only for "Control school devices") · 🕐 When ·
+      👥 Who · 🔌 Switch on · 🎯 What happens then. One question at a time,
+      said aloud; each card picked sends a spark into its cell, which
+      lights up with a rising note. Then ⚡ Power on!: the cells light one
+      by one, the agent does the power, and the sentence reads itself back
+      card by card, each cell lighting as it is read.
    ⚡ MY POWERS. Fire one again, change one, remove one (two taps), or make
       another - three at most.
-   ⏪ FROM LAST TIME (§7.4). A session-2 power is offered first as a card.
+
+   The powers are about SCHOOL (Filip): "Pause my school", "Control all
+   school displays", and which devices - the bell, the lights… - so the
+   interventions the children imagine are located where they happen.
 
    Each power is saved in agent.powers as soon as it is chosen, so nothing
-   is lost if the iPad is closed half-way through a sentence.
+   is lost if the iPad is closed half-way through.
    ======================================================================== */
 
 const MAX_POWERS = 3;
+const DOOR_OPEN_MS = 1400;           // a door creaking open (style.css, door-swing)
+
+/* Suspense, like a game (Filip, 4 November): as a door creaks open the
+   narrator whispers one of these, and only then does the door say what is
+   behind it. Which one is chosen at random - it carries no meaning. */
+const DOOR_WHISPERS = [
+  ['nar-door-what', "What's behind this door?"],
+  ['nar-door-peek', "Shh… Let's take a peek."],
+  ['nar-door-creak', "It's opening… slowly…"]
+];
+
+/* Every power has a sound of its own (Filip: "Turn the classroom down" and
+   "Dim the classroom lights" made the same sound). Filip's files if they
+   exist; the generated stand-in in the asset guide's "stand-in" column if
+   not. display.js plays the same sounds on the big screen. */
+const POWER_SFX = {
+  'pow-slow-everybody': 'sfx-slow',      'pow-pause': 'sfx-freeze',
+  'pow-hold-turn': 'sfx-ticket',         'pow-warn-me': 'sfx-warn',
+  'pow-say-again': 'sfx-rewind',         'pow-turn-down': 'sfx-turn-down',
+  'pow-dim-lights': 'sfx-dim',           'pow-quiet-bubble': 'sfx-shield',
+  'pow-translator': 'sfx-translate',     'pow-my-way': 'sfx-thoughts',
+  'pow-get-me': 'sfx-ray',               'pow-control-teachers': 'sfx-remote',
+  'pow-question-swap': 'sfx-swap',       'pow-pass': 'sfx-pass',
+  'pow-invisible': 'sfx-fade',           'pow-control-displays': 'sfx-screens',
+  'pow-control-devices': 'sfx-lightning','pow-see-points': 'sfx-star',
+  'pow-change-rule': 'sfx-scroll',       'pow-speak-for-friends': 'sfx-bubbles',
+  'pow-call-ally': 'sfx-call',           'pow-team-up': 'sfx-high-five'
+};
 
 /* Every card's label and stand-in emoji are written here as well as in the
    asset guide, because the app must work with an empty assets/ folder - no
    manifest, no labels - and these screens would be blank without them. */
 const POWER_CARDS = [
   { id: 'pow-slow-everybody', emoji: '🐢', label: 'Slow everybody down' },
-  { id: 'pow-pause', emoji: '⏸️', label: 'Pause the world' },
+  { id: 'pow-pause', emoji: '⏸️', label: 'Pause my school' },
   { id: 'pow-hold-turn', emoji: '🎟️', label: 'Hold my turn' },
   { id: 'pow-warn-me', emoji: '🔔', label: 'Warn me first' },
   { id: 'pow-say-again', emoji: '🔁', label: 'Say it again' },
-  { id: 'pow-turn-down', emoji: '🔉', label: 'Turn the room down' },
-  { id: 'pow-dim-lights', emoji: '🌙', label: 'Dim the lights' },
+  { id: 'pow-turn-down', emoji: '🔉', label: 'Turn the classroom down' },
+  { id: 'pow-dim-lights', emoji: '🌙', label: 'Dim the classroom lights' },
   { id: 'pow-quiet-bubble', emoji: '🫧', label: 'Quiet bubble' },
   { id: 'pow-translator', emoji: '🔄', label: 'Translator' },
   { id: 'pow-my-way', emoji: '🌀', label: 'Everyone talks my way' },
@@ -6553,10 +6719,10 @@ const POWER_CARDS = [
   { id: 'pow-question-swap', emoji: '🔀', label: 'Question swap' },
   { id: 'pow-pass', emoji: '🛑', label: 'Pass' },
   { id: 'pow-invisible', emoji: '👻', label: 'Invisibility cloak' },
-  { id: 'pow-control-displays', emoji: '📺', label: 'Control all displays' },
-  { id: 'pow-control-devices', emoji: '🎛️', label: 'Control devices' },
+  { id: 'pow-control-displays', emoji: '📺', label: 'Control all school displays' },
+  { id: 'pow-control-devices', emoji: '🎛️', label: 'Control school devices' },
   { id: 'pow-see-points', emoji: '⭐', label: 'See my points' },
-  { id: 'pow-change-rule', emoji: '📜', label: 'Change a rule' },
+  { id: 'pow-change-rule', emoji: '📜', label: 'Change a school rule' },
   { id: 'pow-speak-for-friends', emoji: '💬', label: 'Speak for your friends' },
   { id: 'pow-call-ally', emoji: '📣', label: 'Call an ally' },
   { id: 'pow-team-up', emoji: '🤝', label: 'Team up' }
@@ -6577,6 +6743,9 @@ const POWER_DOORS = [
   { id: 'fam-together', emoji: '🤝', label: 'Together',
     powers: ['pow-speak-for-friends', 'pow-call-ally', 'pow-team-up'] }
 ];
+
+// The seventh door: behind it, the child makes up a power of their own.
+const SECRET_DOOR = { id: 'door-secret', emoji: '✨', label: 'Secret door' };
 
 // The session-2 situation ids, so power × situation can be compared across
 // sessions (§7.3).
@@ -6615,23 +6784,40 @@ const HOW_CARDS = [
   { id: 'how-button', emoji: '🔘', label: 'A button' }
 ];
 
+/* "Control school devices" - but WHICH devices (Filip, 3 November). Things
+   a school really has, several of them hard on the senses. */
+const DEVICE_CARDS = [
+  { id: 'dev-bell', emoji: '🔔', label: 'The school bell' },
+  { id: 'dev-alarm', emoji: '🚨', label: 'The fire alarm' },
+  { id: 'dev-lights', emoji: '💡', label: 'The lights' },
+  { id: 'dev-speakers', emoji: '🔊', label: 'The speakers' },
+  { id: 'dev-board', emoji: '📋', label: 'The whiteboard' },
+  { id: 'dev-computers', emoji: '💻', label: 'The computers' }
+];
+
+/* The battery's cells, in order. `only` limits a cell to one power. The
+   titles are the questions, said aloud as each cell is reached. */
 const POWER_SLOTS = [
-  { id: 'when',   icon: '🕐', title: 'When?',          say: 'nar-powers-when',
+  { id: 'devices', icon: '🎛️', title: 'Which ones does your agent control?', say: 'nar-powers-devices',
+    cards: DEVICE_CARDS, only: 'pow-control-devices' },
+  { id: 'when',   icon: '🕐', title: 'When does your agent use it?',  say: 'nar-powers-when',
     cards: SITUATION_CARDS, own: 'whenOwn', max: 3 },
-  { id: 'who',    icon: '👥', title: 'Who?',           say: 'nar-powers-who',
+  { id: 'who',    icon: '👥', title: 'Who does your power work on?',  say: 'nar-powers-who',
     cards: WHO_CARDS, own: 'whoOwn' },
-  { id: 'how',    icon: '🔌', title: 'Switch on by…',  say: 'nar-powers-how',
+  { id: 'how',    icon: '🔌', title: 'How do you switch it on?',      say: 'nar-powers-how',
     cards: HOW_CARDS, own: 'howOwn' },
-  { id: 'sothat', icon: '🎯', title: 'So that…',       say: 'nar-powers-sothat' }
+  { id: 'sothat', icon: '🎯', title: 'What happens then?',            say: 'nar-powers-then' }
 ];
 
 const powersUi = {
-  phase: 'make',
+  phase: 'doors',
   index: null,       // which agent.powers entry is being worked on
-  draft: null,       // the ✨ step before a power exists (newPowerDraft)
-  door: null,        // the open door's id, or null for all six
+  door: null,        // the open door's id, or null for all of them
   slot: 'when',
-  busy: false        // true while a power plays and reads itself back
+  busy: false,       // true while a power plays and reads itself back
+  opening: false,    // true while a door swings open
+  dealNext: false,   // deal the cards on the next paint (a door or a question)
+  chargedFor: null   // the power whose battery has said "Fully charged!"
 };
 let powersTimers = [];
 
@@ -6639,6 +6825,14 @@ function powerCard(id) { return POWER_CARDS.find(c => c.id === id) || null; }
 function currentPower() {
   return powersUi.index === null ? null : (state.agent.powers[powersUi.index] || null);
 }
+/* The cells this power's battery has: devices only for "Control devices". */
+function slotsFor(p) {
+  return POWER_SLOTS.filter(s => !s.only || (p && s.only === p.power));
+}
+function slotById(id) { return POWER_SLOTS.find(s => s.id === id); }
+/* A slot's own cards - and an empty list for a slot that has none. */
+function ownList(p, slot) { return slot.own ? (p[slot.own] || []) : []; }
+
 /* A session-2 power is anything the child made on the Power-up: a drawing,
    a recording - or only an effect, which many children chose on its own. */
 function hasV2Power(agent) {
@@ -6668,7 +6862,7 @@ function enterPowers() {
   renderAgentView($('#powers-stage'), state.agent.cover, false);
   clearPowerFx();
   if (state.agent.powers.some(p => p.power)) startPowersPhase('mine');
-  else newPowerDraft();
+  else newPower();
 }
 
 /* Called by leaveCurrent(): no prop, timer or read-back follows the child
@@ -6678,172 +6872,72 @@ function stopPowers() {
   powersTimers = [];
   clearTimeout(powerFxTimer);
   powersUi.busy = false;
+  powersUi.opening = false;
   const panel = $('[data-mission="powers"]');
   if (panel) panel.classList.remove('is-busy');
   clearPowerFx();
 }
 
-/* A fresh ✨ step: a blank canvas, no recording, the doors locked again. */
-function newPowerDraft() {
+/* A fresh start: the doors, all shut. Nothing is saved until a power is
+   chosen. */
+function newPower() {
   if (state.agent.powers.length >= MAX_POWERS) { startPowersPhase('mine'); return; }
   powersUi.index = null;
   powersUi.door = null;
-  powersUi.draft = { drawn: false, audioId: null, ideasOpen: false, inventedFirst: null };
-  usePowersBrush();
-  coder.undoStack = [];
-  clearCodeCanvas();
-  startPowersPhase('make');
-}
-
-/* Point the shared brush at this screen's canvas. The ✏️ sheet borrows the
-   brush, so this runs every time the ✨ step is shown. */
-function usePowersBrush() {
-  coder.canvas = $('#powers-canvas');
-  coder.colour = coder.colour || CODE_COLOURS[0];
-  coder.width = 12;
-  coder.mirror = false;
-  coder.onStroke = onPowersStroke;
-  paintCodePalette('#powers-palette');
+  startPowersPhase('doors');
+  // A whispered welcome to the doors, the way a game sets a scene.
+  sayPowersLine('nar-powers-doors', 'Secret doors… Each one hides a power.');
 }
 
 function startPowersPhase(phase) {
   powersUi.phase = phase;
-  if (phase === 'make') {
-    if (!powersUi.draft) powersUi.draft = { drawn: false, audioId: null, ideasOpen: false, inventedFirst: null };
-    usePowersBrush();
-  }
   paintPowers();
 }
 
 function goPowersPhase(phase, how) {
   if (powersUi.busy || phase === powersUi.phase) return;
-  if (phase === 'doors') { openIdeas(); return; }
   logEvent('powers_phase', { to: phase, how: how });
+  if (phase === 'doors') powersUi.door = null;
+  if (phase === 'sentence') { arriveAtSlot(firstOpenSlot(currentPower())); return; }
   startPowersPhase(phase);
-}
-
-/* The doors unlock once the child has invented something or asked. */
-function doorsUnlocked() {
-  const d = powersUi.draft;
-  return Boolean(currentPower()) || Boolean(d && (d.drawn || d.audioId || d.ideasOpen));
 }
 
 function paintPowers() {
   const phase = powersUi.phase;
   const p = currentPower();
   const tab = name => $('[data-powers-phase="' + name + '"]');
-  tab('doors').hidden = !doorsUnlocked();
   tab('sentence').hidden = !(p && p.power);
   tab('mine').hidden = !state.agent.powers.some(x => x.power);
   $$('[data-powers-phase]').forEach(b =>
     b.classList.toggle('is-on', b.dataset.powersPhase === phase));
 
-  ['make', 'doors', 'sentence', 'mine'].forEach(name => {
+  ['doors', 'sentence', 'mine'].forEach(name => {
     $('#powers-' + name).hidden = name !== phase;
   });
 
-  let title = 'Make up a power';
+  let title = 'Pick a door';
   if (phase === 'doors') {
     const door = POWER_DOORS.find(d => d.id === powersUi.door);
-    title = door ? door.label : 'Pick a door';
+    if (door) title = door.label;
   }
-  if (phase === 'sentence') title = POWER_SLOTS.find(s => s.id === powersUi.slot).title;
+  if (phase === 'sentence') title = slotById(powersUi.slot).title;
   if (phase === 'mine') title = 'My powers';
   $('#powers-title').textContent = title;
 
-  if (phase === 'make') paintPowersMake();
+  paintBattery();
   if (phase === 'doors') paintDoors();
   if (phase === 'sentence') paintSentence();
   if (phase === 'mine') paintShelf();
+  updateFades();
 }
 
-/* ---- ✨ make up a power ---- */
-
-function paintPowersMake() {
-  const d = powersUi.draft;
-  const mic = $('#powers-mic');
-  mic.classList.toggle('has-clip', Boolean(d.audioId));
-  $('#powers-mine-go').hidden = !(powersCanvasHasInk() || d.audioId);
-
-  // ⏪ A power from session 2 comes first, as a card (§7.4) - unless it is
-  // already one of this agent's powers.
-  const box = $('#powers-lasttime');
-  box.innerHTML = '';
-  if (hasV2Power(state.agent) && !state.agent.powers.some(x => x.power === 'v2')) {
-    const v2 = state.agent.powerup.power;
-    const tile = document.createElement('button');
-    tile.className = 'when-own';
-    tile.innerHTML = (v2.png
-        ? '<img class="own-card-thumb" alt="" src="' + v2.png + '">'
-        : '<span class="when-own-icon">' + (v2.audioId ? '🎤' : '⚡') + '</span>') +
-      '<span class="when-own-label">⏪ From last time</span>';
-    tile.setAttribute('aria-label', 'Your power from last time');
-    tile.addEventListener('click', chooseLastTime);
-    box.appendChild(tile);
-  }
+/* A line of narration, with its words as the stand-in. */
+function sayPowersLine(id, text) {
+  if (state.muted || !id) return;
+  Assets.say(id, { text: text });
 }
 
-/* Does the ✨ canvas have any ink? The shared canvasHasInk() looks at
-   whichever canvas the brush is on, which may be the ✏️ sheet's. */
-function powersCanvasHasInk() {
-  const canvas = $('#powers-canvas');
-  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-  for (let i = 3; i < data.length; i += 16) {
-    if (data[i] > 0) return true;
-  }
-  return false;
-}
-
-function onPowersStroke() {
-  const d = powersUi.draft;
-  if (d && !d.drawn) {
-    d.drawn = true;
-    logEvent('powers_draw', {});      // the first stroke of this power
-  }
-  paintPowers();
-}
-
-async function recordPowerVoice() {
-  Voice.unlock();
-  if (Voice.isRecording()) { Voice.stop(); return; }
-  if (!Voice.canRecord()) { toast('This iPad cannot record'); return; }
-  const mic = $('#powers-mic');
-  mic.classList.add('is-recording');
-  try {
-    const result = await Voice.record({ maxMs: 10000, onTick: () => {} });
-    const id = uuid();
-    await Storage.saveAudio(id, result.blob);
-    const d = powersUi.draft;
-    // A clip no power has taken yet is replaced, not kept as well.
-    if (d.audioId && !state.agent.powers.some(x => x.own && x.own.audioId === d.audioId)) {
-      Voice.forget(d.audioId);
-      await Storage.deleteAudio(d.audioId);
-    }
-    d.audioId = id;
-    logEvent('powers_record', { ms: Math.round(result.ms) });
-  } catch (err) {
-    toast('The microphone did not work');
-  }
-  mic.classList.remove('is-recording');
-  paintPowers();
-}
-
-/* 💡 Need ideas? - or the 🚪 button. `inventedFirst` is settled the first
-   time: did the child draw or say something before seeing any cards? */
-function openIdeas() {
-  const d = powersUi.draft;
-  if (d && !d.ideasOpen) {
-    d.ideasOpen = true;
-    d.inventedFirst = d.drawn || Boolean(d.audioId);
-    logEvent('powers_ideas_open', { inventedFirst: d.inventedFirst });
-  } else {
-    logEvent('powers_phase', { to: 'doors', how: 'tab' });
-  }
-  powersUi.door = null;
-  startPowersPhase('doors');
-}
-
-/* ---- 🚪 the six doors ---- */
+/* ---- 🚪 the doors ---- */
 
 function paintDoors() {
   const grid = $('#powers-door-grid');
@@ -6854,53 +6948,112 @@ function paintDoors() {
   grid.hidden = Boolean(door);
   cards.hidden = !door;
   $('#powers-door-back').hidden = !door;
+  // With all the doors showing there are no buttons under them, and an
+  // empty row still took a gap's worth of the doors' room.
+  $('#powers-doors .powers-door-tools').hidden = !door;
   const p = currentPower();
-  $('#powers-chosen-go').hidden = !(p && p.power);
+  $('#powers-chosen-go').hidden = !(p && p.power && door);
+  // Cards are dealt when the door opens - not again on every repaint.
+  const deal = powersUi.dealNext;
+  powersUi.dealNext = false;
 
   if (!door) {
-    POWER_DOORS.forEach(d => {
+    POWER_DOORS.concat([SECRET_DOOR]).forEach(d => {
       const card = Assets.card(d.id, { fallback: d.emoji, label: d.label });
-      card.addEventListener('click', () => openDoor(d));
+      card.classList.add('door-card');
+      if (d === SECRET_DOOR) card.classList.add('is-secret');
+      card.addEventListener('click', () => openDoor(d, card));
       grid.appendChild(card);
     });
+    // ⏪ A power from session 2 waits beside the doors (§7.4) - unless it
+    // is already one of this agent's powers.
+    if (hasV2Power(state.agent) && !state.agent.powers.some(x => x.power === 'v2')) {
+      const v2 = state.agent.powerup.power;
+      const tile = document.createElement('button');
+      tile.className = 'when-own door-lasttime';
+      tile.innerHTML = (v2.png
+          ? '<img class="own-card-thumb" alt="" src="' + v2.png + '">'
+          : '<span class="when-own-icon">' + (v2.audioId ? '🎤' : '⚡') + '</span>') +
+        '<span class="when-own-label">⏪ Last time</span>';
+      tile.setAttribute('aria-label', 'Your power from last time');
+      tile.addEventListener('click', chooseLastTime);
+      grid.appendChild(tile);
+    }
     return;
   }
 
-  door.powers.forEach(id => {
-    cards.appendChild(modeCard(powerCard(id), Boolean(p && p.power === id),
-                               () => choosePower(id)));
+  // Behind the door: its cards, dealt face-down and flipped over one by
+  // one - the mystery of what is behind it (Full motion only).
+  door.powers.forEach((id, i) => {
+    const card = modeCard(powerCard(id), Boolean(p && p.power === id), () => choosePower(id));
+    if (deal) dealCard(card, i);
+    cards.appendChild(card);
   });
-  cards.appendChild(ownCardButton(() => openOwnCard({
-    title: 'Make up a power',
-    say: 'nar-powers-make',
-    onKeep: card => chooseOwnPower(card)
-  })));
 }
 
-function openDoor(door) {
-  powersUi.door = door.id;
-  logEvent('powers_door_open', { family: door.id });
+/* Deal a card: it arrives face-down and flips over, `i` cards after the
+   first. Only once, as it arrives - repainting must not deal it again. */
+function dealCard(card, i) {
+  if (!fullMotion()) return;
+  card.classList.add('is-dealing');
+  card.style.setProperty('--deal-delay', (i * 140) + 'ms');
+  powersTimers.push(setTimeout(() => card.classList.remove('is-dealing'), 950 + i * 140));
+}
+
+/* A door creaks open like a door in a game: it rattles, then swings slowly
+   on its hinge with light spilling out, while the narrator whispers. Only
+   when the door is open AND the whisper has finished does the door say what
+   is behind it - Filip: "suspenseful is a good thing". The wait is made of
+   pause() timers, so leaving the screen (stopPowers) simply stops it. */
+async function openDoor(door, card) {
+  if (powersUi.opening || powersUi.busy) return;
+  powersUi.opening = true;
   playSfx('sfx-door-open');
-  speakLine('nar-' + door.id);
+  if (fullMotion()) card.classList.add('is-opening');
+  logEvent(door === SECRET_DOOR ? 'powers_secret_open' : 'powers_door_open',
+           door === SECRET_DOOR ? {} : { family: door.id });
+
+  const whisper = door === SECRET_DOOR
+    ? ['nar-door-secret', 'The secret door… What will you make?']
+    : DOOR_WHISPERS[Math.floor(Math.random() * DOOR_WHISPERS.length)];
+  await Promise.all([
+    pause(fullMotion() ? DOOR_OPEN_MS : 300),
+    Assets.sayAndWait(whisper[0], { text: whisper[1], muted: state.muted, maxMs: 4000 })
+  ]);
+  if (!powersUi.opening) return;              // the child left meanwhile
+  powersUi.opening = false;
+
+  if (door === SECRET_DOOR) {
+    card.classList.remove('is-opening');
+    openOwnCard({
+      title: 'Make up a power',
+      say: 'nar-powers-make',
+      onKeep: kept => chooseOwnPower(kept)
+    });
+    return;
+  }
+  powersUi.door = door.id;
+  powersUi.dealNext = true;
   paintPowers();
+  // The door introduces itself: "The Time door! Powers to stop, slow and
+  // save time." The bare names (nar-fam-…) are no longer played.
+  sayPowersLine(doorIntroId(door), door.label + '.');
 }
 
-/* The drawing on the ✨ canvas, if there is one. */
-function powersCanvasPng() {
-  return powersCanvasHasInk() ? $('#powers-canvas').toDataURL('image/png') : null;
-}
+function doorIntroId(door) { return 'nar-door-' + door.id.replace(/^fam-/, ''); }
 
 /* The power being worked on, made the first time something is chosen. */
 function ensurePower() {
   let p = currentPower();
   if (p) return p;
-  const d = powersUi.draft || {};
   p = {
     id: uuid().slice(0, 8),
     power: null,
     own: { png: null, audioId: null },
-    // Never opened the ideas = invented first.
-    inventedFirst: d.ideasOpen ? Boolean(d.inventedFirst) : true,
+    /* v3 §7.1 asked whether a child invented before seeing the ideas. Since
+       3 November the doors come first, so the question cannot arise. */
+    inventedFirst: null,
+    devices: [],
     when: [], whenOwn: [], who: [], whoOwn: [], how: [], howOwn: [],
     soThat: null,
     skipped: [],
@@ -6911,108 +7064,176 @@ function ensurePower() {
   return p;
 }
 
-/* A card from a door. Whatever the child drew or said first stays with it
-   as its picture (§7.1). */
+/* A card from a door: the agent does it straight away, and ✓ This one
+   carries on to charging it. */
 function choosePower(id) {
   if (powersUi.busy) return;
   const p = ensurePower();
   p.power = id;
-  p.own = { png: powersCanvasPng(), audioId: (powersUi.draft && powersUi.draft.audioId) || null };
+  if (id === 'pow-control-devices' && !p.devices) p.devices = [];
   logEvent('powers_choose', { power: id });
-  speakLabel(id);
+  sayPowerStory(id);
   playPower(p);
   paintPowers();
   scheduleSave();
 }
 
-/* ✓ My power on the ✨ step, or ✏️ My own inside a door. */
+/* Tapping a power card: the narrator tells the power as a tiny story -
+   "Pause my school! Freeze! Nobody moves. Not even the teachers." The
+   card's words stay short; the voice goes further (Filip, 4 November).
+   Every story has the same warmth: it says what the power DOES and never
+   judges the choice (v3 §17: no reactions to what a child chose). Logged
+   as the card speaking, like any label. The read-back after ⚡ Power on!
+   still uses the short label line. */
+function sayPowerStory(id) {
+  if (state.muted) return;
+  logEvent('label_speak', { id: id });
+  const card = powerCard(id);
+  Assets.say(storyId(id), { text: card ? card.label + '!' : '' });
+}
+
+/* The same for a card in a battery question - "Too loud! When school gets
+   noisy, the power kicks in." It resolves when the story has been told, so
+   anything that follows (a secret word) does not talk over it. */
+function sayCardStory(card) {
+  if (state.muted) return Promise.resolve();
+  logEvent('label_speak', { id: card.id });
+  return Assets.sayAndWait(storyId(card.id), { text: card.label + '!', maxMs: 8000 });
+}
+
+/* A card's story line: `nar-story-` and its id (a power without "pow-"). */
+function storyId(id) { return 'nar-story-' + id.replace(/^pow-/, ''); }
+
+/* ✨ Behind the secret door: the child's own power, drawn or said. */
 function chooseOwnPower(card) {
   const p = ensurePower();
   p.power = 'own';
-  p.own = card || { png: powersCanvasPng(), audioId: powersUi.draft.audioId };
+  p.own = { png: card.png || null, audioId: card.audioId || null };
   logEvent('powers_choose', { power: 'own', drawn: Boolean(p.own.png), said: Boolean(p.own.audioId) });
   playPower(p);
-  powersUi.slot = 'when';
-  startPowersPhase('sentence');
   scheduleSave();
+  arriveAtSlot(firstOpenSlot(p));
 }
 
 /* ⏪ From last time (§7.4). The session-2 drawing and recording are used,
    never copied or moved: they still belong to powerup.power. */
 function chooseLastTime() {
+  if (powersUi.busy) return;
   const v2 = state.agent.powerup.power;
   const p = ensurePower();
   p.power = 'v2';
   p.own = { png: v2.png || null, audioId: v2.audioId || null };
   logEvent('powers_choose', { power: 'v2' });
   playPower(p);
-  powersUi.slot = 'when';
-  startPowersPhase('sentence');
   scheduleSave();
+  arriveAtSlot(firstOpenSlot(p));
 }
 
-/* ---- 📝 the sentence ---- */
+/* ---- 🔋 charging the power ---- */
 
 function slotEmpty(p, slotId) {
   if (slotId === 'sothat') return !p.soThat;
-  const slot = POWER_SLOTS.find(s => s.id === slotId);
-  return p[slotId].length === 0 && p[slot.own].length === 0;
+  const slot = slotById(slotId);
+  return (p[slotId] || []).length === 0 && ownList(p, slot).length === 0;
 }
 
-/* The little picture of what is in a slot: up to three emoji, ✏️ for own. */
+/* Where to start charging: the first empty cell, or the first cell. */
+function firstOpenSlot(p) {
+  const slots = slotsFor(p);
+  const open = slots.find(s => slotEmpty(p, s.id));
+  return (open || slots[0]).id;
+}
+
+/* The little picture of what is in a cell: up to three emoji, ✏️ for own. */
 function slotFill(p, slot) {
   if (slot.id === 'sothat') return p.soThat ? '✏️' : '';
-  const emojis = p[slot.id].map(id => (slot.cards.find(c => c.id === id) || {}).emoji || '•');
-  p[slot.own].forEach(() => emojis.push('✏️'));
+  const emojis = (p[slot.id] || []).map(id => (slot.cards.find(c => c.id === id) || {}).emoji || '•');
+  ownList(p, slot).forEach(() => emojis.push('✏️'));
   return emojis.slice(0, 3).join('') + (emojis.length > 3 ? '…' : '');
+}
+
+/* Arrive at a question: the cell lights as "here", the cards are dealt,
+   and the question is said - every time, so it never depends on reading. */
+function arriveAtSlot(slotId) {
+  powersUi.slot = slotId;
+  powersUi.dealNext = true;
+  startPowersPhase('sentence');
+  const slot = slotById(slotId);
+  sayPowersLine(slot.say, slot.title);
+}
+
+/* The battery under the agent: one cell per question, and a cap that
+   glows once every cell has something in it. Shown only while charging. */
+function paintBattery() {
+  const battery = $('#powers-battery');
+  const p = currentPower();
+  const show = powersUi.phase === 'sentence' && p && p.power;
+  battery.hidden = !show;
+  if (!show) return;
+  const cells = $('#powers-cells');
+  cells.innerHTML = '';
+  const slots = slotsFor(p);
+  slots.forEach(slot => {
+    const b = document.createElement('button');
+    b.className = 'battery-cell' +
+      (slot.id === powersUi.slot ? ' is-here' : '') +
+      (slotEmpty(p, slot.id) ? '' : ' is-full');
+    b.dataset.slot = slot.id;
+    b.setAttribute('aria-label', slot.title);
+    b.innerHTML = '<span class="cell-icon">' + slot.icon + '</span>' +
+                  '<span class="cell-fill">' + slotFill(p, slot) + '</span>';
+    b.addEventListener('click', () => goSlot(slot.id, 'tab'));
+    cells.appendChild(b);
+  });
+  battery.classList.toggle('is-charged', slots.every(s => !slotEmpty(p, s.id)));
 }
 
 function paintSentence() {
   const p = currentPower();
   if (!p) return;
-  const strip = $('#powers-slots');
-  strip.innerHTML = '';
-  POWER_SLOTS.forEach(slot => {
-    const b = document.createElement('button');
-    b.className = 'btn powers-slot' + (slot.id === powersUi.slot ? ' is-here' : '');
-    b.dataset.slot = slot.id;
-    b.setAttribute('aria-label', slot.title);
-    b.innerHTML = '<span class="slot-icon">' + slot.icon + '</span>' +
-                  '<span class="slot-fill">' + slotFill(p, slot) + '</span>';
-    b.addEventListener('click', () => goSlot(slot.id, 'tab'));
-    strip.appendChild(b);
-  });
-
-  const slot = POWER_SLOTS.find(s => s.id === powersUi.slot);
+  const slot = slotById(powersUi.slot);
   const box = $('#powers-slot-cards');
   box.innerHTML = '';
+  // Cards are dealt when a question is arrived at - not on every repaint.
+  const deal = powersUi.dealNext;
+  powersUi.dealNext = false;
 
   if (slot.id === 'sothat') {
     if (p.soThat) {
       box.appendChild(ownCardTile(p.soThat, 'sothat-' + p.id,
         () => removeSoThat(), () => paintSentence()));
     } else {
-      box.appendChild(ownCardButton(() => openOwnCard({
-        title: 'So that…',
-        say: 'nar-powers-sothat',
+      // One big button: draw it, or say it.
+      const make = document.createElement('button');
+      make.className = 'when-own powers-then';
+      make.setAttribute('aria-label', 'Draw it or say it');
+      make.innerHTML = '<span class="when-own-icon">✏️ 🎤</span>' +
+                       '<span class="when-own-label">Draw it or say it</span>';
+      make.addEventListener('click', () => openOwnCard({
+        title: slot.title,
+        say: slot.say,
         onKeep: card => {
           p.soThat = card;
           noteSlotOrder(p, 'sothat');
           logEvent('powers_sothat', { drawn: Boolean(card.png), said: Boolean(card.audioId) });
-          paintSentence();
+          chargeCell('sothat', null);
+          paintPowers();
           scheduleSave();
         }
-      })));
+      }));
+      box.appendChild(make);
     }
   } else {
-    const full = slot.max && p[slot.id].length + p[slot.own].length >= slot.max;
-    slot.cards.forEach(card => {
-      const on = p[slot.id].indexOf(card.id) !== -1;
-      const button = modeCard(card, on, () => toggleSlotCard(slot, card));
+    const list = p[slot.id] || [];
+    const full = slot.max && list.length + ownList(p, slot).length >= slot.max;
+    slot.cards.forEach((card, i) => {
+      const on = list.indexOf(card.id) !== -1;
+      const button = modeCard(card, on, () => toggleSlotCard(slot, card, button));
       if (full && !on) button.classList.add('is-full');
+      if (deal) dealCard(button, i);
       box.appendChild(button);
     });
-    if (!full) {
+    if (slot.own && !full) {
       box.appendChild(ownCardButton(() => openOwnCard({
         title: slot.title,
         say: slot.say,
@@ -7021,18 +7242,26 @@ function paintSentence() {
           noteSlotOrder(p, slot.id);
           logEvent('powers_slot', { slot: slot.id, value: 'own', on: true,
                                     drawn: Boolean(card.png), said: Boolean(card.audioId) });
-          paintSentence();
+          chargeCell(slot.id, null);
+          paintPowers();
           scheduleSave();
         }
       })));
     }
-    p[slot.own].forEach((card, i) => {
+    ownList(p, slot).forEach((card, i) => {
       box.appendChild(ownCardTile(card, slot.id + '-' + p.id + '-' + i,
         () => removeSlotOwn(slot, i), () => paintSentence()));
     });
   }
 
-  $('#powers-slot-next').hidden = slot.id === 'sothat';
+  // ➡️ to the next question - it glows once this one has an answer. On the
+  // last question ⚡ Power on! takes over, glowing.
+  const slots = slotsFor(p);
+  const last = slots[slots.length - 1].id === slot.id;
+  const next = $('#powers-slot-next');
+  next.hidden = last;
+  next.classList.toggle('is-ready', !slotEmpty(p, slot.id));
+  $('#powers-fire').classList.toggle('is-ready', last || slots.every(s => !slotEmpty(p, s.id)));
 }
 
 /* `order` keeps the order in which the slots were first filled (§10). */
@@ -7041,36 +7270,93 @@ function noteSlotOrder(p, slotId) {
 }
 
 function goSlot(slotId, how) {
-  if (powersUi.busy || slotId === powersUi.slot) return;
-  powersUi.slot = slotId;
+  if (powersUi.busy || (slotId === powersUi.slot && powersUi.phase === 'sentence')) return;
   logEvent('powers_slot_open', { slot: slotId, how: how });
-  paintPowers();
+  arriveAtSlot(slotId);
 }
 
-/* ➡️ on a slot. Going on from an EMPTY slot is a skip, and is logged. */
+/* ➡️ on a question. Going on from an EMPTY one is a skip, and is logged. */
 function nextSlot() {
   const p = currentPower();
-  const at = POWER_SLOTS.findIndex(s => s.id === powersUi.slot);
-  if (p && slotEmpty(p, powersUi.slot)) logEvent('powers_slot_skip', { slot: powersUi.slot });
-  const next = POWER_SLOTS[at + 1];
+  if (!p || powersUi.busy) return;
+  const slots = slotsFor(p);
+  const at = slots.findIndex(s => s.id === powersUi.slot);
+  if (slotEmpty(p, powersUi.slot)) logEvent('powers_slot_skip', { slot: powersUi.slot });
+  const next = slots[at + 1];
   if (next) goSlot(next.id, 'next');
 }
 
-function toggleSlotCard(slot, card) {
+/* A spark flies from what was tapped into its cell in the battery, and the
+   cell lights with a note - higher for each cell, so a battery filling up
+   SOUNDS like it is filling up. */
+function chargeCell(slotId, fromEl) {
+  const p = currentPower();
+  const at = slotsFor(p).findIndex(s => s.id === slotId);
+  playNotes([Math.max(0, at) + 2, Math.max(0, at) + 4], 120);
+  announceCharged(p);
+  const cell = () => $('#powers-cells [data-slot="' + slotId + '"]');
+  if (!fullMotion()) return;
+  if (fromEl) flySpark(fromEl, cell());
+  powersTimers.push(setTimeout(() => {
+    const c = cell();
+    if (!c) return;
+    c.classList.remove('is-charging');
+    void c.offsetWidth;
+    c.classList.add('is-charging');
+  }, fromEl ? SPARK_MS : 0));
+}
+
+/* The moment every cell has something in it, the battery is full: a
+   rising run of notes and "Fully charged! Press Power on!" - once per
+   power, and a moment later, so the card's own label is heard first. */
+function announceCharged(p) {
+  const full = slotsFor(p).every(s => !slotEmpty(p, s.id));
+  if (!full) { if (powersUi.chargedFor === p.id) powersUi.chargedFor = null; return; }
+  if (powersUi.chargedFor === p.id) return;
+  powersUi.chargedFor = p.id;
+  powersTimers.push(setTimeout(() => {
+    playNotes([2, 4, 5, 7, 9], 110);
+    sayPowersLine('nar-powers-charged', 'Fully charged! Press Power on!');
+  }, 1300));
+}
+
+/* A ⚡ that flies across the screen from one element to another. It lives
+   on <body> for its flight and removes itself when it lands, whatever
+   screen the child is on by then. */
+function flySpark(fromEl, toEl, content) {
+  if (!fromEl || !toEl || !fullMotion()) return;
+  const a = fromEl.getBoundingClientRect();
+  const b = toEl.getBoundingClientRect();
+  const spark = document.createElement('span');
+  spark.className = 'fly-spark';
+  spark.textContent = content || '⚡';
+  spark.style.left = (a.left + a.width / 2) + 'px';
+  spark.style.top = (a.top + a.height / 2) + 'px';
+  document.body.appendChild(spark);
+  void spark.offsetWidth;
+  spark.style.transform = 'translate(' + (b.left + b.width / 2 - a.left - a.width / 2) + 'px,' +
+                          (b.top + b.height / 2 - a.top - a.height / 2) + 'px) scale(.6)';
+  setTimeout(() => spark.remove(), SPARK_MS + 50);
+}
+const SPARK_MS = 600;                // a spark's flight (style.css, .fly-spark)
+
+function toggleSlotCard(slot, card, button) {
   if (powersUi.busy) return;
   const p = currentPower();
+  if (!p[slot.id]) p[slot.id] = [];
   const list = p[slot.id];
   const at = list.indexOf(card.id);
   const on = at === -1;
-  if (on && slot.max && list.length + p[slot.own].length >= slot.max) return;  // §7.3: up to 3
+  if (on && slot.max && list.length + ownList(p, slot).length >= slot.max) return;  // §7.3: up to 3
 
   if (on) list.push(card.id);
   else list.splice(at, 1);
   if (on) noteSlotOrder(p, slot.id);
   logEvent('powers_slot', { slot: slot.id, value: card.id, on: on });
-  if (on) speakLabel(card.id);
-  playSfx('sfx-pop');
-  paintSentence();
+  const told = on ? sayCardStory(card) : null;
+  if (on) chargeCell(slot.id, button);
+  else playSfx('sfx-pop');
+  paintPowers();
   scheduleSave();
 
   if (!on) return;
@@ -7078,10 +7364,15 @@ function toggleSlotCard(slot, card) {
   // where a child taps one (or hears the one they have). 🗣️ plays the
   // agent's own secret word, if it made one in "How my agent talks".
   if (card.id === 'how-handshake') {
-    openHandshakeSheet(() => paintSentence());
+    openHandshakeSheet(() => paintPowers());
     if (state.agent.handshake) playHandshake(false);
   }
-  if (card.id === 'how-word') playSecretWord();
+  // The secret word plays once its card's story has been told.
+  if (card.id === 'how-word') {
+    told.then(() => { if (powersUi.phase === 'sentence' && !powersUi.busy) playSecretWord(); });
+  }
+  // The devices light up on the stage as they are picked.
+  if (slot.id === 'devices') playPower(p);
 }
 
 async function removeSlotOwn(slot, index) {
@@ -7091,7 +7382,7 @@ async function removeSlotOwn(slot, index) {
   if (card.audioId) { Voice.forget(card.audioId); await Storage.deleteAudio(card.audioId); }
   p[slot.own].splice(index, 1);
   logEvent('powers_slot', { slot: slot.id, value: 'own', on: false });
-  paintSentence();
+  paintPowers();
   scheduleSave();
 }
 
@@ -7101,7 +7392,7 @@ async function removeSoThat() {
   if (p.soThat.audioId) { Voice.forget(p.soThat.audioId); await Storage.deleteAudio(p.soThat.audioId); }
   p.soThat = null;
   logEvent('powers_sothat_remove', {});
-  paintSentence();
+  paintPowers();
   scheduleSave();
 }
 
@@ -7115,17 +7406,19 @@ async function playSecretWord() {
 
 /* ---- ⚡ power on! ---- */
 
-/* The power plays on the agent, then the sentence reads itself back: the
-   power, then each slot in the strip's order, each card by its own
-   recorded line - and each slot lights up as it is read. */
+/* The battery lights up cell by cell, the power plays on the agent, and
+   the sentence reads itself back: the power, then each cell in order, each
+   card by its own recorded line - and each cell lights as it is read. */
 async function firePower(index) {
   if (powersUi.busy) return;
   const p = state.agent.powers[index];
   if (!p || !p.power) return;
+  powersUi.index = index;
 
   // §10: the sentence is saved with its skipped slots listed - every slot
   // still empty when the power is switched on.
-  p.skipped = POWER_SLOTS.filter(s => slotEmpty(p, s.id)).map(s => s.id);
+  const slots = slotsFor(p);
+  p.skipped = slots.filter(s => slotEmpty(p, s.id)).map(s => s.id);
   logEvent('powers_fire', { index: index });
   scheduleSave();
 
@@ -7134,17 +7427,30 @@ async function firePower(index) {
   panel.classList.add('is-busy');
   Voice.unlock();
 
-  await Promise.all([sayAndPause('nar-powers-fire'), playPower(p)]);
+  // Show the battery for the read-back, even when fired from My powers.
+  powersUi.phase = 'sentence';
+  paintPowers();
+
+  // Charging up: each cell lights in turn, each a note higher.
+  for (let i = 0; i < slots.length; i++) {
+    if (!powersUi.busy) return;
+    markReading(slots[i].id, true);
+    playNotes([i + 2]);
+    await pause(240);
+  }
+  slots.forEach(s => markReading(s.id, false));
+
+  await Promise.all([sayAndPause('nar-powers-fire', 'Power on!'), playPower(p)]);
   if (!powersUi.busy) return;                       // the child left
 
   // The power itself: its own line, or the child's own recording.
   if (p.own && p.own.audioId && (p.power === 'own' || p.power === 'v2')) {
     await playOwnClip(p.own.audioId);
   } else if (p.power !== 'own' && p.power !== 'v2') {
-    await sayAndPause('nar-' + p.power);
+    await sayAndPause('nar-' + p.power, powerLabel(p) + '.');
   }
 
-  for (const slot of POWER_SLOTS) {
+  for (const slot of slots) {
     if (!powersUi.busy) return;
     if (slotEmpty(p, slot.id)) continue;
     markReading(slot.id, true);
@@ -7152,8 +7458,11 @@ async function firePower(index) {
       if (p.soThat.audioId) await playOwnClip(p.soThat.audioId);
       else await pause(900);
     } else {
-      for (const id of p[slot.id]) await sayAndPause('nar-' + id);
-      for (const card of p[slot.own]) {
+      for (const id of p[slot.id]) {
+        const card = slot.cards.find(c => c.id === id);
+        await sayAndPause('nar-' + id, card ? card.label + '.' : '');
+      }
+      for (const card of ownList(p, slot)) {
         if (card.audioId) await playOwnClip(card.audioId);
         else await pause(700);
       }
@@ -7164,13 +7473,14 @@ async function firePower(index) {
   powersUi.busy = false;
   panel.classList.remove('is-busy');
   startPowersPhase('mine');
+  sayPowersLine('nar-powers-more', 'Make another power, or Stamp it.');
 }
 
 /* A recorded line, and never less than a moment - so with the sound off a
-   read-back still steps through the slots at a pace a child can follow. */
-function sayAndPause(id) {
+   read-back still steps through the cells at a pace a child can follow. */
+function sayAndPause(id, text) {
   return Promise.all([
-    Assets.sayAndWait(id, { muted: state.muted }),
+    Assets.sayAndWait(id, { muted: state.muted, text: text }),
     pause(700)
   ]);
 }
@@ -7187,7 +7497,7 @@ async function playOwnClip(audioId) {
 }
 
 function markReading(slotId, on) {
-  const b = $('#powers-slots [data-slot="' + slotId + '"]');
+  const b = $('#powers-cells [data-slot="' + slotId + '"]');
   if (b) b.classList.toggle('is-reading', on);
 }
 
@@ -7203,7 +7513,7 @@ function paintShelf() {
     const art = p.own && p.own.png && (p.power === 'own' || p.power === 'v2')
       ? '<img alt="" src="' + p.own.png + '">'
       : powerEmoji(p);
-    const strip = POWER_SLOTS.map(s => slotFill(p, s)).join(' ');
+    const strip = slotsFor(p).map(s => slotFill(p, s)).join(' ');
     card.innerHTML =
       '<div class="power-kept-art">' + art + '</div>' +
       '<div class="power-kept-label"></div>' +
@@ -7216,16 +7526,15 @@ function paintShelf() {
     fire.className = 'btn';
     fire.setAttribute('aria-label', 'Power on');
     fire.textContent = '⚡';
-    fire.addEventListener('click', () => { powersUi.index = index; firePower(index); });
+    fire.addEventListener('click', () => firePower(index));
     const edit = document.createElement('button');
     edit.className = 'btn';
     edit.setAttribute('aria-label', 'Change it');
-    edit.textContent = '📝';
+    edit.textContent = '🔋';
     edit.addEventListener('click', () => {
       powersUi.index = index;
-      powersUi.slot = 'when';
       logEvent('powers_edit', { index: index });
-      startPowersPhase('sentence');
+      arriveAtSlot(slotsFor(p)[0].id);
     });
     tools.appendChild(fire);
     tools.appendChild(edit);
@@ -7242,7 +7551,8 @@ function removePowerButton(index) {
   const b = document.createElement('button');
   b.className = 'btn' + (ownRemoveArmed === key ? ' is-armed' : '');
   b.setAttribute('aria-label', ownRemoveArmed === key ? 'Remove? Tap again' : 'Remove');
-  b.textContent = ownRemoveArmed === key ? '❓' : '🗑️';
+  // Armed: red, and the bin wobbles - "tap again to throw it away".
+  b.textContent = '🗑️';
   b.addEventListener('click', () => {
     clearTimeout(ownRemoveTimer);
     if (ownRemoveArmed === key) { ownRemoveArmed = null; removePower(index); return; }
@@ -7262,7 +7572,7 @@ async function removePower(index) {
   const clips = [];
   if (p.power !== 'v2' && p.own && p.own.audioId) clips.push(p.own.audioId);
   if (p.soThat && p.soThat.audioId) clips.push(p.soThat.audioId);
-  ['whenOwn', 'whoOwn', 'howOwn'].forEach(k => p[k].forEach(c => { if (c.audioId) clips.push(c.audioId); }));
+  ['whenOwn', 'whoOwn', 'howOwn'].forEach(k => (p[k] || []).forEach(c => { if (c.audioId) clips.push(c.audioId); }));
   for (const id of clips) { Voice.forget(id); await Storage.deleteAudio(id); }
 
   state.agent.powers.splice(index, 1);
@@ -7279,24 +7589,27 @@ async function removePower(index) {
     else if (item.power > index) item.power -= 1;
   }));
   scheduleSave();
-  if (state.agent.powers.length === 0) newPowerDraft();
+  if (state.agent.powers.length === 0) newPower();
   else startPowersPhase('mine');
 }
 
 /* ---- the power, on the stage ----
    The five ★ powers from Filip's notes have their own scenes (§7.2). Four
    more borrow v2's effects. Every other power pops its icon over the agent
-   with a sound, and can get its own scene later. In Calm and Off the props
+   and can get its own scene later. Each has its own sound (POWER_SFX). In Calm and Off the props
    still appear, standing still - they say what the power IS. */
 const POWER_CLASS_FX = {
-  'pow-pause':        ['fx-freeze', 'sfx-freeze'],
-  'pow-quiet-bubble': ['fx-shield', 'sfx-shield'],
-  'pow-my-way':       ['fx-thoughts', 'sfx-thoughts'],
-  'pow-invisible':    ['fx-fade', 'sfx-fade']
+  'pow-pause':        ['fx-freeze'],
+  'pow-quiet-bubble': ['fx-shield'],
+  'pow-my-way':       ['fx-thoughts'],
+  'pow-invisible':    ['fx-fade']
 };
 
 const STAGE_FX_CLASSES = ['pfx-slowmo', 'pfx-wash', 'pfx-bounce', 'fx-lightning', 'fx-freeze',
   'fx-fade', 'fx-speed', 'fx-thoughts', 'fx-shield', 'fx-float', 'fx-stomp', 'fx-teleport', 'fx-grow'];
+
+// Where the chosen devices stand round the agent, in the order picked.
+const DEVICE_SPOTS = [[14, 20], [86, 20], [86, 76], [14, 76], [50, 8], [50, 92]];
 
 function clearPowerFx() {
   const layer = $('#powers-fx');
@@ -7336,7 +7649,11 @@ function beam(x1, y1, x2, y2) {
   $('#powers-fx').appendChild(wrap);
 }
 
-function stageMove(cls) {
+/* NOT called stageMove: that is the Make editor's pointermove handler
+   (section 14), and a second declaration with the same name replaces the
+   first for the whole app - from P5 until v81 dragging a finger over a
+   pixel agent ran this instead. */
+function powerStageMove(cls) {
   const stageEl = $('#powers-stage');
   STAGE_FX_CLASSES.forEach(c => stageEl.classList.remove(c));
   if (!fullMotion()) return;
@@ -7363,39 +7680,42 @@ function playPower(p) {
     ms = 4000;
     prop('🐢', 50, 88, 'pfx-walk', 46);
     prop('⏳', 80, 18, 'pfx-pop');
-    stageMove('pfx-slowmo');
-    playSfx('sfx-slow');
+    powerStageMove('pfx-slowmo');
+    playSfx(POWER_SFX[id]);
   } else if (id === 'pow-control-teachers') {
     // ★ A remote-control zap, and the grown-up hops.
     prop('🎮', 70, 70, 'pfx-pop', 44);
     beam(72, 64, 88, 34);
     prop('🧑‍🏫', 88, 28, 'pfx-pop pfx-hop', 56);
-    playSfx('sfx-lightning');
+    playSfx(POWER_SFX[id]);
     ms = 2600;
   } else if (id === 'pow-control-displays') {
     // ★ A zap at a screen, and the whole scene washes with colour once.
     prop('🎮', 70, 70, 'pfx-pop', 44);
     beam(72, 64, 88, 30);
     prop('📺', 88, 26, 'pfx-pop', 56);
-    stageMove('pfx-wash');
-    playSfx('sfx-lightning');
+    powerStageMove('pfx-wash');
+    playSfx(POWER_SFX[id]);
     ms = 2600;
   } else if (id === 'pow-control-devices') {
-    // ★ Lightning, and a light, a speaker and a board switch on and off -
-    // twice and a half a second at most.
-    prop('💡', 14, 20, 'pfx-pop pfx-blink');
-    prop('🔊', 86, 20, 'pfx-pop pfx-blink');
-    prop('📋', 86, 76, 'pfx-pop pfx-blink');
-    stageMove('fx-lightning');
-    playSfx('sfx-lightning');
+    // ★ Lightning, and the devices the child picked switch on and off -
+    // twice and a half a second at most. A light, a speaker and a board
+    // until any are picked.
+    const picked = (p.devices || []).map(d => (DEVICE_CARDS.find(c => c.id === d) || {}).emoji).filter(Boolean);
+    (picked.length ? picked : ['💡', '🔊', '📋']).forEach((emoji, i) => {
+      const spot = DEVICE_SPOTS[i % DEVICE_SPOTS.length];
+      prop(emoji, spot[0], spot[1], 'pfx-pop pfx-blink');
+    });
+    powerStageMove('fx-lightning');
+    playSfx(POWER_SFX[id]);
     ms = 2600;
   } else if (id === 'pow-speak-for-friends') {
     // ★ A friend joins, and two speech bubbles rise.
     prop('🧑', 16, 66, 'pfx-pop', 60);
     prop('💬', 44, 24, 'pfx-rise', 48);
     prop('💬', 20, 38, 'pfx-rise', 40);
-    stageMove('pfx-bounce');
-    playSfx('sfx-thoughts');
+    powerStageMove('pfx-bounce');
+    playSfx(POWER_SFX[id]);
     ms = 2600;
   } else if (id === 'own' || id === 'v2') {
     // The child's own power: their drawing pops up by the agent, or 🎤 if
@@ -7409,15 +7729,15 @@ function playPower(p) {
       prop(id === 'v2' ? '⚡' : '🎤', 78, 22, 'pfx-pop');
     }
     const v2fx = id === 'v2' && state.agent.powerup.power.effect;
-    stageMove(v2fx || 'pfx-bounce');
+    powerStageMove(v2fx || 'pfx-bounce');
     playSfx('sfx-powerup');
   } else {
     // Every other power: its icon pops over the agent, with a sound.
     const card = powerCard(id);
     prop(card ? card.emoji : '⚡', 50, 12, 'pfx-pop', 60);
     const fx = POWER_CLASS_FX[id];
-    stageMove(fx ? fx[0] : 'pfx-bounce');
-    playSfx(fx ? fx[1] : 'sfx-powerup');
+    powerStageMove(fx ? fx[0] : 'pfx-bounce');
+    playSfx(POWER_SFX[id] || 'sfx-powerup');
   }
 
   return new Promise(resolve => {
@@ -7431,34 +7751,33 @@ function playPower(p) {
 }
 
 function wirePowers() {
-  attachBrush($('#powers-canvas'));
-  $('#powers-undo').addEventListener('click', () => { undoCode(); paintPowers(); });
-  $('#powers-clear').addEventListener('click', () => { clearCode(); paintPowers(); });
-  $('#powers-mic').addEventListener('click', recordPowerVoice);
-  $('#powers-mine-go').addEventListener('click', () => chooseOwnPower(null));
-  $('#powers-ideas').addEventListener('click', openIdeas);
   $('#powers-door-back').addEventListener('click', () => {
     powersUi.door = null;
+    logEvent('powers_phase', { to: 'doors', how: 'back' });
     paintPowers();
   });
   $('#powers-chosen-go').addEventListener('click', () => {
-    powersUi.slot = 'when';
-    goPowersPhase('sentence', 'next');
+    logEvent('powers_phase', { to: 'sentence', how: 'next' });
+    arriveAtSlot(firstOpenSlot(currentPower()));
   });
   $('#powers-slot-next').addEventListener('click', nextSlot);
   $('#powers-fire').addEventListener('click', () => firePower(powersUi.index));
   $('#powers-new').addEventListener('click', () => {
     logEvent('powers_new', {});
-    newPowerDraft();
+    newPower();
   });
   $$('[data-powers-phase]').forEach(b =>
     b.addEventListener('click', () => goPowersPhase(b.dataset.powersPhase, 'tab')));
   $('#powers-say').addEventListener('click', () => {
+    if (state.muted) { toast('Sound is off'); return; }
     const phase = powersUi.phase;
-    if (phase === 'make') speakLine('nar-powers-make');
-    else if (phase === 'doors') speakLine('nar-powers-ideas');
-    else if (phase === 'sentence') speakLine(POWER_SLOTS.find(s => s.id === powersUi.slot).say);
-    else speakLine('nar-powers-more');
+    const door = POWER_DOORS.find(d => d.id === powersUi.door);
+    if (phase === 'doors' && door) sayPowersLine(doorIntroId(door), door.label + '.');
+    else if (phase === 'doors') sayPowersLine('nar-powers-doors', "Pick a door. Find your agent's power.");
+    else if (phase === 'sentence') {
+      const slot = slotById(powersUi.slot);
+      sayPowersLine(slot.say, slot.title);
+    } else sayPowersLine('nar-powers-more', 'Make another power, or Stamp it.');
   });
 }
 
@@ -7473,9 +7792,12 @@ function wirePowers() {
      🍾 Fill      up to 4 items, one of each kind
      👥 Who for   🙋 me (kept on this iPad) · 👫 a friend · 🧑‍🏫 my teacher ·
                   🌍 everyone (the big screen)
-     ✍️ Sign      ✍️ with my agent, or 🎭 a mystery - not asked for "me".
-                  Honest wording: a mystery hides the sender ON THE DISPLAY,
-                  and a mystery voice message must be in a spy voice.
+     🕵️ From      "Who is it from?" - the agent itself (its picture and
+                  codename), or 🎭 a mystery. Not asked for "me". Honest
+                  wording: a mystery hides the sender ON THE DISPLAY, and in
+                  a mystery bottle EVERY recording must be in a spy voice.
+                  (It used to ask "Show your agent?", which Filip found
+                  confusing, 3 November 2026.)
      🚀 Send      push the cork in, then swipe the bottle up or HOLD 🚀
                   (every gesture has a tap alternative)
      🗂️ Shelf     up to three bottles per agent
@@ -7497,14 +7819,24 @@ const MAX_BOTTLES = 3;
 const MAX_ITEMS = 4;
 
 // Each kind of item, its token and its colour band.
+/* `from: true` - something the agent ALREADY MADE in an earlier mission;
+   the bottle offers the agent's own (its powers by name, its handshake,
+   its secret word, its favourite way to talk) and only if they exist.
+   The rest are made new, here (Filip, 4 November: "fill the bottle with
+   what they have chosen - right now it's random"). */
 const BOTTLE_ITEMS = [
-  { id: 'item-power',     emoji: '⚡', label: 'A power to give',               colour: '#ffd23f' },
-  { id: 'item-handshake', emoji: '🤝', label: 'My handshake',                  colour: '#ff8fab' },
+  { id: 'item-power',     emoji: '⚡', label: 'A power to give',               colour: '#ffd23f', from: true },
+  { id: 'item-handshake', emoji: '🤝', label: 'My handshake',                  colour: '#ff8fab', from: true },
+  { id: 'item-word',      emoji: '🤫', label: 'My secret word',                colour: '#e63946', from: true },
+  { id: 'item-talk',      emoji: '🗣️', label: 'How my agent likes to talk',     colour: '#b5e48c', from: true },
   { id: 'item-drawing',   emoji: '✏️', label: 'A drawing',                     colour: '#4cc9f0' },
   { id: 'item-voice',     emoji: '🎤', label: 'A voice message',               colour: '#b892ff' },
+  // Said, not drawn (Filip, 3 November): a game is hard to draw, and
+  // children know its name.
   { id: 'item-game',      emoji: '🎮', label: 'My favourite game',             colour: '#43aa8b' },
-  { id: 'item-cant-live', emoji: '💎', label: "Something I can't live without", colour: '#f77f00' },
-  { id: 'item-safe',      emoji: '📍', label: 'My safe place',                 colour: '#9fb3d1' }
+  // About the agent, not the child (v3 §2, rule 1; Filip, 3 November).
+  { id: 'item-cant-live', emoji: '💎', label: "Something my agent can't live without", colour: '#f77f00' },
+  { id: 'item-safe',      emoji: '📍', label: 'My safe place',                 colour: '#9fb3d1', from: true }
 ];
 
 const BOTTLE_TO = [
@@ -7514,18 +7846,14 @@ const BOTTLE_TO = [
   { id: 'who-everyone', emoji: '🌍', label: 'Everyone' }
 ];
 
-const BOTTLE_SIGN = [
-  { id: 'sign-agent',   emoji: '✍️', label: 'With my agent' },
-  { id: 'sign-mystery', emoji: '🎭', label: 'Mystery' }
-];
-
 const BOTTLE_HOLD_MS = 900;          // how long 🚀 must be held
 
 const bottleUi = {
   phase: 'fill',
   index: null,          // which agent.bottles entry is being made
   sub: null,            // null, 'power' or 'voice' - one item being made
-  voiceDraft: null,     // { audioId, filter } while a voice message is made
+  subType: null,        // for 'voice': 'item-voice' or 'item-game'
+  voiceDraft: null,     // { audioId, filter } while a recording is made
   corked: false,
   newBand: -1,          // the band to drop in, once
   armed: null,          // the chip waiting for its second tap
@@ -7535,6 +7863,20 @@ let bottleTimers = [];
 let bottleHold = null;
 
 function itemKind(id) { return BOTTLE_ITEMS.find(k => k.id === id); }
+/* The icon for an item under the bottle: a power's or a way of talking's
+   own icon, otherwise its kind's. */
+function itemEmoji(item) {
+  if (item.type === 'item-power') {
+    const p = state.agent.powers.find(x => x.id === item.powerId) ||
+              (typeof item.power === 'number' ? state.agent.powers[item.power] : null);
+    if (p) return powerEmoji(p);
+  }
+  if (item.type === 'item-talk') {
+    const mode = modeById(item.mode);
+    if (mode) return mode.emoji;
+  }
+  return itemKind(item.type).emoji;
+}
 function currentBottle() {
   return bottleUi.index === null ? null : (state.agent.bottles[bottleUi.index] || null);
 }
@@ -7576,14 +7918,62 @@ function enterBottle() {
     bottleUi.index = null;
     startBottlePhase('fill');
   }
+  // What the bottle IS, said straight away (Filip, 4 November: "it should
+  // be clear from the start what the bottle is").
+  if (bottleUi.phase === 'fill') sayBottleStep('fill');
   // A good moment to send anything still waiting from earlier.
   sendWaitingBottles();
+}
+
+/* Every step of the bottle says its question as it opens. */
+function sayBottleStep(phase) {
+  const line = BOTTLE_TITLES[phase];
+  if (!line || phase === 'shelf') return;
+  bottleSay([[line[1], line[0]]]);
+}
+
+/* THE BOTTLE'S NARRATOR. Lines are said one after another, each waiting
+   for the last to end: [id, words, then] - `then` runs when that line
+   ends (a handshake's tune, a secret word). A new call starts afresh and
+   drops whatever was still to come, so nothing from one step talks over
+   the next. `append` adds to the lines already being said instead - how
+   "Your bottle is full!" waits for the item's own story to finish. */
+let bottleSayToken = 0;
+let bottleQueue = [];
+let bottleSaying = false;
+async function bottleSay(lines, append) {
+  if (state.muted) return;
+  if (!append) { bottleSayToken++; bottleQueue = []; }
+  bottleQueue.push(...lines);
+  if (append && bottleSaying) return;          // the running loop will get there
+  const token = bottleSayToken;
+  bottleSaying = true;
+  while (bottleQueue.length && token === bottleSayToken) {
+    const line = bottleQueue.shift();
+    await Assets.sayAndWait(line[0], { text: line[1] || '', maxMs: 8000 });
+    if (line[2] && token === bottleSayToken) line[2]();
+  }
+  if (token === bottleSayToken) bottleSaying = false;
+}
+
+/* An item goes in, its lines are said, and - if that filled the bottle -
+   "Your bottle is full!" follows them. */
+function addAndSay(item, lines) {
+  addBottleItem(item);
+  bottleSay(lines || []);
+  const b = currentBottle();
+  if (b && b.items.length === MAX_ITEMS) {
+    bottleSay([['nar-bottle-full', 'Your bottle is full to the top!']], true);
+  }
 }
 
 function stopBottle() {
   bottleTimers.forEach(clearTimeout);
   bottleTimers = [];
-  cancelHold();
+  bottleSayToken++;                   // nothing still to say follows the child out
+  bottleQueue = [];
+  bottleSaying = false;
+  cancelRocketHold();
   const art = $('#bottle-art');
   if (art) art.classList.remove('is-flying');
 }
@@ -7598,12 +7988,15 @@ function goBottlePhase(phase, how) {
   if (phase === bottleUi.phase) return;
   logEvent('bottle_phase', { to: phase, how: how });
   startBottlePhase(phase);
+  // The send step says "push the cork in" itself when the cork button is
+  // the thing to press.
+  sayBottleStep(phase);
 }
 
 const BOTTLE_TITLES = {
   fill: ['What goes in?', 'nar-bottle-intro'],
   to:   ['Who is it for?', 'nar-bottle-to'],
-  sign: ['Show your agent?', 'nar-bottle-sign'],
+  sign: ['Who is it from?', 'nar-bottle-from'],
   send: ['Cork it, send it', 'nar-bottle-cork'],
   shelf: ['My bottles', 'nar-bottle-intro']
 };
@@ -7614,7 +8007,10 @@ function paintBottle() {
   const tab = name => $('[data-bottle-phase="' + name + '"]');
   tab('to').hidden = !(b && b.items.length);
   tab('sign').hidden = !(b && b.to && b.to !== 'who-me');
-  tab('send').hidden = !(b && b.to && (b.to === 'who-me' || b.signed !== null));
+  // A mystery with a recording still in a real voice goes back through 🕵️.
+  const undisguised = b && b.signed === false &&
+    recordedItems(b).some(it => (it.filter || 'normal') === 'normal');
+  tab('send').hidden = !(b && b.to && (b.to === 'who-me' || b.signed !== null)) || undisguised;
   tab('shelf').hidden = !state.agent.bottles.some(x => x.state !== 'open');
   $$('[data-bottle-phase]').forEach(btn =>
     btn.classList.toggle('is-on', btn.dataset.bottlePhase === phase));
@@ -7635,6 +8031,7 @@ function paintBottle() {
   if (phase === 'sign') paintBottleSign();
   if (phase === 'send') paintBottleSend();
   if (phase === 'shelf') paintBottleShelf();
+  updateFades();
 }
 
 /* ---- the bottle itself ---- */
@@ -7689,9 +8086,11 @@ function paintBottleChips() {
     chip.className = 'bottle-chip' + (bottleUi.armed === i ? ' is-armed' : '');
     chip.style.setProperty('--chip', kind.colour);
     chip.setAttribute('aria-label', bottleUi.armed === i ? 'Take it out? Tap again' : kind.label);
-    if (bottleUi.armed === i) chip.textContent = '❓';
+    // Armed: red with a bin - "tap again to take it out" (a "?" there
+    // was not understood, Filip 4 November).
+    if (bottleUi.armed === i) chip.textContent = '🗑️';
     else if (item.png) chip.innerHTML = '<img alt="" src="' + item.png + '">';
-    else chip.textContent = kind.emoji;
+    else chip.textContent = itemEmoji(item);
     chip.addEventListener('click', () => armBottleChip(i));
     box.appendChild(chip);
   });
@@ -7725,6 +8124,10 @@ async function removeBottleItem(i) {
 
 /* ---- 🍾 fill ---- */
 
+/* The tokens, in two groups. 🕵️ FROM YOUR AGENT: what this agent has
+   already made - each power by its own name and picture, its handshake,
+   its secret word, the way it likes to talk most, its safe place - and
+   nothing it has not made. ✨ MAKE NEW: things made here and now. */
 function paintTokens() {
   const b = currentBottle();
   const items = (b && b.items) || [];
@@ -7732,22 +8135,58 @@ function paintTokens() {
   const box = $('#bottle-tokens');
   box.innerHTML = '';
   box.hidden = Boolean(bottleUi.sub);
-  BOTTLE_ITEMS.forEach(kind => {
-    // My safe place is only offered once there is one (§8).
-    if (kind.id === 'item-safe' && !safePlaceForBottle()) return;
-    const token = document.createElement('button');
-    token.className = 'btn bottle-token';
-    token.style.setProperty('--chip', kind.colour);
-    token.innerHTML = '<span class="token-icon">' + kind.emoji + '</span><span class="btn-label"></span>';
-    token.querySelector('.btn-label').textContent = kind.label;
-    const already = items.some(it => it.type === kind.id);
-    const noPower = kind.id === 'item-power' && givablePowers().length === 0;
-    token.disabled = full || already || noPower;
-    token.addEventListener('click', () => tapToken(kind));
-    box.appendChild(token);
+  const has = type => items.some(it => it.type === type);
+
+  const fromAgent = [];
+  givablePowers().forEach(choice => {
+    const p = typeof choice.power === 'number' ? state.agent.powers[choice.power] : null;
+    const inThis = items.some(it => it.type === 'item-power' &&
+      (it.powerId ? it.powerId === choice.powerId : it.power === choice.power));
+    fromAgent.push({ kind: itemKind('item-power'), label: choice.label, emoji: choice.emoji,
+                     png: p && p.own && p.own.png && p.power === 'own' ? p.own.png : null,
+                     choice: choice, isIn: inThis });
   });
+  if (state.agent.handshake) fromAgent.push({ kind: itemKind('item-handshake') });
+  if (state.agent.secretWord) fromAgent.push({ kind: itemKind('item-word') });
+  const best = state.agent.suit && modeById(state.agent.suit.best);
+  if (best) fromAgent.push({ kind: itemKind('item-talk'), label: best.label, emoji: best.emoji, mode: best });
+  if (safePlaceForBottle()) fromAgent.push({ kind: itemKind('item-safe') });
+
+  const fresh = BOTTLE_ITEMS.filter(k => !k.from).map(k => ({ kind: k }));
+
+  const group = (icon, words, tokens) => {
+    if (!tokens.length) return;
+    const head = document.createElement('div');
+    head.className = 'token-group-head';
+    head.textContent = icon + ' ' + words;
+    box.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'token-grid';
+    tokens.forEach(tok => grid.appendChild(tokenButton(tok, full, has)));
+    box.appendChild(grid);
+  };
+  group('🕵️', 'From your agent', fromAgent);
+  group('✨', 'Make new', fresh);
+
   $('#bottle-fill-go').hidden = !(items.length && !bottleUi.sub);
   paintBottleSub();
+}
+
+/* One token. One of each KIND goes in a bottle (§8), so once a power is
+   in, the other powers wait; the one that is in shows ✓. */
+function tokenButton(tok, full, has) {
+  const kind = tok.kind;
+  const token = document.createElement('button');
+  token.className = 'btn bottle-token' + (tok.isIn ? ' is-in' : '');
+  token.style.setProperty('--chip', kind.colour);
+  token.innerHTML = '<span class="token-icon"></span><span class="btn-label"></span>';
+  const icon = token.querySelector('.token-icon');
+  if (tok.png) icon.innerHTML = '<img alt="" src="' + tok.png + '">';
+  else icon.textContent = tok.emoji || kind.emoji;
+  token.querySelector('.btn-label').textContent = tok.label || kind.label;
+  token.disabled = full || has(kind.id);
+  token.addEventListener('click', () => tapToken(kind, tok));
+  return token;
 }
 
 /* The bottle is saved the moment its first item goes in (state 'open'). */
@@ -7778,58 +8217,90 @@ function addBottleItem(item) {
   bottleUi.sub = null;
   logEvent('bottle_item_add', { type: item.type });
   playSfx('sfx-bottle-drop');
-  if (b.items.length === MAX_ITEMS) speakLine('nar-bottle-full');
   paintBottle();
   scheduleSave();
 }
 
-function tapToken(kind) {
-  speakLabel(kind.id);
+function tapToken(kind, tok) {
   const b = currentBottle();
   if (b && b.items.length >= MAX_ITEMS) return;
+  logEvent('label_speak', { id: kind.id });
 
+  // ⚡ One of the agent's own powers, by name: it goes straight in, and
+  // the narrator tells its story ("Pause my school! Freeze!…").
   if (kind.id === 'item-power') {
-    const choices = givablePowers();
-    if (choices.length === 1) addPowerItem(choices[0]);
-    else { bottleUi.sub = 'power'; paintTokens(); }
+    const p = typeof tok.choice.power === 'number' ? state.agent.powers[tok.choice.power] : null;
+    const story = p && p.power && p.power.indexOf('pow-') === 0
+      ? [storyId(p.power), tok.label + '!'] : [storyId('item-power'), kind.label + '!'];
+    addPowerItem(tok.choice, [story]);
     return;
   }
+  // 🤝 The agent's handshake: the rhythm goes in, then plays as its tune.
   if (kind.id === 'item-handshake') {
-    // The rhythm itself goes in. No handshake yet? Make one now.
-    const add = taps => addBottleItem({ type: 'item-handshake', taps: taps.slice() });
-    if (state.agent.handshake) add(state.agent.handshake.taps);
-    else openHandshakeSheet(h => { if (h) add(h.taps); });
+    addAndSay({ type: 'item-handshake', taps: state.agent.handshake.taps.slice() },
+              [[storyId('item-handshake'), kind.label + '!', () => playHandshake(false)]]);
     return;
   }
-  if (kind.id === 'item-voice') {
-    bottleUi.sub = 'voice';
-    bottleUi.voiceDraft = null;
-    paintTokens();
+  // 🤫 The secret word goes in as a COPY of its recording, so making a new
+  // secret word later cannot empty the bottle - then it plays, in its voice.
+  if (kind.id === 'item-word') {
+    addSecretWordItem();
+    return;
+  }
+  // 🗣️ The way the agent likes to talk most (⭐ in How my agent talks):
+  // "My agent likes… Signing! Talking with hands, like Makaton."
+  if (kind.id === 'item-talk') {
+    addAndSay({ type: 'item-talk', mode: tok.mode.id },
+              [['nar-likes-frame', 'My agent likes…'], [storyId(tok.mode.id), tok.mode.label + '.']]);
     return;
   }
   if (kind.id === 'item-safe') {
     const place = safePlaceForBottle();
-    addBottleItem({ type: 'item-safe', place: { id: place.id || null, png: place.png || null } });
+    addAndSay({ type: 'item-safe', place: { id: place.id || null, png: place.png || null } },
+              [[storyId(kind.id), kind.label + '!']]);
     return;
   }
-  // A drawing, my favourite game, something I can't live without: the
-  // shared ✏️ sheet - draw it, say it, or both.
+  // A voice message, or the name of a favourite game: 🎤 and a spy voice.
+  // What to do is said straight away, so a child knows what the 🎤 is for.
+  if (kind.id === 'item-voice' || kind.id === 'item-game') {
+    bottleUi.sub = 'voice';
+    bottleUi.subType = kind.id;
+    bottleUi.voiceDraft = null;
+    bottleSay([kind.id === 'item-game'
+      ? ['nar-game-say', 'Say the name of your favourite game.']
+      : ['nar-voice-say', 'Tap the microphone. Say your message.']]);
+    paintTokens();
+    return;
+  }
+  // A drawing, or something my agent can't live without: the shared ✏️
+  // sheet - draw it, say it, or both. The sheet says the token's story.
   openOwnCard({
     title: kind.label,
-    say: 'nar-' + kind.id,
-    onKeep: card => addBottleItem({ type: kind.id, png: card.png || null, audioId: card.audioId || null })
+    say: storyId(kind.id),
+    onKeep: card => addAndSay({ type: kind.id, png: card.png || null, audioId: card.audioId || null })
   });
+}
+
+async function addSecretWordItem() {
+  const word = state.agent.secretWord;
+  const row = word && await Storage.loadAudio(word.audioId);
+  if (!row) return;
+  const id = uuid();
+  await Storage.saveAudio(id, row.blob);
+  addAndSay({ type: 'item-word', audioId: id, filter: word.filter || 'normal' },
+            [[storyId('item-word'), 'My secret word!', () => playClipIn(id, word.filter || 'normal')]]);
 }
 
 /* A power GIVEN to whoever the bottle is for. `power` is the power's place
    in agent.powers (§10), and `powerId` its own id, so the item still knows
    which power it was if an earlier one is removed. */
-function addPowerItem(choice) {
-  addBottleItem({ type: 'item-power', power: choice.power, powerId: choice.powerId });
+function addPowerItem(choice, lines) {
+  addAndSay({ type: 'item-power', power: choice.power, powerId: choice.powerId }, lines);
   playSfx('sfx-gift');
 }
 
-/* One item being made: which power, or a voice message. */
+/* One item being made: a voice message, or a game's name. (Which power
+   to give used to be chosen here; since v83 each power is its own token.) */
 function paintBottleSub() {
   const sub = $('#bottle-sub');
   sub.innerHTML = '';
@@ -7842,20 +8313,17 @@ function paintBottleSub() {
   back.textContent = '↩️';
   back.addEventListener('click', cancelBottleSub);
 
-  if (bottleUi.sub === 'power') {
-    const row = document.createElement('div');
-    row.className = 'power-when powers-cards';
-    givablePowers().forEach(choice => {
-      row.appendChild(modeCard({ id: 'give-' + choice.power, emoji: choice.emoji, label: choice.label },
-                               false, () => addPowerItem(choice)));
-    });
-    sub.appendChild(row);
-    sub.appendChild(back);
-    return;
-  }
-
-  // A voice message: 🎤, then any of the six voices, then ✓ in it goes.
+  // A voice message or a game's name: 🎤, then any of the six voices,
+  // then ✓ in it goes. The token's icon says which one is being made.
   const draft = bottleUi.voiceDraft;
+  const kind = itemKind(bottleUi.subType || 'item-voice');
+  const what = document.createElement('div');
+  what.className = 'bottle-sub-what';
+  what.innerHTML = '<span class="sub-what-icon"></span><span class="sub-what-label"></span>';
+  what.querySelector('.sub-what-icon').textContent = kind.emoji;
+  what.querySelector('.sub-what-label').textContent = kind.label;
+  what.style.setProperty('--chip', kind.colour);
+  sub.appendChild(what);
   const mic = document.createElement('button');
   mic.id = 'bottle-mic';
   mic.className = 'btn btn-big word-mic';
@@ -7876,7 +8344,7 @@ function paintBottleSub() {
     put.addEventListener('click', () => {
       const d = bottleUi.voiceDraft;
       bottleUi.voiceDraft = null;
-      addBottleItem({ type: 'item-voice', audioId: d.audioId, filter: d.filter });
+      addAndSay({ type: bottleUi.subType || 'item-voice', audioId: d.audioId, filter: d.filter });
     });
     sub.appendChild(put);
   }
@@ -7933,12 +8401,13 @@ async function cancelBottleSub() {
   if (d && d.audioId) { Voice.forget(d.audioId); await Storage.deleteAudio(d.audioId); }
   bottleUi.voiceDraft = null;
   bottleUi.sub = null;
+  bottleUi.subType = null;
   paintTokens();
 }
 
 /* ---- 👥 who is it for ---- */
 
-async function paintBottleTo() {
+function paintBottleTo() {
   const b = currentBottle();
   const box = $('#bottle-to-cards');
   box.innerHTML = '';
@@ -7946,28 +8415,10 @@ async function paintBottleTo() {
     box.appendChild(modeCard(to, b.to === to.id, () => chooseBottleTo(to.id)));
   });
   $('#bottle-to-go').hidden = !b.to;
-
-  // 👫 The child MAY tap the friend's agent among the tiles; "a friend" on
-  // its own is fine too (§8). Emblem and codename only.
-  const friends = $('#bottle-friends');
-  friends.hidden = b.to !== 'who-friend';
-  if (b.to !== 'who-friend') return;
-  const all = (await Storage.listAgents()).map(migrateAgent);
-  friends.innerHTML = '';
-  all.filter(a => a.id !== state.agent.id).forEach(agent => {
-    const tile = document.createElement('button');
-    tile.className = 'btn bottle-friend' + (b.toAgentId === agent.id ? ' is-on' : '');
-    tile.innerHTML = '<span class="friend-emblem"></span><span class="btn-label"></span>';
-    tile.querySelector('.friend-emblem').textContent = agentEmblem(agent);
-    tile.querySelector('.btn-label').textContent = agent.codename || 'Agent';
-    tile.addEventListener('click', () => {
-      b.toAgentId = b.toAgentId === agent.id ? null : agent.id;
-      logEvent('bottle_friend_pick', { toAgentId: b.toAgentId });
-      paintBottleTo();
-      scheduleSave();
-    });
-    friends.appendChild(tile);
-  });
+  /* The list of every agent on this iPad, to pick a friend's, is gone
+     (Filip, 4 November: children do not know which agent is their
+     friend's). "A friend" is the answer, and the narrator confirms it.
+     `toAgentId` stays null from v84. */
 }
 
 function chooseBottleTo(id) {
@@ -7976,40 +8427,77 @@ function chooseBottleTo(id) {
   if (id !== 'who-friend') b.toAgentId = null;
   if (id === 'who-me') b.signed = null;       // nothing to sign for "me"
   logEvent('bottle_to', { who: id });
-  speakLabel(id);
-  if (id === 'who-friend') speakLine('nar-bottle-friend');
+  // Its story, which for a friend also says to tap the friend's agent.
+  logEvent('label_speak', { id: id });
+  const to = BOTTLE_TO.find(x => x.id === id);
+  bottleSay([['nar-story-to-' + id.replace(/^who-/, ''), to ? to.label + '!' : '']]);
   paintBottle();
   scheduleSave();
 }
 
-/* ---- ✍️ show your agent, or a mystery ---- */
+/* ---- 🕵️ who is it from? ---- */
+
+/* The two answers, as cards: the agent itself - its picture and its
+   codename - or a mystery, the same empty dashed agent as the Start
+   screen with a "?" on it. Showing the agent says what "signed" means
+   better than any word could. */
+function signCard(signed, on) {
+  const card = document.createElement('button');
+  card.className = 'pic-card sign-card' + (on ? ' is-on' : '');
+  card.setAttribute('aria-pressed', on ? 'true' : 'false');
+  const art = document.createElement('span');
+  art.className = 'pic-card-art sign-art';
+  if (signed) {
+    art.innerHTML = agentViewHtml('sign-agent');
+    renderAgentView(art.querySelector('.agent-view'), state.agent.cover, false);
+  } else {
+    art.innerHTML = '<svg class="hero-outline" viewBox="0 0 100 120" aria-hidden="true">' +
+      '<circle cx="50" cy="32" r="24"/><path d="M12 117 C12 84 29 64 50 64 C71 64 88 84 88 117 Z"/></svg>' +
+      '<span class="sign-q">?</span>';
+  }
+  const label = document.createElement('span');
+  label.className = 'pic-card-label';
+  // "From Swift Arrow": a codename alone did not say what the card means.
+  label.textContent = signed ? 'From ' + (state.agent.codename || 'my agent') : '🎭 Mystery';
+  card.appendChild(art);
+  card.appendChild(label);
+  card.setAttribute('aria-label', signed ? 'From my agent' : 'A mystery');
+  card.addEventListener('click', () => chooseSign(signed));
+  return card;
+}
+
+/* Everything in the bottle that carries a recording: a voice message, a
+   game's name, and anything said on the ✏️ sheet. */
+function recordedItems(bottle) {
+  return bottle.items.filter(it => it.audioId);
+}
 
 function paintBottleSign() {
   const b = currentBottle();
   const box = $('#bottle-sign-cards');
   box.innerHTML = '';
-  BOTTLE_SIGN.forEach(sign => {
-    const on = b.signed === (sign.id === 'sign-agent');
-    box.appendChild(modeCard(sign, b.signed !== null && on, () => chooseSign(sign.id === 'sign-agent')));
-  });
+  box.appendChild(signCard(true, b.signed === true));
+  box.appendChild(signCard(false, b.signed === false));
 
-  // A mystery voice message must be disguised: "Normal" is not offered,
-  // and the child hears the disguise before going on (§8).
+  /* A mystery must not give the sender away by their voice: EVERY
+     recording in a mystery bottle takes a spy voice - "Normal" is not
+     offered, and the child hears the disguise before going on (§8). */
   const disguise = $('#bottle-disguise');
   disguise.innerHTML = '';
-  const plain = b.signed === false ? b.items.filter(it => it.type === 'item-voice' && it.filter === 'normal') : [];
-  disguise.hidden = b.signed !== false || !b.items.some(it => it.type === 'item-voice');
+  const recorded = recordedItems(b);
+  const plain = b.signed === false ? recorded.filter(it => (it.filter || 'normal') === 'normal') : [];
+  disguise.hidden = b.signed !== false || recorded.length === 0;
   if (!disguise.hidden) {
-    const voice = b.items.find(it => it.type === 'item-voice');
     const head = document.createElement('div');
     head.className = 'soon-icon';
     head.textContent = '🎭🎤';
     disguise.appendChild(head);
-    disguise.appendChild(voicePicker(voice.filter, false, filterId => {
-      b.items.forEach(it => { if (it.type === 'item-voice') it.filter = filterId; });
+    const current = recorded[0].filter || 'normal';
+    disguise.appendChild(voicePicker(current, false, filterId => {
+      recorded.forEach(it => { it.filter = filterId; });
       logEvent('bottle_voice_filter', { filter: filterId, mystery: true });
-      paintBottleSign();
-      playClipIn(voice.audioId, filterId);
+      paintBottle();                    // the 🚀 tab can show again
+      playClipIn(recorded[0].audioId, filterId);
       scheduleSave();
     }));
   }
@@ -8020,7 +8508,18 @@ function chooseSign(signed) {
   const b = currentBottle();
   b.signed = signed;
   logEvent('bottle_sign', { signed: signed });
-  speakLine(signed ? 'nar-sign-agent' : 'nar-sign-mystery');
+  // Signed: "Signed! Everyone will see it's from your agent." and then
+  // the agent's name, in the narrator's voice. A mystery: what it hides.
+  // Only a rolled name has the narrator's recordings; a typed one is left
+  // unsaid rather than read by the iPad's robotic voice.
+  const parts = state.agent.codenameParts || {};
+  const rolled = ADJECTIVES.indexOf(parts.word) !== -1 && SPY_WORDS.some(s => s.name === parts.animal);
+  if (signed) {
+    bottleSay([['nar-sign-agent', "Signed! Everyone will see it's from your agent."]].concat(rolled
+      ? [[nameLineId(parts.word), parts.word], [nameLineId(parts.animal), parts.animal]] : []));
+  } else {
+    bottleSay([['nar-sign-mystery', "Mystery. The big screen won't say who."]]);
+  }
   paintBottle();
   scheduleSave();
 }
@@ -8040,7 +8539,7 @@ function corkBottle() {
   bottleUi.armed = null;
   logEvent('bottle_cork', {});
   playSfx('sfx-cork');
-  if (currentBottle().to !== 'who-me') speakLine('nar-bottle-send');
+  if (currentBottle().to !== 'who-me') bottleSay([['nar-bottle-send', 'Swipe it up, or hold the rocket. Off it goes!']]);
   paintBottle();
 }
 
@@ -8048,7 +8547,7 @@ function keepBottle() {
   const b = currentBottle();
   b.state = 'kept';
   logEvent('bottle_keep', {});
-  speakLine('nar-bottle-kept');
+  bottleSay([['nar-bottle-kept', 'Your bottle stays safe on your shelf.']]);
   bottleUi.index = null;
   scheduleSave();
   startBottlePhase('shelf');
@@ -8058,7 +8557,7 @@ function keepBottle() {
 function sendBottle() {
   const b = currentBottle();
   if (!b || !bottleUi.corked || b.to === 'who-me' || b.state !== 'open') return;
-  cancelHold();
+  cancelRocketHold();
   b.state = 'sent';
   b.sentAt = nowIso();
   logEvent('bottle_send', { to: b.to, signed: Boolean(b.signed), items: b.items.map(it => it.type) });
@@ -8068,10 +8567,14 @@ function sendBottle() {
 
   const agent = state.agent;
   bottleTimers.push(setTimeout(() => {
-    speakLine('nar-bottle-sent');
+    // On its way - and to whom (Filip: "it does not say to whom").
+    const sentLine = { 'who-everyone': 'nar-bottle-sent-everyone',
+                       'who-friend': 'nar-bottle-sent-friend',
+                       'who-teacher': 'nar-bottle-sent-teacher' }[b.to] || 'nar-bottle-sent';
+    bottleSay([[sentLine, 'Whoosh!']]);
     bottleUi.index = null;
     startBottlePhase('shelf');
-  }, 1000));
+  }, 1300));
 
   // Then, quietly, the actual sending.
   deliverBottle(agent, b).then(ok => {
@@ -8083,8 +8586,14 @@ function sendBottle() {
   });
 }
 
-/* Hold 🚀: the button fills while it is held, and sends when it is full. */
-function startHold(event) {
+/* Hold 🚀: the button fills while it is held, and sends when it is full.
+
+   NOT called startHold/cancelHold: those are the logo's long press (section
+   12), and a second function declaration with the same name silently
+   REPLACES the first for the whole app. From P6 until v81 holding the logo
+   ran this code instead, so the adult panel - and Export - could not be
+   reached. */
+function startRocketHold(event) {
   event.preventDefault();
   const rocket = $('#bottle-rocket');
   rocket.style.setProperty('--hold-ms', BOTTLE_HOLD_MS + 'ms');
@@ -8093,7 +8602,7 @@ function startHold(event) {
   bottleHold = setTimeout(sendBottle, BOTTLE_HOLD_MS);
 }
 
-function cancelHold() {
+function cancelRocketHold() {
   clearTimeout(bottleHold);
   bottleHold = null;
   const rocket = $('#bottle-rocket');
@@ -8173,8 +8682,14 @@ async function renderedClip(audioId, filterId) {
   }
 }
 
-async function itemPayload(agent, item) {
+/* `mystery` is true for an unsigned bottle. Its recordings were all given a
+   spy voice on the 🕵️ step; if one somehow was not (an item added after
+   that step), its sound is left behind rather than sent in the child's
+   real voice. */
+async function itemPayload(agent, item, mystery) {
   const out = { type: item.type };
+  const filter = item.filter || 'normal';
+  const clip = async () => (mystery && filter === 'normal') ? null : renderedClip(item.audioId, filter);
   if (item.type === 'item-power') {
     const p = item.power === 'v2' ? null
       : (agent.powers.find(x => x.id === item.powerId) || agent.powers[item.power]);
@@ -8185,16 +8700,20 @@ async function itemPayload(agent, item) {
     if (p && p.power === 'pow-control-teachers' && p.soThat) out.soThat = await shrinkPng(p.soThat.png, 256);
   } else if (item.type === 'item-handshake') {
     out.taps = item.taps;
-  } else if (item.type === 'item-voice') {
-    out.audio = await renderedClip(item.audioId, item.filter);
+  } else if (item.type === 'item-voice' || item.type === 'item-word') {
+    // A voice message, or the secret word (v83) - each in its spy voice.
+    out.audio = await clip();
     out.filter = item.filter;
+  } else if (item.type === 'item-talk') {
+    out.mode = item.mode;                  // v83: e.g. "mode-hands"
   } else if (item.type === 'item-safe') {
     out.place = item.place.id;
     out.picture = await shrinkPng(item.place.png, 512);
   } else {
-    // A drawing, a game, something I can't live without.
+    // A drawing, a game, something the agent can't live without - each
+    // recording in the voice the child heard (a mystery's is disguised).
     out.picture = await shrinkPng(item.png, 512);
-    out.audio = item.audioId ? await renderedClip(item.audioId, 'normal') : null;
+    out.audio = item.audioId ? await clip() : null;
   }
   return out;
 }
@@ -8226,7 +8745,7 @@ async function buildBottlePayload(agent, bottle) {
     };
   }
   if (bottle.to === 'who-everyone') {
-    for (const item of bottle.items) payload.items.push(await itemPayload(agent, item));
+    for (const item of bottle.items) payload.items.push(await itemPayload(agent, item, !bottle.signed));
   }
   // The relay takes 2 MB at most. A bottle that would be bigger drops its
   // sounds rather than not arriving at all.
@@ -8305,8 +8824,8 @@ function wireBottle() {
   $('#bottle-cork').addEventListener('click', corkBottle);
   $('#bottle-keep').addEventListener('click', keepBottle);
   const rocket = $('#bottle-rocket');
-  rocket.addEventListener('pointerdown', startHold);
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => rocket.addEventListener(e, cancelHold));
+  rocket.addEventListener('pointerdown', startRocketHold);
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(e => rocket.addEventListener(e, cancelRocketHold));
   const art = $('#bottle-art');
   art.addEventListener('pointerdown', bottleSwipeStart);
   window.addEventListener('pointerup', bottleSwipeEnd);

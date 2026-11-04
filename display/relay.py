@@ -199,7 +199,17 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(200, {"ok": True, "app": "agent-lab-relay"})
         if path == "/events":
             return self.stream_events()
+        self.serving_file = True
         return super().do_GET()            # a file from display/ or assets/
+
+    def end_headers(self):
+        # A file is checked with the laptop every time ("no-cache" still lets
+        # the browser keep it, but asks first and gets a quick 304 if it has
+        # not changed). Without it a browser could go on playing a sound or
+        # showing a picture from before it was remade.
+        if getattr(self, "serving_file", False):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
 
     def do_POST(self):
         path = urlsplit(self.path).path

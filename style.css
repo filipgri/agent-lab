@@ -2230,18 +2230,6 @@ body.is-practice .practice-badge { display: block; }
 /* While a reel spins the words blur past, so they are not meant to be read. */
 .reel.is-spinning { color: var(--muted); filter: blur(1px); }
 
-.reel-lock {
-  min-width: 64px;
-  min-height: 64px;                  /* §5: the 64px minimum, even here */
-  border: none;
-  border-radius: 16px;
-  background: var(--navy-2);
-  font-size: 26px;
-  cursor: pointer;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
-}
-.reel-lock.is-on { box-shadow: inset 0 0 0 3px var(--accent); background: var(--navy-3); }
-
 .codename-tools { display: flex; gap: 14px; justify-content: center; }
 
 /* --- The Type sheet --- */
@@ -3150,7 +3138,37 @@ body[data-motion="off"] .power-stage { animation: none !important; }
    card; the card and the three piles sit beside it.
    ============================================================ */
 .suit-wrap { display: flex; flex-direction: column; gap: 14px; height: 100%; min-height: 0; }
+/* The question is the start of a sentence the card finishes ("My agent
+   likes… Talking"), so it is big - Filip: it has to read as the point of
+   the screen, not as a caption. */
+.suit-head .power-title { font-size: 28px; line-height: 1.2; }
+/* Landscape: the heading sits over the CARD column, centred, not tucked
+   against the tabs - it is the start of the card's sentence (Filip, 4
+   November: "move the writing a bit more to the right"). The header uses
+   the same column widths as .suit-main below it; 🔊 shares the second
+   column, at its right end. */
+@media (orientation: landscape) {
+  [data-mission="suit"] .suit-head {
+    display: grid;
+    grid-template-columns: min(340px, 38vw) minmax(0, 1fr);
+    column-gap: 22px;
+    align-items: center;
+  }
+  [data-mission="suit"] .suit-head .suit-phases { grid-column: 1; grid-row: 1; }
+  [data-mission="suit"] .suit-head .power-title { grid-column: 2; grid-row: 1; text-align: center; padding: 0 76px; }
+  [data-mission="suit"] .suit-head #suit-say { grid-column: 2; grid-row: 1; justify-self: end; }
+}
 .suit-head .suit-phases { flex: 0 0 auto; }
+/* The step tabs (🚪 🔋 ⚡, 🗣️ ⭐ 🏫 🤫, 🍾 👥 🕵️ 🚀 🗂️): big icons, so a child
+   can see where they are at a glance (Filip, 4 November: "a little
+   bigger"). 72px: still five in a row on the bottle screen. */
+.suit-head .suit-phases .seg {
+  min-width: 72px;
+  min-height: 72px;
+  padding: 0 8px;
+  font-size: 34px;
+  line-height: 1;
+}
 .suit-main {
   flex: 1;
   min-height: 0;
@@ -3178,25 +3196,116 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 }
 .suit-side[hidden] { display: none; }
 
-/* The one card being sorted: big, and tappable to see it acted out again. */
-.suit-card-slot .pic-card { width: 200px; }
-.suit-card-slot .pic-card-art { min-height: 112px; }
-.suit-card-slot .pic-card-emoji { font-size: 64px; }
-.suit-card-slot .pic-card-label { font-size: 22px; }
+/* The one card being sorted: BIG (Filip: "My agent likes talking" has to
+   be the thing on screen), and tappable to see it acted out again. */
+.suit-card-slot { width: 100%; display: flex; justify-content: center; }
+.suit-card-slot .pic-card { width: min(100%, 330px); padding: 10px; }
+.suit-card-slot .pic-card-art { min-height: 0; aspect-ratio: 3 / 2; }
+.suit-card-slot .pic-card-emoji { font-size: 96px; }
+.suit-card-slot .pic-card-label { font-size: 28px; line-height: 1.2; }
 /* Every card is sorted: a calm tick where the card was. */
 .suit-card-done { font-size: 72px; line-height: 1; padding: 30px 0; }
 
-.suit-piles { display: flex; gap: 14px; }
-.suit-pile {
-  min-width: 108px;
-  min-height: 88px;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 17px;
+/* A card arrives like one dealt from a pack, and a sorted card flies off
+   towards the answer that was tapped (✓ left, ? down, ✗ right). Full
+   motion only: in Calm and Off the next card is simply there. */
+body[data-motion="full"] .suit-card-slot .pic-card.is-dealt { animation: card-deal 620ms cubic-bezier(.2,.9,.3,1.2) both; }
+/* 560 ms: SUIT_FLY_MS in app.js waits for this. */
+body[data-motion="full"] .suit-card-slot .pic-card.fly-yes    { animation: fly-yes 560ms ease-in forwards; }
+body[data-motion="full"] .suit-card-slot .pic-card.fly-unsure { animation: fly-unsure 560ms ease-in forwards; }
+body[data-motion="full"] .suit-card-slot .pic-card.fly-no     { animation: fly-no 560ms ease-in forwards; }
+@keyframes card-deal  { from { opacity: 0; transform: translateX(80px) rotate(10deg) scale(.7); } }
+@keyframes fly-yes    { to { opacity: 0; transform: translate(-120px, 200px) rotate(-14deg) scale(.2); } }
+@keyframes fly-unsure { to { opacity: 0; transform: translate(0, 220px) scale(.2); } }
+@keyframes fly-no     { to { opacity: 0; transform: translate(120px, 200px) rotate(14deg) scale(.2); } }
+
+/* ---- cards that move ----
+   Each card's picture moves the way its card means while it is on screen
+   (Filip: talking should radiate or beat like a heart, signing should
+   move, and "this goes for all the other stuff"). `data-anim` is set from
+   the card's `anim`. Movement is decoration: Full motion only. */
+body[data-motion="full"] .pic-card[data-anim] .pic-card-art > :is(.pic-card-img, .pic-card-emoji) {
+  animation-duration: 2.2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
-.suit-pile .pile-icon { font-size: 38px; line-height: 1; }
-/* The pile this card is already on, when a child comes back to re-sort. */
+body[data-motion="full"] .pic-card[data-anim="beat"] .pic-card-art > * { animation-name: anim-beat; animation-duration: 1.5s; }
+body[data-motion="full"] .pic-card[data-anim="wave"] .pic-card-art > * { animation-name: anim-wave; animation-duration: 1.3s; }
+body[data-motion="full"] .pic-card[data-anim="shake"] .pic-card-art > * { animation-name: anim-shake; animation-duration: 1.1s; }
+body[data-motion="full"] .pic-card[data-anim="scribble"] .pic-card-art > * { animation-name: anim-scribble; animation-duration: 1.7s; }
+body[data-motion="full"] .pic-card[data-anim="bounce"] .pic-card-art > * { animation-name: anim-bounce; animation-duration: 1.4s; }
+body[data-motion="full"] .pic-card[data-anim="flip"] .pic-card-art > * { animation-name: anim-flip; animation-duration: 2.8s; }
+body[data-motion="full"] .pic-card[data-anim="glow"] .pic-card-art > * { animation-name: anim-glow; animation-duration: 2.2s; }
+body[data-motion="full"] .pic-card[data-anim="look"] .pic-card-art > * { animation-name: anim-look; animation-duration: 3s; }
+body[data-motion="full"] .pic-card[data-anim="dart"] .pic-card-art > * { animation-name: anim-dart; animation-duration: 1.3s; }
+@keyframes anim-beat    { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.12); } 30% { transform: scale(.98); } 45% { transform: scale(1.08); } }
+@keyframes anim-wave    { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes anim-shake   { 0%, 100% { transform: translateY(0); } 25% { transform: translateY(-7px); } 75% { transform: translateY(7px); } }
+@keyframes anim-scribble { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(6px, -4px); } 50% { transform: translate(0, -7px); } 75% { transform: translate(-6px, -3px); } }
+@keyframes anim-bounce  { 0%, 100% { transform: translateY(0) scale(1, 1); } 40% { transform: translateY(-14px) scale(.96, 1.04); } 70% { transform: translateY(0) scale(1.05, .95); } }
+@keyframes anim-flip    { 0%, 100% { transform: perspective(500px) rotateY(0); } 25% { transform: perspective(500px) rotateY(18deg); } 75% { transform: perspective(500px) rotateY(-18deg); } }
+@keyframes anim-glow    { 0%, 100% { filter: brightness(1) drop-shadow(0 0 0 rgba(255, 210, 63, 0)); } 50% { filter: brightness(1.18) drop-shadow(0 0 14px rgba(255, 210, 63, .9)); } }
+@keyframes anim-look    { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-10px); } 70% { transform: translateX(10px); } }
+@keyframes anim-dart    { 0%, 100% { transform: translateX(0) skewX(0); } 40% { transform: translateX(12px) skewX(-10deg); } 60% { transform: translateX(-4px) skewX(4deg); } }
+/* Talking: rings go out from the picture, like sound. They sit behind it,
+   so a cut-out bubble has its rings round its edge. */
+body[data-motion="full"] .pic-card[data-anim="beat"] .pic-card-art::before,
+body[data-motion="full"] .pic-card[data-anim="beat"] .pic-card-art::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 70%; aspect-ratio: 1;
+  border: 4px solid rgba(255, 210, 63, .8);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(.3);
+  opacity: 0;
+  animation: anim-ring 2.5s ease-out infinite;
+}
+body[data-motion="full"] .pic-card[data-anim="beat"] .pic-card-art::after { animation-delay: 1.25s; }
+@keyframes anim-ring { 0% { opacity: .9; transform: translate(-50%, -50%) scale(.3); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); } }
+
+/* ---- the three answers: the agent itself ----
+   A small copy of the child's agent on each button: one nods, one tilts
+   its head, one shakes it - taking turns, so the row reads left to right.
+   The mark in the corner (✓ ? ✗) says the same thing standing still. */
+.suit-piles { display: flex; gap: 14px; justify-content: center; align-items: center; }
+/* ↩️ keeps its place when hidden, so the answers never shift sideways. */
+.suit-back { margin-right: 10px; }
+.suit-back[hidden] { display: inline-flex; visibility: hidden; }
+/* …and a spacer of the same width on the right keeps them centred under
+   the card. */
+.suit-piles::after { content: ''; flex: 0 0 74px; }
+.suit-pile {
+  position: relative;
+  width: 112px;
+  min-height: 112px;
+  padding: 8px;
+  border-radius: 22px;
+}
+.pile-agent { display: block; width: 84px; height: 84px; }
+.pile-agent .agent-view { display: block; width: 100%; height: 100%; border-radius: 14px; }
+.pile-mark {
+  position: absolute;
+  right: -8px; top: -8px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 24px; font-weight: 800; line-height: 1;
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+}
+.suit-pile[data-pile="yes"]    .pile-mark { background: #2fb36d; }
+.suit-pile[data-pile="unsure"] .pile-mark { background: #f2a33a; }
+.suit-pile[data-pile="no"]     .pile-mark { background: #e8615a; }
+/* The answer this card is already on, when a child comes back to re-sort. */
 .suit-pile.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
+body[data-motion="full"] .suit-pile .pile-agent { animation: 4.8s ease-in-out infinite; transform-origin: 50% 80%; }
+body[data-motion="full"] .suit-pile[data-pile="yes"]    .pile-agent { animation-name: pile-nod; }
+body[data-motion="full"] .suit-pile[data-pile="unsure"] .pile-agent { animation-name: pile-tilt; animation-delay: 1.6s; }
+body[data-motion="full"] .suit-pile[data-pile="no"]     .pile-agent { animation-name: pile-shake; animation-delay: 3.2s; }
+@keyframes pile-nod   { 0%, 30%, 100% { transform: none; } 5%, 17% { transform: translateY(5px) scaleY(.94); } 11%, 23% { transform: none; } }
+@keyframes pile-tilt  { 0%, 34%, 100% { transform: none; } 8%, 22% { transform: rotate(-12deg); } }
+@keyframes pile-shake { 0%, 30%, 100% { transform: none; } 4%, 12%, 20% { transform: translateX(-6px) rotate(-4deg); } 8%, 16%, 24% { transform: translateX(6px) rotate(4deg); } }
 
 .suit-progress { display: flex; align-items: center; gap: 14px; }
 .suit-dots { display: flex; gap: 7px; flex-wrap: wrap; max-width: 260px; }
@@ -3208,10 +3317,12 @@ body[data-motion="off"] .power-stage { animation: none !important; }
 }
 .suit-dots span.is-on { background: var(--accent); }
 .suit-dots span.is-here { box-shadow: 0 0 0 3px rgba(255,255,255,.7); }
-.suit-own-row { justify-content: center; }
-.suit-own-row .when-own { width: 120px; }
-.suit-best-cards { justify-content: center; }
-.suit-best-cards .pic-card, .suit-best-cards .when-own { width: 136px; }
+/* A flex row of wrapping cards inside a centred column must be told to be
+   as wide as the column. Left to shrink-to-fit, its width came out as
+   every card in one line, and "Which one…" ran off the right of the
+   screen - and pushed the whole page sideways. */
+.suit-best-cards { justify-content: center; align-self: stretch; }
+.suit-best-cards .pic-card { width: 150px; }
 
 /* The secret word. */
 .word-mic { min-width: 150px; min-height: 120px; font-size: 64px; }
@@ -3237,7 +3348,29 @@ body[data-motion="off"] .power-stage { animation: none !important; }
   z-index: 3;
 }
 .suit-act.is-showing { opacity: 1; }
-body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-out both; }
+body[data-motion="full"] .suit-act.is-showing { animation: act-pop 800ms ease-out both; }
+/* An answer's mark sits in a coloured circle, like the buttons'. */
+.suit-act[data-mark="yes"], .suit-act[data-mark="unsure"], .suit-act[data-mark="no"] {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 46px; font-weight: 800; color: #fff;
+}
+.suit-act[data-mark="yes"]    { background: #2fb36d; }
+.suit-act[data-mark="unsure"] { background: #f2a33a; }
+.suit-act[data-mark="no"]     { background: #e8615a; }
+/* A talking card: rings go out from the emoji by the agent's head. */
+body[data-motion="full"] .suit-act.has-rings::before,
+body[data-motion="full"] .suit-act.has-rings::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 100%; aspect-ratio: 1;
+  border: 4px solid rgba(255, 210, 63, .8);
+  border-radius: 50%;
+  animation: anim-ring 2.5s ease-out infinite;
+}
+body[data-motion="full"] .suit-act.has-rings::after { animation-delay: 1.25s; }
 
 /* Portrait: the agent on top, the card and piles underneath. */
 @media (orientation: portrait) {
@@ -3284,10 +3417,17 @@ body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-ou
   60%  { opacity: 1; transform: translateY(-4px) scale(1.12); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-.suit-stage.act-wiggle { animation: act-wiggle 700ms ease-in-out; }
-.suit-stage.act-jump   { animation: act-jump 700ms cubic-bezier(.34,1.56,.64,1); }
-.suit-stage.act-hush   { animation: act-hush 900ms ease-in-out; }
-.suit-stage.act-rise   { animation: act-rise 800ms ease-out; }
+.suit-stage.act-wiggle { animation: act-wiggle 1000ms ease-in-out; }
+.suit-stage.act-jump   { animation: act-jump 1000ms cubic-bezier(.34,1.56,.64,1); }
+.suit-stage.act-hush   { animation: act-hush 1250ms ease-in-out; }
+.suit-stage.act-rise   { animation: act-rise 1100ms ease-out; }
+/* The agent answering: a nod, a puzzled head-tilt, a head-shake. */
+.suit-stage.act-nod    { animation: act-nod 1100ms ease-in-out; transform-origin: 50% 85%; }
+.suit-stage.act-tilt   { animation: act-tilt 1250ms ease-in-out; transform-origin: 50% 85%; }
+.suit-stage.act-shake  { animation: act-shake 1000ms ease-in-out; }
+@keyframes act-nod   { 0%, 50%, 100% { transform: none; } 25%, 75% { transform: translateY(10px) scaleY(.95); } }
+@keyframes act-tilt  { 0%, 100% { transform: none; } 30%, 70% { transform: rotate(-10deg); } }
+@keyframes act-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-12px) rotate(-3deg); } 40%, 80% { transform: translateX(12px) rotate(3deg); } }
 @keyframes act-wiggle {
   0%, 100% { transform: rotate(0); }
   20% { transform: rotate(-6deg); }  40% { transform: rotate(6deg); }
@@ -3314,31 +3454,83 @@ body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-ou
    The same frame as How my agent talks: the agent big on the left (on
    top, in portrait), the step beside it.
    ============================================================ */
-.powers-make-row { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
-.powers-canvas-wrap { flex: 0 0 auto; width: 230px; height: auto; }
-.powers-make-tools { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.powers-make-tools .palette { grid-template-columns: repeat(4, 44px); }
-.powers-tool-row { display: flex; gap: 8px; }
-#powers-mic.is-recording { animation: record-pulse 1s ease-in-out infinite; }
-#powers-mic.has-clip { box-shadow: inset 0 0 0 3px var(--accent); }
-.powers-make-go { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-.powers-lasttime:empty { display: none; }
-.powers-lasttime .when-own { width: 150px; }
-
-/* The six doors: two rows of three, the same size, always in this order. */
+/* The doors: six family doors and the ✨ secret door (and ⏪ last time, if
+   there is one), two rows of four, the same size, always in this order. */
 .powers-door-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
 }
 .powers-door-grid[hidden] { display: none; }
-.powers-door-grid .pic-card { width: auto; }
+.powers-door-grid .pic-card { width: auto; min-width: 0; }
 /* Square, not door-shaped: the door pictures are square with the door in
    the middle, and at 3:4 the second row fell below a landscape iPad's fold. */
 .powers-door-grid .pic-card-art { aspect-ratio: 1; min-height: 0; }
+.powers-door-grid .pic-card-label { font-size: 15px; line-height: 1.25; }
+.powers-door-grid .door-lasttime { width: auto; min-width: 0; }
+/* The secret door glows gold, and shimmers now and then (Full motion). */
+.door-card.is-secret { box-shadow: inset 0 0 0 3px #ffd23f, 0 0 18px rgba(255, 210, 63, .45); }
+body[data-motion="full"] .door-card.is-secret .pic-card-art > * { animation: anim-glow 2.4s ease-in-out infinite; }
+
+/* A door swinging open, like a door in a game: the picture turns away on
+   its hinge (the left edge) and warm light spills out from behind it. */
+.door-card { position: relative; }
+.door-card .pic-card-art { transform-origin: left center; }
+/* 1400 ms - DOOR_OPEN_MS in app.js waits for it. First the door rattles,
+   as if something is behind it, then it creaks slowly open. */
+body[data-motion="full"] .door-card.is-opening { animation: door-glow 1400ms ease-in both; }
+body[data-motion="full"] .door-card.is-opening .pic-card-art {
+  animation: door-swing 1400ms cubic-bezier(.5, 0, .3, 1) both;
+}
+@keyframes door-swing {
+  0%   { transform: perspective(500px) rotateY(0); }
+  6%   { transform: perspective(500px) rotateY(0) translateX(-3px); }
+  12%  { transform: perspective(500px) rotateY(0) translateX(3px); }
+  18%  { transform: perspective(500px) rotateY(0) translateX(-2px); }
+  28%  { transform: perspective(500px) rotateY(6deg); }
+  100% { transform: perspective(500px) rotateY(-100deg); opacity: .4; }
+}
+@keyframes door-glow {
+  from { background: var(--navy-2); }
+  to   { background: radial-gradient(circle at 50% 45%, #fff6c2, #ffd23f 45%, var(--navy-2) 80%); transform: scale(1.06); }
+}
+
+/* Dealt face-down, then flipped over: a card arrives turned away with a
+   "?" on its back, and turns to face the child. Each card waits its turn
+   (--deal-delay). Full motion only - in Calm and Off the cards are just
+   there. */
+body[data-motion="full"] .pic-card.is-dealing {
+  position: relative;
+  animation: deal-flip 850ms cubic-bezier(.2, .8, .3, 1.1) var(--deal-delay, 0ms) both;
+}
+body[data-motion="full"] .pic-card.is-dealing::after {
+  content: '?';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  display: grid;
+  place-items: center;
+  font-size: 54px;
+  font-weight: 800;
+  color: #ffd23f;
+  background: repeating-linear-gradient(45deg, var(--navy-3) 0 12px, var(--navy-2) 12px 24px);
+  box-shadow: inset 0 0 0 3px #ffd23f;
+  animation: deal-back 850ms linear var(--deal-delay, 0ms) both;
+}
+@keyframes deal-flip {
+  0%   { opacity: 0; transform: perspective(600px) translateY(-30px) rotateY(180deg) scale(.7); }
+  20%  { opacity: 1; }
+  100% { opacity: 1; transform: perspective(600px) rotateY(0) scale(1); }
+}
+/* The back shows until the card is edge-on, then the front. */
+@keyframes deal-back { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
 .powers-cards { justify-content: center; }
+/* Room for a chosen card's outline (it sits 6px outside the card): at the
+   top of a scrolling list it was cut off (Filip, 4 November). */
+.powers-cards, .suit-best-cards, .powers-door-grid { padding: 8px 6px; }
 .powers-cards[hidden] { display: none; }
 .powers-cards .pic-card { width: 128px; }
 .powers-cards .pic-card-art { min-height: 88px; }
@@ -3357,27 +3549,96 @@ body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-ou
   #powers-sentence .powers-door-tools { flex: 0 0 auto; }
 }
 .powers-door-tools { display: flex; gap: 12px; align-items: center; }
+.powers-door-tools[hidden] { display: none; }
+/* 🚪 back to all the doors: as big as ✓ This one beside it. */
+#powers-door-back { min-width: 96px; min-height: 72px; font-size: 44px; line-height: 1; }
 
-/* The sentence strip: four slots in a row, each showing what is in it. */
-.powers-slots { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-.powers-slot {
-  min-width: 96px;
-  min-height: 84px;
-  flex-direction: column;
+/* ---- 🔋 the battery ----
+   Under the agent: one cell per question, and a ⚡ cap. A cell with an
+   answer in it is lit; the question on screen has a ring; a cell being
+   read back flashes bright. When every cell has something, the cap glows. */
+.powers-battery {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 6px 10px;
+  width: 100%;
 }
-.powers-slot .slot-icon { font-size: 30px; line-height: 1; }
-.powers-slot .slot-fill { font-size: 20px; line-height: 1; min-height: 20px; letter-spacing: 2px; }
-.powers-slot.is-here { outline: 3px solid var(--accent); outline-offset: 3px; }
-/* While a sentence is read back, the slot being read lights up - so the
-   read-back can be FOLLOWED in a loud room, not only heard. */
-.powers-slot.is-reading, .powers-cards .pic-card.is-reading { background: var(--accent); color: #231c00; }
+.powers-battery[hidden] { display: none; }
+.battery-cells {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--navy-0);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.35);
+}
+.battery-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+}
+.battery-cell .cell-icon { font-size: 30px; line-height: 1; }
+.battery-cell .cell-fill { font-size: 13px; line-height: 1; min-height: 13px; letter-spacing: 1px; white-space: nowrap; }
+.battery-cell.is-full { background: linear-gradient(180deg, #ffe07a, #ffc21f); color: #231c00; }
+.battery-cell.is-here { outline: 3px solid #fff; outline-offset: -3px; }
+.battery-cell.is-reading { background: #fff; color: #231c00; box-shadow: 0 0 18px #ffd23f; }
+body[data-motion="full"] .battery-cell.is-charging { animation: cell-charge 750ms ease-out; }
+@keyframes cell-charge {
+  0%   { transform: scale(1); box-shadow: 0 0 0 rgba(255, 210, 63, 0); }
+  40%  { transform: scale(1.18); box-shadow: 0 0 22px rgba(255, 210, 63, .95); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 210, 63, 0); }
+}
+.battery-cap {
+  width: 26px;
+  height: 34px;
+  border-radius: 0 8px 8px 0;
+  background: rgba(255,255,255,.35);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  opacity: .5;
+}
+.powers-battery.is-charged .battery-cap { background: #ffd23f; opacity: 1; }
+body[data-motion="full"] .powers-battery.is-charged .battery-cap { animation: anim-glow 1.6s ease-in-out infinite; }
+
+/* The spark that flies from a card into its cell. */
+.fly-spark {
+  position: fixed;
+  z-index: 60;
+  font-size: 34px;
+  line-height: 1;
+  pointer-events: none;
+  translate: -50% -50%;
+  transition: transform 600ms cubic-bezier(.5, 0, .7, 1);   /* SPARK_MS in app.js */
+  filter: drop-shadow(0 0 8px #ffd23f);
+}
+
+/* ➡️ and ⚡ Power on! glow when it is time to press them. */
+body[data-motion="full"] .powers-fire.is-ready { animation: ready-pulse 1.8s ease-in-out infinite; }
+@keyframes ready-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, .7); }
+  50%      { box-shadow: 0 0 0 10px rgba(255, 210, 63, 0); }
+}
+/* "What happens then?": one big inviting button. */
+.powers-then { width: 220px; min-height: 150px; }
+.powers-then .when-own-icon { font-size: 44px; }
 
 /* My powers: one card per power, up to three. */
 .powers-shelf { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
 .power-kept {
-  width: 168px;
+  width: 224px;
   border-radius: 18px;
   background: var(--navy-2);
   box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
@@ -3416,7 +3677,7 @@ body[data-motion="full"] .suit-act.is-showing { animation: act-pop 600ms ease-ou
   box-shadow: 0 0 12px #ffd23f;
   transform-origin: left center;
 }
-body[data-motion="full"] .pfx-pop   { animation: pfx-pop 700ms cubic-bezier(.34,1.56,.64,1) both; }
+body[data-motion="full"] .pfx-pop   { animation: pfx-pop 950ms cubic-bezier(.34,1.56,.64,1) both; }
 body[data-motion="full"] .pfx-walk  { animation: pfx-walk 4000ms linear both; }
 body[data-motion="full"] .pfx-beam  { animation: pfx-beam 450ms ease-out both; }
 body[data-motion="full"] .pfx-hop   { animation: pfx-hop 600ms ease-in-out 450ms 2 both; }
@@ -3424,7 +3685,7 @@ body[data-motion="full"] .pfx-rise  { animation: pfx-rise 1800ms ease-out both; 
 body[data-motion="full"] .pfx-blink { animation: pfx-blink 800ms steps(2, jump-none) 3; }
 body[data-motion="full"] .pfx-slowmo { animation: pfx-slowmo 4000ms ease-in-out; }
 body[data-motion="full"] .pfx-wash  { animation: pfx-wash 2400ms ease-in-out; }
-body[data-motion="full"] .pfx-bounce { animation: act-jump 700ms cubic-bezier(.34,1.56,.64,1); }
+body[data-motion="full"] .pfx-bounce { animation: act-jump 1000ms cubic-bezier(.34,1.56,.64,1); }
 @keyframes pfx-pop  { from { opacity: 0; transform: translate(-50%, -30%) scale(.4); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @keyframes pfx-walk { from { left: 8%; } to { left: 92%; } }
 @keyframes pfx-beam { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -3443,39 +3704,51 @@ body[data-motion="full"] .pfx-bounce { animation: act-jump 700ms cubic-bezier(.3
 [data-mission="powers"].is-busy .suit-side,
 [data-mission="powers"].is-busy .suit-phases { pointer-events: none; }
 
-/* Portrait: a smaller agent on Powers, so ✓ My power and 💡 Need ideas are
-   on screen without scrolling. Reachable is not the same as discoverable
+/* Portrait: a smaller agent, so the cards AND ➡️ / ⚡ Power on! are on
+   screen without scrolling. Reachable is not the same as discoverable
    (CLAUDE.md). */
 @media (orientation: portrait) {
-  [data-mission="powers"] .suit-stage-wrap { width: min(210px, 40vw); }
-  [data-mission="powers"] .powers-lasttime .when-own { width: 120px; }
-  [data-mission="powers"] .powers-canvas-wrap { width: 200px; }
+  [data-mission="powers"] .suit-stage-wrap { width: 200px; }
+  /* The battery is wider than the small agent above it: it hangs out
+     either side, centred, so its cells stay big enough to tap. */
+  [data-mission="powers"] .powers-battery { width: min(440px, 90vw); margin-left: calc(50% - min(220px, 45vw)); }
+  /* Six cards a row, so When's eleven take two rows, not three. */
+  #powers-sentence .powers-cards .pic-card,
+  #powers-sentence .powers-cards .when-own { width: 116px; }
+  #powers-sentence .pic-card-art { aspect-ratio: 16 / 10; min-height: 0; }
 }
+/* The props layer covers the AGENT only - a square as wide as the stage -
+   not the whole column, which also holds the battery. The props are placed
+   in % of the stage, so a taller box put the tortoise on the battery. */
+#powers-fx { inset: auto; left: 0; top: 0; width: 100%; aspect-ratio: 1; }
 
 /* ============================================================
    THE BOTTLE (v3 §8, P6)
    ============================================================ */
 .bottle-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.bottle-art { width: 100%; max-width: 220px; aspect-ratio: 3 / 5; touch-action: none; }
+.bottle-art { width: 100%; max-width: 190px; aspect-ratio: 3 / 5; touch-action: none; }
+/* All four items sit in ONE row under the bottle: at 260px wide the fourth
+   wrapped onto a second row below the screen's edge and looked lost
+   (Filip, 4 November). */
 .bottle-art svg { width: 100%; height: 100%; overflow: visible; }
 .bottle-glass { fill: rgba(170, 230, 255, .12); stroke: rgba(210, 245, 255, .75); stroke-width: 3; }
 .bottle-cork { fill: #b9874f; stroke: #7a5532; stroke-width: 2; }
 /* A band drops in from the top when an item is added (Full motion only). */
-body[data-motion="full"] .bottle-band.is-new { animation: band-drop 520ms cubic-bezier(.34,1.3,.64,1) both; }
+body[data-motion="full"] .bottle-band.is-new { animation: band-drop 750ms cubic-bezier(.34,1.3,.64,1) both; }
 @keyframes band-drop { from { transform: translateY(-120px); opacity: 0; } to { transform: none; opacity: 1; } }
-body[data-motion="full"] .bottle-cork.is-new { animation: cork-in 420ms ease-out both; }
+body[data-motion="full"] .bottle-cork.is-new { animation: cork-in 600ms ease-out both; }
 @keyframes cork-in { from { transform: translateY(-30px); } to { transform: none; } }
 
 /* The bottle flies off the top when it is sent. In Calm and Off it simply
    fades - the same moment, without the movement. */
 .bottle-art.is-flying { transition: opacity 600ms ease-in; opacity: 0; }
 body[data-motion="full"] .bottle-art.is-flying {
-  transition: transform 900ms cubic-bezier(.5,0,.75,0), opacity 900ms ease-in;
+  transition: transform 1200ms cubic-bezier(.5,0,.75,0), opacity 1200ms ease-in;
   transform: translateY(-140vh) rotate(-8deg);
 }
 
 /* What is in the bottle, under it: one chip per item, tap twice to remove. */
-.bottle-items { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 260px; }
+.bottle-items { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 300px; }
 .bottle-chip {
   min-width: 64px; min-height: 64px;
   border: none; border-radius: 16px;
@@ -3485,17 +3758,46 @@ body[data-motion="full"] .bottle-art.is-flying {
 }
 .bottle-chip img { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: #fff; }
 .bottle-chip.is-armed { background: var(--danger, #ff6b6b); }
+/* An armed bin wobbles: "tap again to take it out". */
+body[data-motion="full"] .bottle-chip.is-armed,
+body[data-motion="full"] .power-kept .is-armed { animation: bin-wobble 700ms ease-in-out infinite; }
+@keyframes bin-wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
 
-.bottle-tokens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 480px; }
+/* Two groups (v83): 🕵️ From your agent - what this agent already made -
+   and ✨ Make new. Four a row, so both fit on a landscape iPad. */
+.bottle-tokens { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 600px; }
+.bottle-tokens[hidden] { display: none; }
+.token-group-head { font-size: 16px; font-weight: 700; color: var(--muted); letter-spacing: .03em; padding: 2px 4px 0; }
+.token-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 0 2px; }
 .bottle-token {
-  min-height: 96px;
+  min-height: 78px;
+  /* Room under a long, wrapped label for the colour bar (6px), and less
+     at the sides so labels wrap less in a four-wide grid. */
+  padding: 8px 6px 14px;
   flex-direction: column;
-  gap: 6px;
-  font-size: 15px;
+  gap: 5px;
+  font-size: 14px;
   box-shadow: inset 0 -6px 0 var(--chip, #fff);
 }
-.bottle-token .token-icon { font-size: 38px; line-height: 1; }
+.bottle-token .token-icon { font-size: 30px; line-height: 1; }
+/* ➡️ never scrolls out of sight: in landscape only the tokens scroll (the
+   rule for every list with a button row under it - see CLAUDE.md). */
+@media (orientation: landscape) {
+  #bottle-fill { overflow: hidden; }
+  #bottle-fill .bottle-tokens { flex: 0 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #bottle-fill-go { flex: 0 0 auto; }
+}
+.bottle-token .token-icon img { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; background: #fff; }
 .bottle-token[disabled] { opacity: .35; }
+/* The one of its kind that is already in the bottle: ✓, not just grey. */
+.bottle-token.is-in { position: relative; opacity: .8; }
+.bottle-token.is-in::after {
+  content: '✓';
+  position: absolute; right: -6px; top: -6px;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: #2fb36d; color: #fff; font-size: 17px; font-weight: 800;
+}
 .bottle-sub { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .bottle-sub[hidden] { display: none; }
 
@@ -3509,6 +3811,33 @@ body[data-motion="full"] .bottle-art.is-flying {
 .bottle-friend .friend-emblem { font-size: 34px; line-height: 1; }
 .bottle-friend.is-on { outline: 3px solid var(--accent); outline-offset: 3px; }
 .bottle-disguise { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+/* 🕵️ Who is it from? The agent itself, or the dashed mystery agent. */
+.sign-card { width: 156px; }
+/* The 🎭🎤 above the spy voices: small, so ➡️ stays above the fold. */
+.bottle-disguise .soon-icon { font-size: 34px; line-height: 1; }
+.sign-art { aspect-ratio: 1; min-height: 0; }
+.sign-art .agent-view { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sign-art .hero-outline { width: auto; height: 78%; }
+.sign-q {
+  position: absolute;
+  left: 50%; top: 60%;
+  transform: translate(-50%, -50%);
+  font-size: 56px; font-weight: 800; line-height: 1;
+  color: var(--accent);
+}
+/* What is being recorded - a voice message or a game's name - as its
+   token's icon above the 🎤. */
+.bottle-sub-what {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  line-height: 1;
+  padding: 10px 18px;
+  border-radius: 18px;
+  background: var(--navy-2);
+  box-shadow: inset 0 -6px 0 var(--chip, #fff);
+}
+.sub-what-icon { font-size: 54px; }
+.sub-what-label { font-size: 17px; font-weight: 700; padding-bottom: 6px; }
 .bottle-disguise[hidden] { display: none; }
 
 /* Hold 🚀 to send: the button fills up while it is held. */
@@ -3534,7 +3863,8 @@ body[data-motion="full"] .bottle-art.is-flying {
 .bottle-kept .kept-state { font-size: 15px; color: var(--muted); }
 
 @media (orientation: portrait) {
-  [data-mission="bottle"] .bottle-art { max-width: 150px; }
+  /* Small enough that the two groups of tokens AND ➡️ fit under it. */
+  [data-mission="bottle"] .bottle-art { max-width: 100px; }
 }
 /* Long item names ("Something I can't live without") wrap inside the token. */
 .bottle-token .btn-label { white-space: normal; text-align: center; line-height: 1.2; }
@@ -3555,3 +3885,160 @@ body[data-motion="full"] .finish-stamp { animation: finish-stamp 600ms cubic-bez
 .finish-powers { display: flex; gap: 14px; font-size: 44px; min-height: 44px; }
 .finish-powers img { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; background: #fff; }
 .finish-actions { width: 100%; justify-content: space-between; }
+
+/* The 🎤 for a voice message or a game's name pulses until it is used, so
+   a child knows what to tap next (Filip, 4 November: "what does the
+   favourite game do?"). */
+body[data-motion="full"] #bottle-mic:not(.is-recording) { animation: ready-pulse 1.8s ease-in-out infinite; }
+
+/* ---- "Next": the button that carries a child on (v84) ----
+   Green, big and with a word, so it is obviously THE thing to press next -
+   Filip, 4 November: the small ➡️ was easy to miss, and children reached
+   for the big yellow Stamp it at the bottom instead. Green is used for
+   nothing else. It pulses gently whenever it is showing (Full motion);
+   the battery's ➡️, which also skips an empty question, pulses only once
+   its question has an answer. */
+.btn-next {
+  min-width: 170px;
+  min-height: 80px;
+  padding: 0 26px;
+  gap: 12px;
+  background: #2fb36d;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  box-shadow: 0 5px 0 #1d7a48;
+}
+.btn-next .next-arrow { font-size: 34px; line-height: 1; }
+.btn-next[hidden] { display: none; }
+body[data-motion="full"] .btn-next:not(.powers-next),
+body[data-motion="full"] .btn-next.powers-next.is-ready { animation: next-pulse 1.8s ease-in-out infinite; }
+@keyframes next-pulse {
+  0%, 100% { box-shadow: 0 5px 0 #1d7a48, 0 0 0 0 rgba(47, 179, 109, .65); }
+  50%      { box-shadow: 0 5px 0 #1d7a48, 0 0 0 14px rgba(47, 179, 109, 0); }
+}
+/* The battery's ➡️ before its question has an answer: still green, quieter. */
+.btn-next.powers-next:not(.is-ready) { background: #23784e; color: rgba(255,255,255,.85); }
+
+/* Stamp it WAITS, quietly, until the mission has been done: grey and a
+   little smaller, so the green Next is what draws the eye. It still
+   works - nobody is ever stuck - and turns yellow the moment it is time
+   (missionReady() in app.js). */
+#btn-stamp.is-waiting {
+  background: var(--navy-3);
+  color: var(--muted);
+  box-shadow: none;
+  transform: scale(.88);
+  transform-origin: right center;
+}
+body[data-motion="full"] #btn-stamp.is-ready-now { animation: stamp-ready 900ms cubic-bezier(.34,1.56,.64,1); }
+@keyframes stamp-ready { 0% { transform: scale(.88); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+/* ---- Nothing clipped at an edge (v85) ----
+   Every right-hand column (.suit-side) scrolls, and a scrolling box cuts
+   off whatever spills past its edge - a button's drop shadow (5px below),
+   a chosen card's outline (6px all round), a pulsing Next. With a button
+   sitting exactly on the bottom edge, its bottom was sliced off on every
+   screen (Filip, 4 November). So each column keeps room inside its own
+   edge, and on a landscape iPad the buttons sit OUTSIDE the part that
+   scrolls - the rule for every list with buttons under it (CLAUDE.md). */
+.suit-side { padding: 8px 8px 14px; }
+@media (orientation: landscape) {
+  #powers-doors, #suit-best, #bottle-sign { overflow: hidden; }
+  #powers-doors .powers-door-grid,
+  #powers-doors .powers-cards,
+  #suit-best .suit-best-cards,
+  #bottle-sign .bottle-disguise { flex: 0 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #powers-doors .powers-door-tools,
+  #suit-best #suit-best-go,
+  #bottle-sign #bottle-sign-go { flex: 0 0 auto; }
+  /* A little tighter, so they fit without scrolling at all. */
+  #suit-best .suit-best-cards .pic-card { width: 128px; }
+  #suit-best .suit-best-cards .pic-card-art { aspect-ratio: 16 / 10; min-height: 0; }
+  .sign-card { width: 136px; }
+  .bottle-disguise .word-voice { min-height: 72px; }
+  .bottle-token { min-height: 70px; padding-top: 6px; }
+  .bottle-token .token-icon { font-size: 26px; }
+  .bottle-token .btn-label { font-size: 13px; }
+}
+.bottle-tokens { padding-bottom: 8px; }
+
+/* Next pulses by growing a little, not with a spreading ring: a ring was
+   cut off by the column edge and looked like a dark box round the button. */
+@keyframes next-pulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50%      { transform: scale(1.05); filter: brightness(1.12); }
+}
+
+/* My powers: one row per power - picture, name, its little sentence and
+   its three buttons - so three powers fit without scrolling. */
+.powers-shelf { flex-direction: column; align-items: stretch; width: 100%; max-width: 560px; }
+.power-kept {
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+}
+.power-kept-art { flex: 0 0 64px; height: 64px; font-size: 44px; }
+.power-kept-art img { max-height: 60px; max-width: 64px; }
+.power-kept-label { flex: 1; min-width: 0; text-align: left; }
+.power-kept-strip { flex: 0 0 auto; }
+.power-kept-tools { flex: 0 0 auto; }
+
+/* Fitted, so nothing a child must reach is cut (v85, from the audit). */
+@media (orientation: landscape) {
+  .powers-door-grid { max-width: 500px; }
+  #powers-doors .powers-cards .pic-card-art { aspect-ratio: 16 / 10; min-height: 0; }
+  .sign-art { aspect-ratio: 4 / 3; }
+  .bottle-token { min-height: 64px; }
+  .bottle-token .token-icon { font-size: 24px; }
+  .token-group-head { font-size: 14px; padding: 0 4px; }
+}
+.token-grid { padding: 4px 6px; }
+.bottle-disguise { padding: 0 6px 10px; }
+
+/* A list that really is longer than its space - When's eleven photos -
+   fades out at the bottom instead of being sliced, so "there is more,
+   scroll down" is what a child sees. updateFades() in app.js sets
+   .has-more only while there IS more below, so a list that fits never
+   fades. */
+.has-more {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
+          mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
+}
+/* Portrait: the whole column scrolls as one, so less padding is needed -
+   and the favourite cards are the compact ones, as in landscape. */
+@media (orientation: portrait) {
+  .suit-side { padding: 4px 4px 8px; }
+  #suit-best .suit-best-cards .pic-card { width: 128px; }
+  #suit-best .suit-best-cards .pic-card-art { aspect-ratio: 16 / 10; min-height: 0; }
+}
+@media (orientation: portrait) {
+  [data-mission="powers"] .suit-stage-wrap { width: 180px; }
+  /* The bottle with its items BESIDE it, not under it, and the tokens six
+     to a row: a full bottle's tokens and Next then fit without scrolling. */
+  [data-mission="bottle"] .bottle-wrap { flex-direction: row; align-items: flex-end; justify-content: center; width: auto; }
+  [data-mission="bottle"] .bottle-items { flex-direction: column; flex-wrap: nowrap; max-width: none; }
+  .token-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .bottle-tokens { max-width: none; }
+}
+@media (orientation: portrait) {
+  .sign-card { width: 136px; }
+  .sign-art { aspect-ratio: 4 / 3; }
+  .bottle-disguise .word-voice { min-height: 72px; }
+}
+@media (orientation: portrait) {
+  /* Room inside the scrolling column for the last button's shadow. */
+  .suit-main { padding-bottom: 10px; gap: 14px; }
+}
+/* The parts tray scrolls too: room for its buttons' shadows. */
+#parts-tray { padding-bottom: 8px; }
+@media (orientation: portrait) {
+  /* In portrait the whole column scrolls, so the right-hand part must be
+     as tall as its contents. With `flex: 1` it took only the space left
+     over, squeezed below its own contents, the page could not scroll to
+     them, and the last button was cut off (the mystery bottle's Next,
+     found by the v85 audit). */
+  .suit-side { flex: 0 0 auto; }
+}

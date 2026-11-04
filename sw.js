@@ -18,7 +18,7 @@
    cache. Clearing the cache updates the app; it does not touch their work.
    ========================================================================== */
 
-const CACHE_VERSION = 'agent-lab-v79';
+const CACHE_VERSION = 'agent-lab-v85';
 
 /* Every file the app needs to start. The ?v= numbers must match the ones in
    index.html exactly - a service worker caches URLs, and ./app.js and
@@ -26,15 +26,15 @@ const CACHE_VERSION = 'agent-lab-v79';
 const APP_FILES = [
   './',
   './index.html',
-  './style.css?v=79',
-  './boot-guard.js?v=79',
-  './storage.js?v=79',
-  './audio.js?v=79',
-  './effects.js?v=79',
-  './assets.js?v=79',
-  './stickers.js?v=79',
-  './parts.js?v=79',
-  './app.js?v=79',
+  './style.css?v=85',
+  './boot-guard.js?v=85',
+  './storage.js?v=85',
+  './audio.js?v=85',
+  './effects.js?v=85',
+  './assets.js?v=85',
+  './stickers.js?v=85',
+  './parts.js?v=85',
+  './app.js?v=85',
   './manifest.json',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -89,13 +89,16 @@ function cacheAssets(cache) {
       ['hq', 'situations', 'stickers', 'narrator', 'sfx',
        'powers', 'doors', 'cards'].forEach(function (group) {
         (manifest[group] || []).forEach(function (item) {
-          if (item && item.file) files.push('./assets/' + item.file);
+          // The same address assets.js asks for, fingerprint and all.
+          if (item && item.file) files.push('./assets/' + item.file + (item.rev ? '?r=' + item.rev : ''));
         });
       });
       // One at a time, each failure swallowed.
       return files.reduce(function (chain, url) {
         return chain.then(function () {
-          return cache.add(url).catch(function () { /* not made yet */ });
+          // 'reload': straight from the server, never from the browser's
+          // own saved copy - which may be the file before it was remade.
+          return cache.add(new Request(url, { cache: 'reload' })).catch(function () { /* not made yet */ });
         });
       }, Promise.resolve());
     })

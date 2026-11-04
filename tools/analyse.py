@@ -228,7 +228,7 @@ def agent_row(agent):
 
 POWER_COLUMNS = [
     "agent_ref", "codename", "power_index", "power_ref", "power", "family", "invented_first",
-    "own_drawn", "own_said", "when", "when_own", "who", "who_own", "how", "how_own",
+    "own_drawn", "own_said", "devices", "when", "when_own", "who", "who_own", "how", "how_own",
     "so_that", "skipped", "order", "times_fired",
 ]
 
@@ -248,6 +248,8 @@ def power_rows(agent):
             ref(agent.get("id")), agent.get("codename", ""), i, p.get("id", ""), p["power"],
             FAMILY.get(p["power"], ""), "" if p.get("inventedFirst") is None else int(bool(p["inventedFirst"])),
             int(bool(own.get("png"))), int(bool(own.get("audioId"))),
+            # v80: which devices "Control school devices" controls.
+            joined(p.get("devices", [])) if p["power"] == "pow-control-devices" else "",
             joined(p.get("when", [])), own_summary(p.get("whenOwn")),
             joined(p.get("who", [])), own_summary(p.get("whoOwn")),
             joined(p.get("how", [])), own_summary(p.get("howOwn")),
@@ -452,12 +454,12 @@ def card_html(agent, files, labels, parts_js):
     if any(suit.get(k) for k in ("likes", "likesUnsure", "likesNot", "school", "schoolUnsure", "schoolNot")):
         out.append('<section><h2>🗣️ How my agent talks</h2><table>')
         for title, keys in (("My agent likes…", ("likes", "likesUnsure", "likesNot")),
-                            ("School wants…", ("school", "schoolUnsure", "schoolNot"))):
+                            ("School wants us to…", ("school", "schoolUnsure", "schoolNot"))):
             for mark, key in zip(("👍", "🤷", "👎"), keys):
                 out.append('<tr><td class="muted">%s %s</td><td>%s</td></tr>' % (
                     esc(title), mark, " ".join(chip(c, labels) for c in suit.get(key, []))))
         if suit.get("best"):
-            out.append('<tr><td class="muted">⭐ Best</td><td>%s</td></tr>' % chip(suit["best"], labels))
+            out.append('<tr><td class="muted">⭐ Likes the most</td><td>%s</td></tr>' % chip(suit["best"], labels))
         out.append('</table>')
         if files.get("audio:secret-word"):
             out.append('<p>🤫 Secret word (spy voice: %s) %s</p>' % (
@@ -485,6 +487,9 @@ def card_html(agent, files, labels, parts_js):
             name = {"own": "✨ Their own power", "v2": "⏪ From last time"}.get(power) or chip(power, labels)
             out.append('<div class="strip"><div class="slot"><b>Power%s</b>%s %s</div>' % (
                 " · invented first" if p.get("inventedFirst") else "", name, media(files, "power%d" % i)))
+            if power == "pow-control-devices" and p.get("devices"):
+                out.append('<div class="slot"><b>🎛️ Devices</b>%s</div>' % " ".join(
+                    chip(c, labels) for c in p["devices"]))
             for slot, own_key in SLOTS:
                 skipped = slot in (p.get("skipped") or [])
                 cells = " ".join(chip(c, labels) for c in p.get(slot, []))
@@ -492,7 +497,7 @@ def card_html(agent, files, labels, parts_js):
                 out.append('<div class="slot%s"><b>%s</b>%s</div>' % (
                     " skipped" if skipped else "", {"when": "🕐 When", "who": "👥 Who", "how": "🔌 Switch on"}[slot],
                     cells or "—"))
-            out.append('<div class="slot%s"><b>🎯 So that</b>%s</div></div>' % (
+            out.append('<div class="slot%s"><b>🎯 Then</b>%s</div></div>' % (
                 " skipped" if not p.get("soThat") else "", media(files, "power%d-sothat" % i) or "—"))
         out.append('</section>')
 

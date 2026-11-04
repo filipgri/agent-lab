@@ -53,19 +53,34 @@
   const STARS = ['pow-slow-everybody', 'pow-control-teachers', 'pow-control-displays',
                  'pow-control-devices', 'pow-speak-for-friends'];
   const POWERS = {
-    'pow-slow-everybody': ['🐢', 'Slow everybody down'], 'pow-pause': ['⏸️', 'Pause the world'],
+    'pow-slow-everybody': ['🐢', 'Slow everybody down'], 'pow-pause': ['⏸️', 'Pause my school'],
     'pow-hold-turn': ['🎟️', 'Hold my turn'], 'pow-warn-me': ['🔔', 'Warn me first'],
-    'pow-say-again': ['🔁', 'Say it again'], 'pow-turn-down': ['🔉', 'Turn the room down'],
-    'pow-dim-lights': ['🌙', 'Dim the lights'], 'pow-quiet-bubble': ['🫧', 'Quiet bubble'],
+    'pow-say-again': ['🔁', 'Say it again'], 'pow-turn-down': ['🔉', 'Turn the classroom down'],
+    'pow-dim-lights': ['🌙', 'Dim the classroom lights'], 'pow-quiet-bubble': ['🫧', 'Quiet bubble'],
     'pow-translator': ['🔄', 'Translator'], 'pow-my-way': ['🌀', 'Everyone talks my way'],
     'pow-get-me': ['💡', 'Get-what-I-mean ray'], 'pow-control-teachers': ['🎮', 'Control teachers'],
     'pow-question-swap': ['🔀', 'Question swap'], 'pow-pass': ['🛑', 'Pass'],
-    'pow-invisible': ['👻', 'Invisibility cloak'], 'pow-control-displays': ['📺', 'Control all displays'],
-    'pow-control-devices': ['🎛️', 'Control devices'], 'pow-see-points': ['⭐', 'See my points'],
-    'pow-change-rule': ['📜', 'Change a rule'], 'pow-speak-for-friends': ['💬', 'Speak for your friends'],
+    'pow-invisible': ['👻', 'Invisibility cloak'], 'pow-control-displays': ['📺', 'Control all school displays'],
+    'pow-control-devices': ['🎛️', 'Control school devices'], 'pow-see-points': ['⭐', 'See my points'],
+    'pow-change-rule': ['📜', 'Change a school rule'], 'pow-speak-for-friends': ['💬', 'Speak for your friends'],
     'pow-call-ally': ['📣', 'Call an ally'], 'pow-team-up': ['🤝', 'Team up']
   };
+  // Each power's sound: keep in step with POWER_SFX in app.js.
+  const POWER_SFX = {
+    'pow-slow-everybody': 'sfx-slow',      'pow-pause': 'sfx-freeze',
+    'pow-hold-turn': 'sfx-ticket',         'pow-warn-me': 'sfx-warn',
+    'pow-say-again': 'sfx-rewind',         'pow-turn-down': 'sfx-turn-down',
+    'pow-dim-lights': 'sfx-dim',           'pow-quiet-bubble': 'sfx-shield',
+    'pow-translator': 'sfx-translate',     'pow-my-way': 'sfx-thoughts',
+    'pow-get-me': 'sfx-ray',               'pow-control-teachers': 'sfx-remote',
+    'pow-question-swap': 'sfx-swap',       'pow-pass': 'sfx-pass',
+    'pow-invisible': 'sfx-fade',           'pow-control-displays': 'sfx-screens',
+    'pow-control-devices': 'sfx-lightning','pow-see-points': 'sfx-star',
+    'pow-change-rule': 'sfx-scroll',       'pow-speak-for-friends': 'sfx-bubbles',
+    'pow-call-ally': 'sfx-call',           'pow-team-up': 'sfx-high-five'
+  };
   const ITEM_EMOJI = { 'item-game': '🎮', 'item-cant-live': '💎', 'item-safe': '📍',
+                       'item-word': '🤫', 'item-talk': '🗣️',
                        'item-drawing': '✏️', 'item-voice': '🎤', 'item-handshake': '🤝' };
 
   const ui = {
@@ -220,6 +235,25 @@
     const audio = new Audio('assets/audio/sfx/' + id + '.mp3');
     audio.volume = VOLUME;
     audio.play().catch(() => { if (id === 'sfx-bottle-arrive') madeChime(); });
+  }
+  const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.00,
+                      1046.50, 1174.66, 1318.51, 1567.98, 1760.00];
+  function note(step) {
+    if (quiet() || !audioContext) return;
+    const f = PENTATONIC[Math.min(PENTATONIC.length - 1, step)];
+    const now = audioContext.currentTime;
+    [[f, 0.45, VOLUME * 0.5], [f * 4, 0.07, VOLUME * 0.1]].forEach(([freq, len, peak]) => {
+      const tone = audioContext.createOscillator();
+      const level = audioContext.createGain();
+      tone.frequency.value = freq;
+      level.gain.setValueAtTime(0.0001, now);
+      level.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), now + 0.012);
+      level.gain.exponentialRampToValueAtTime(0.0001, now + len);
+      tone.connect(level);
+      level.connect(audioContext.destination);
+      tone.start(now);
+      tone.stop(now + len + 0.02);
+    });
   }
   function madeChime() {
     if (!audioContext) return;
@@ -379,12 +413,16 @@
     await sleep(1400, token);
   }
 
-  /* Its handshake, as light: the picture glows on each tap. */
+  /* Its handshake, as light and as a tune: the picture glows on each tap,
+     and each tap is the next note up the same pentatonic scale the iPad
+     plays (audio.js, Voice.note) - so the child hears their handshake. */
   async function pulse(taps, token) {
     let at = 0;
-    for (const t of taps) {
+    for (let i = 0; i < taps.length; i++) {
+      const t = taps[i];
       await sleep(Math.max(0, t - at), token);
       at = t;
+      note(i);
       $('#sender-pic').classList.add('is-pulse');
       setTimeout(() => $('#sender-pic').classList.remove('is-pulse'), 160);
     }
@@ -432,6 +470,19 @@
         await playClip(item.audio, token);
         return;
       }
+      case 'item-word': {
+        // v83: the agent's secret word, in the spy voice it was given.
+        show(card('🤫'));
+        await playClip(item.audio, token);
+        await sleep(600, token);
+        return;
+      }
+      case 'item-talk': {
+        // v83: how the agent likes to talk most - its card's picture.
+        show(card(picture('assets/img/cards/' + item.mode + '.png', '🗣️', '')));
+        await sleep(3000, token);
+        return;
+      }
       case 'item-handshake': {
         show(card('🤝'));
         if ($('#sender').hidden) await sleep(800, token);
@@ -456,6 +507,10 @@
   /* ---- the powers on the display (v3 §7.2, the right-hand column) ---- */
   async function powerEffect(bottle, item, token) {
     const id = item.power;
+    // Each power's own sound - the same table as the iPad (app.js,
+    // POWER_SFX) - played before its scene, so "turn the room down" is
+    // heard before the sound goes off.
+    sfx(POWER_SFX[id] || 'sfx-powerup');
     const emblem = (bottle.from && bottle.from.emblem) || '✨';
 
     if (id === 'pow-slow-everybody') {
@@ -467,7 +522,6 @@
         turtle.style.transition = 'left 10s linear';
         requestAnimationFrame(() => { turtle.style.left = '92%'; });
       } else turtle.style.left = '50%';
-      sfx('sfx-slow');
       setTimeout(() => { $('#scene').style.setProperty('--slow', '1'); turtle.remove(); }, 10000);
       await sleep(2500, token);
     } else if (id === 'pow-control-teachers') {
@@ -483,7 +537,6 @@
       teacher.classList.remove('is-hop');
       void teacher.offsetWidth;
       teacher.classList.add('is-hop');
-      sfx('sfx-lightning');
       await sleep(3800, token);
       teacher.hidden = true;
     } else if (id === 'pow-control-displays') {
@@ -496,13 +549,11 @@
         wash.appendChild(span);
       }
       wash.hidden = false;
-      sfx('sfx-lightning');
       setTimeout(() => { wash.hidden = true; }, 10000);
       await sleep(3000, token);
     } else if (id === 'pow-control-devices') {
       // ★ Lights, speakers and a whiteboard switch on and off.
       const props = [prop('💡', 6, 10, 'blink'), prop('🔊', 88, 10, 'blink'), prop('📋', 6, 52, 'blink')];
-      sfx('sfx-lightning');
       await sleep(3400, token);
       props.forEach(p => p.remove());
     } else if (id === 'pow-speak-for-friends') {
@@ -511,12 +562,10 @@
       const b = show(bubble('💬'));
       a.classList.add('rise');
       b.classList.add('rise');
-      sfx('sfx-thoughts');
       await sleep(2600, token);
     } else if (id === 'pow-pause') {
       show(card('⏸️'));
       $('#scene').classList.add('is-frozen');
-      sfx('sfx-freeze');
       await sleep(5000, token);
       $('#scene').classList.remove('is-frozen');
     } else if (id === 'pow-dim-lights') {
@@ -553,7 +602,6 @@
     } else {
       // Every other power - and a child's own - pops up big for now.
       show(card(id === 'own' || id === 'v2' ? picture(item.picture, '✨', '') : powerArt(id, '')));
-      sfx('sfx-powerup');
       await sleep(2800, token);
     }
   }

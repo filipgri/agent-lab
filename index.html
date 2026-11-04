@@ -37,7 +37,7 @@
   <!-- ?v= is a cache-buster, bumped each milestone. Safari holds on to
        these files hard, and until the service worker arrives at Milestone 9
        this is what makes an updated app actually load on an iPad. -->
-  <link rel="stylesheet" href="./style.css?v=79">
+  <link rel="stylesheet" href="./style.css?v=85">
 </head>
 <body>
 
@@ -61,8 +61,9 @@
 
     <!-- THE CODENAME (v2 §5.1). Children never type their real name (§3).
 
-         Two reels side by side, each with a lock underneath, so a child who
-         likes "Comet" can keep it and re-roll only the first word.
+         Two reels side by side. (Each had a 🔒 underneath to keep one word
+         while re-rolling the other; removed 4 November 2026 - Roll and Type
+         are enough.)
 
          The hero is an EMPTY AGENT - a dashed outline, the agent the child is
          about to make - with the name's symbol as a small badge on its chest.
@@ -80,15 +81,11 @@
       <div class="reels">
         <div class="reel-col">
           <div id="reel-word" class="reel" aria-live="polite">Silent</div>
-          <button id="lock-word" class="reel-lock" role="switch" aria-checked="false"
-                  aria-label="Keep the first word">🔓</button>
         </div>
         <div class="reel-col">
           <!-- The second reel: a spy word. Its id still says "animal",
                like the data does (see SPY_WORDS in app.js). -->
           <div id="reel-animal" class="reel" aria-live="polite">Comet</div>
-          <button id="lock-animal" class="reel-lock" role="switch" aria-checked="false"
-                  aria-label="Keep the second word">🔓</button>
         </div>
       </div>
 
@@ -401,15 +398,16 @@
              The HQ panel above is kept on purpose. It is no longer a mission,
              but v3 §6 builds Safe place out of its layout. -->
 
-        <!-- 🗣️ HOW MY AGENT TALKS (v3 §5, P3; redesigned after Filip's
-             first try, 3 November 2026). The room is loud, so nothing here
-             depends on hearing or reading: the agent stands big in the
-             middle and ACTS OUT each card, one card at a time, and the
-             child sorts it - 👍 🤷 👎 - the way a Talking Mat works.
-               🗣️ My agent likes…   every card, one at a time
-               ⭐ Which is best?    one card from the 👍 pile
-               🏫 School wants…     the same cards, plus Hand up and Quiet
-               🤫 A secret word     said with 🎤, in a spy voice
+        <!-- 🗣️ HOW MY AGENT TALKS (v3 §5, P3; redesigned twice after
+             Filip tried it, 3 November 2026). The room is loud, so nothing
+             here depends on hearing or reading: one big card at a time that
+             moves, the agent acting it out, and the sentence said aloud -
+             "My agent likes… Talking." The child answers with THE AGENT:
+             three small copies of it nod ✓, tilt their head ? or shake it ✗.
+               🗣️ My agent likes…        every card, one at a time
+               ⭐ …like the most?        one card from the ✓ pile
+               🏫 School wants us to…    school's own cards
+               🤫 A secret word          said with 🎤, in a spy voice
              The app NEVER compares the piles. The gap between how an agent
              likes to talk and what school wants is for the analysis. -->
         <article class="mission-panel" data-mission="suit">
@@ -419,8 +417,8 @@
               <!-- Which part is showing. Icons, not numbers. -->
               <div class="suit-phases seg-group">
                 <button class="btn seg" data-suit-phase="likes" aria-label="My agent likes">🗣️</button>
-                <button class="btn seg" data-suit-phase="best" aria-label="Which is best">⭐</button>
-                <button class="btn seg" data-suit-phase="school" aria-label="School wants">🏫</button>
+                <button class="btn seg" data-suit-phase="best" aria-label="Which one does your agent like the most">⭐</button>
+                <button class="btn seg" data-suit-phase="school" aria-label="School wants us to">🏫</button>
                 <button class="btn seg" data-suit-phase="word" aria-label="Secret word">🤫</button>
               </div>
               <h2 id="suit-title" class="power-title">My agent likes…</h2>
@@ -439,26 +437,38 @@
                 <span id="suit-act" class="suit-act" aria-hidden="true"></span>
               </div>
 
-              <!-- SORTING: one card, three piles. -->
+              <!-- SORTING: one card, and three answers. Each answer is a
+                   small copy of the child's own agent (drawn by app.js) that
+                   nods, tilts its head or shakes it. -->
               <div id="suit-sort" class="suit-side">
                 <div id="suit-card" class="suit-card-slot"></div>
                 <div class="suit-piles">
-                  <button class="btn suit-pile" data-pile="yes"><span class="pile-icon">👍</span><span class="btn-label">Yes</span></button>
-                  <button class="btn suit-pile" data-pile="unsure"><span class="pile-icon">🤷</span><span class="btn-label">Not sure</span></button>
-                  <button class="btn suit-pile" data-pile="no"><span class="pile-icon">👎</span><span class="btn-label">No</span></button>
+                  <!-- Back one card sits in this row, apart from the three
+                       answers, so the dots under it stay on screen. -->
+                  <button id="suit-back" class="btn tool suit-back" aria-label="Back one card">↩️</button>
+                  <button class="btn suit-pile" data-pile="yes" aria-label="Yes">
+                    <span class="pile-agent"><span class="agent-view"><canvas class="agent-pixels" width="16" height="16"></canvas><img class="agent-drawing" alt="" hidden><svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg><span class="sticker-layer"></span></span></span>
+                    <span class="pile-mark">✓</span>
+                  </button>
+                  <button class="btn suit-pile" data-pile="unsure" aria-label="Not sure">
+                    <span class="pile-agent"><span class="agent-view"><canvas class="agent-pixels" width="16" height="16"></canvas><img class="agent-drawing" alt="" hidden><svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg><span class="sticker-layer"></span></span></span>
+                    <span class="pile-mark">?</span>
+                  </button>
+                  <button class="btn suit-pile" data-pile="no" aria-label="No">
+                    <span class="pile-agent"><span class="agent-view"><canvas class="agent-pixels" width="16" height="16"></canvas><img class="agent-drawing" alt="" hidden><svg class="agent-shapes" viewBox="0 0 100 100" aria-hidden="true" hidden></svg><span class="sticker-layer"></span></span></span>
+                    <span class="pile-mark">✗</span>
+                  </button>
                 </div>
                 <div class="suit-progress">
-                  <button id="suit-back" class="btn tool" aria-label="Back one card">↩️</button>
                   <!-- One dot per card, filled once it is sorted. No numbers. -->
                   <div id="suit-dots" class="suit-dots" aria-hidden="true"></div>
                 </div>
-                <div id="suit-own-row" class="power-when suit-own-row"></div>
               </div>
 
-              <!-- WHICH IS BEST: the 👍 cards, pick one. -->
+              <!-- THE MOST: the ✓ cards, pick one. -->
               <div id="suit-best" class="suit-side" hidden>
                 <div id="suit-best-cards" class="power-when suit-best-cards"></div>
-                <button id="suit-best-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+                <button id="suit-best-go" class="btn btn-big btn-next" hidden aria-label="Next"><span class="btn-label">Next</span><span class="next-arrow" aria-hidden="true">➜</span></button>
               </div>
 
               <!-- A SECRET WORD: say it, then give it a spy voice. -->
@@ -471,31 +481,34 @@
           </div>
         </article>
 
-        <!-- ⚡ POWERS (v3 §7, P5) - the heart of v3. One power is the aim;
-             up to three are allowed. The agent stands BIG in the middle and
-             does the power (Filip, 3 November), and every step has a short
-             icon heading, because the room is too loud to rely on the voice.
-               ✨ Make up a power   draw it or say it - nothing else first
-               🚪 Ideas             six doors; NOT EVEN BUILT until the child
-                                    has drawn, recorded or tapped 💡
-               📝 The sentence      🕐 When · 👥 Who · 🔌 Switch on · 🎯 So that
-               ⚡ My powers         fire one, add another, or remove one -->
+        <!-- ⚡ POWERS (v3 §7, P5) - the heart of v3, redesigned as a game
+             after Filip tried it (3 November 2026). One power is the aim;
+             up to three are allowed. The agent stands BIG on the left and
+             does the power; every heading is also said aloud.
+               🚪 The doors     six doors and a ✨ secret door (make up your
+                                own); a door swings open and its cards are
+                                dealt face-down and flip over
+               🔋 Charge it     a battery under the agent, one cell per
+                                question (🎛️ devices · 🕐 when · 👥 who ·
+                                🔌 switch on · 🎯 what happens then); each
+                                card picked sparks into its cell
+               ⚡ My powers     fire one, add another, or remove one -->
         <article class="mission-panel" data-mission="powers">
           <div class="suit-wrap">
 
             <header class="power-head suit-head">
               <div id="powers-phases" class="suit-phases seg-group">
-                <button class="btn seg" data-powers-phase="make" aria-label="Make up a power">✨</button>
-                <button class="btn seg" data-powers-phase="doors" aria-label="Ideas" hidden>🚪</button>
-                <button class="btn seg" data-powers-phase="sentence" aria-label="The sentence" hidden>📝</button>
+                <button class="btn seg" data-powers-phase="doors" aria-label="The doors">🚪</button>
+                <button class="btn seg" data-powers-phase="sentence" aria-label="Charge your power" hidden>🔋</button>
                 <button class="btn seg" data-powers-phase="mine" aria-label="My powers" hidden>⚡</button>
               </div>
-              <h2 id="powers-title" class="power-title">Make up a power</h2>
+              <h2 id="powers-title" class="power-title">Pick a door</h2>
               <button id="powers-say" class="btn btn-icon-only" aria-label="Hear this">🔊</button>
             </header>
 
             <div class="suit-main">
-              <!-- The agent, big, doing the power. -->
+              <!-- The agent, big, doing the power - and under it, while a
+                   power is charged, its battery. -->
               <div class="suit-stage-wrap">
                 <div id="powers-stage" class="agent-view suit-stage">
                   <canvas class="agent-pixels" width="16" height="16"></canvas>
@@ -505,48 +518,28 @@
                 </div>
                 <!-- Props for the power: a tortoise, a remote, a beam… -->
                 <div id="powers-fx" class="pfx-layer" aria-hidden="true"></div>
-              </div>
-
-              <!-- ✨ MAKE UP A POWER: a blank canvas and 🎤, nothing else. -->
-              <div id="powers-make" class="suit-side">
-                <div id="powers-lasttime" class="powers-lasttime"></div>
-                <div class="powers-make-row">
-                  <div class="m3-canvas-wrap powers-canvas-wrap">
-                    <canvas id="powers-canvas" class="m3-canvas" width="320" height="320"></canvas>
-                  </div>
-                  <div class="powers-make-tools">
-                    <div id="powers-palette" class="palette"></div>
-                    <div class="powers-tool-row">
-                      <button id="powers-undo" class="btn tool" aria-label="Undo">↩️</button>
-                      <button id="powers-clear" class="btn tool" aria-label="Clear">🧽</button>
-                      <button id="powers-mic" class="btn tool" aria-label="Say your power">🎤</button>
-                    </div>
-                  </div>
-                </div>
-                <div class="powers-make-go">
-                  <button id="powers-mine-go" class="btn btn-accent btn-big" hidden>✓ <span class="btn-label">My power</span></button>
-                  <button id="powers-ideas" class="btn btn-big">💡 <span class="btn-label">Need ideas?</span></button>
+                <div id="powers-battery" class="powers-battery" hidden>
+                  <div id="powers-cells" class="battery-cells"></div>
+                  <span class="battery-cap" aria-hidden="true">⚡</span>
                 </div>
               </div>
 
-              <!-- 🚪 THE SIX DOORS, then one door's cards. Filled in by app.js
-                   only once the child has invented or asked (v3 §7.1). -->
-              <div id="powers-doors" class="suit-side" hidden>
+              <!-- 🚪 THE DOORS, then one door's cards. -->
+              <div id="powers-doors" class="suit-side">
                 <div id="powers-door-grid" class="powers-door-grid"></div>
                 <div id="powers-door-cards" class="power-when powers-cards" hidden></div>
                 <div class="powers-door-tools">
                   <button id="powers-door-back" class="btn tool" aria-label="Back to the doors" hidden>🚪</button>
-                  <button id="powers-chosen-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+                  <button id="powers-chosen-go" class="btn btn-big btn-next" hidden>✓ <span class="btn-label">This one</span></button>
                 </div>
               </div>
 
-              <!-- 📝 THE SENTENCE: four slots, filled in any order. -->
+              <!-- 🔋 CHARGE IT: one question at a time. -->
               <div id="powers-sentence" class="suit-side" hidden>
-                <div id="powers-slots" class="powers-slots"></div>
                 <div id="powers-slot-cards" class="power-when powers-cards"></div>
                 <div class="powers-door-tools">
-                  <button id="powers-slot-next" class="btn tool" aria-label="Next">➡️</button>
-                  <button id="powers-fire" class="btn btn-accent btn-big">⚡ <span class="btn-label">Power on!</span></button>
+                  <button id="powers-slot-next" class="btn btn-big btn-next powers-next" aria-label="Next"><span class="btn-label">Next</span><span class="next-arrow" aria-hidden="true">➜</span></button>
+                  <button id="powers-fire" class="btn btn-accent btn-big powers-fire">⚡ <span class="btn-label">Power on!</span></button>
                 </div>
               </div>
 
@@ -566,7 +559,7 @@
              the item TYPES, not to feelings.
                🍾 Fill        up to 4 items
                👥 Who for     me (kept) · a friend · my teacher · everyone
-               ✍️ Sign        my agent, or a mystery (not asked for "me")
+               🕵️ From        my agent, or a mystery (not asked for "me")
                🚀 Send        cork it, then swipe the bottle up or hold 🚀
              Only a bottle the child sends ever leaves this iPad (v3 §9.1). -->
         <article class="mission-panel" data-mission="bottle">
@@ -576,7 +569,7 @@
               <div id="bottle-phases" class="suit-phases seg-group">
                 <button class="btn seg" data-bottle-phase="fill" aria-label="Fill the bottle">🍾</button>
                 <button class="btn seg" data-bottle-phase="to" aria-label="Who is it for" hidden>👥</button>
-                <button class="btn seg" data-bottle-phase="sign" aria-label="Show your agent or a mystery" hidden>✍️</button>
+                <button class="btn seg" data-bottle-phase="sign" aria-label="Who is it from" hidden>🕵️</button>
                 <button class="btn seg" data-bottle-phase="send" aria-label="Send it" hidden>🚀</button>
                 <button class="btn seg" data-bottle-phase="shelf" aria-label="My bottles" hidden>🗂️</button>
               </div>
@@ -596,22 +589,21 @@
               <div id="bottle-fill" class="suit-side">
                 <div id="bottle-tokens" class="bottle-tokens"></div>
                 <div id="bottle-sub" class="bottle-sub" hidden></div>
-                <button id="bottle-fill-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+                <button id="bottle-fill-go" class="btn btn-big btn-next" hidden aria-label="Next"><span class="btn-label">Next</span><span class="next-arrow" aria-hidden="true">➜</span></button>
               </div>
 
               <!-- 👥 WHO IS IT FOR? -->
               <div id="bottle-to" class="suit-side" hidden>
                 <div id="bottle-to-cards" class="power-when powers-cards"></div>
-                <div id="bottle-friends" class="bottle-friends" hidden></div>
-                <button id="bottle-to-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+                <button id="bottle-to-go" class="btn btn-big btn-next" hidden aria-label="Next"><span class="btn-label">Next</span><span class="next-arrow" aria-hidden="true">➜</span></button>
               </div>
 
-              <!-- ✍️ SHOW YOUR AGENT, OR A MYSTERY? -->
+              <!-- 🕵️ WHO IS IT FROM? The agent itself, or a mystery. -->
               <div id="bottle-sign" class="suit-side" hidden>
                 <div id="bottle-sign-cards" class="power-when powers-cards"></div>
-                <!-- A mystery voice message must be disguised (§8). -->
+                <!-- Every recording in a mystery must be disguised (§8). -->
                 <div id="bottle-disguise" class="bottle-disguise" hidden></div>
-                <button id="bottle-sign-go" class="btn btn-accent btn-big" hidden aria-label="Next">➡️</button>
+                <button id="bottle-sign-go" class="btn btn-big btn-next" hidden aria-label="Next"><span class="btn-label">Next</span><span class="next-arrow" aria-hidden="true">➜</span></button>
               </div>
 
               <!-- 🚀 CORK IT, THEN SEND (or keep). -->
@@ -925,14 +917,14 @@
 <!-- Script order matters (spec §4): storage first, app last. audio.js and
      effects.js join this list in later milestones. -->
 <!-- Loaded FIRST: it reports anything the others cannot. -->
-<script src="./boot-guard.js?v=79"></script>
-<script src="./storage.js?v=79"></script>
-<script src="./audio.js?v=79"></script>
-<script src="./effects.js?v=79"></script>
-<script src="./assets.js?v=79"></script>
-<script src="./stickers.js?v=79"></script>
-<script src="./parts.js?v=79"></script>
-<script src="./app.js?v=79"></script>
+<script src="./boot-guard.js?v=85"></script>
+<script src="./storage.js?v=85"></script>
+<script src="./audio.js?v=85"></script>
+<script src="./effects.js?v=85"></script>
+<script src="./assets.js?v=85"></script>
+<script src="./stickers.js?v=85"></script>
+<script src="./parts.js?v=85"></script>
+<script src="./app.js?v=85"></script>
 
 <!-- ============================================================ -->
 <!-- BADGE CHECK (v2 §5.11)                                        -->
@@ -978,7 +970,7 @@
     </div>
     <div id="likeme-cards" class="likeme-cards"></div>
     <div class="sheet-actions">
-      <button id="btn-likeme-go" class="btn btn-accent btn-big" aria-label="Carry on">➡️</button>
+      <button id="btn-likeme-go" class="btn btn-big btn-next" aria-label="Carry on"><span class="btn-label">Next</span><span class="next-arrow" aria-hidden="true">➜</span></button>
     </div>
   </div>
 </div>

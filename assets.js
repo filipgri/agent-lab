@@ -71,6 +71,7 @@ const Assets = (function () {
   const imageCache = new Map();  // id -> Promise<img|null>
   const audioCache = new Map();  // id -> HTMLAudioElement, or false if missing
   let narrating = null;          // the narration playing right now
+  let speaking = null;           // the iPad's own voice's line, if that is speaking
 
   /* --------------------------------------------------------------------------
      LOADING THE MANIFEST
@@ -101,7 +102,11 @@ const Assets = (function () {
 
   function item(id) { return byId.get(id) || null; }
   function list(group) { return (manifest[group] || []).slice(); }
-  function url(entry) { return BASE + entry.file; }
+  /* The file's address, with its fingerprint (`rev`, from sync-assets.py)
+     when it has one: a remade file is a new address, so no browser and no
+     iPad goes on playing the old one it had saved. sw.js caches the same
+     address. */
+  function url(entry) { return BASE + entry.file + (entry.rev ? '?r=' + entry.rev : ''); }
 
 
   /* --------------------------------------------------------------------------
@@ -225,7 +230,14 @@ const Assets = (function () {
           applySpeed(audio);                // v2 §7
           return audio.play()
             .then(function () { return 'file'; })
-            .catch(function () {
+            .catch(function (err) {
+              /* INTERRUPTED is not MISSING. When the next line starts
+                 before this one has, stopSaying() pauses it and play()
+                 rejects with an AbortError. Treating that as a missing
+                 file spoke this line in the iPad's voice OVER the next
+                 one - and used the iPad's voice for it for the rest of
+                 the session (Filip, 4 November: "not vocalised"). */
+              if (interrupted(err) || narrating !== audio) return 'interrupted';
               // The file is not there after all; remember that and speak.
               audioCache.set(id, false);
               return speak(text);
@@ -254,10 +266,24 @@ const Assets = (function () {
           narrating.addEventListener('ended', finish, { once: true });
           narrating.addEventListener('pause', finish, { once: true });
         } else if (how === 'speech' && 'speechSynthesis' in window) {
-          // The iPad's own voice has no "ended" we can reach from here, so
-          // ask it every 150 ms whether it is still talking.
+          /* The utterance says when it ends. As a back-up, ask the voice
+             every 150 ms - but count a line that is still QUEUED as talking
+             (`pending`): the iPad's voice can take a moment to start, and
+             checking only `speaking` decided the line was over before it
+             began, so the next line cut it off ("My agent likes…" was
+             never heard - Filip, 4 November). */
+          if (speaking) {
+            speaking.addEventListener('end', finish, { once: true });
+            speaking.addEventListener('error', finish, { once: true });
+          }
+          let started = false;
           const poll = setInterval(function () {
-            if (!speechSynthesis.speaking) { clearInterval(poll); finish(); }
+            if (speechSynthesis.speaking) started = true;
+            if (started && !speechSynthesis.speaking && !speechSynthesis.pending) {
+              clearInterval(poll);
+              finish();
+            }
+            if (done) clearInterval(poll);
           }, 150);
         } else {
           finish();
@@ -276,6 +302,7 @@ const Assets = (function () {
     utterance.rate = narrationSpeed;
     utterance.pitch = 1.05;
     utterance.volume = NARRATOR_VOLUME;
+    speaking = utterance;
     speechSynthesis.speak(utterance);
     return 'speech';
   }
@@ -297,7 +324,8 @@ const Assets = (function () {
         audio.currentTime = 0;
         const played = audio.play();
         if (played && played.catch) {
-          played.catch(function () {
+          played.catch(function (err) {
+            if (interrupted(err)) return;       // cut short, not missing
             audioCache.set(id, false);
             generated(entry, id);
           });
@@ -306,6 +334,13 @@ const Assets = (function () {
       }
     }
     generated(entry, id);
+  }
+
+  /* A play() that was cut short (AbortError: paused or reloaded before it
+     began) or not allowed yet (NotAllowedError: no tap so far) says
+     nothing about whether the FILE exists. Only other errors do. */
+  function interrupted(err) {
+    return Boolean(err && (err.name === 'AbortError' || err.name === 'NotAllowedError'));
   }
 
   // Fall back to the sound audio.js builds from oscillators.

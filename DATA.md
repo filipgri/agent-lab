@@ -7,7 +7,41 @@ Every milestone that adds or changes a field or an event updates this file in
 the same commit (v3 §1). If the two ever disagree, the code is what ran, so fix
 this file.
 
-Last updated: **v3 P9** (3 November 2026). `schemaVersion` is now **3**.
+Last updated: **v84** (4 November 2026). `schemaVersion` is still **3**.
+
+> **v84:** the bottle no longer lists every agent on the iPad to pick a
+> friend's (children did not know which was their friend's), so
+> `toAgentId` stays `null` and `bottle_friend_pick` is no longer logged.
+> Nothing else in the data changed: the rest of v84 is narration, the
+> green Next buttons and a Stamp it that waits until a mission is done.
+
+> **v83: the bottle is filled from the agent's own work.** Two new item
+> types, `item-word` (the secret word) and `item-talk` (the way the agent
+> likes to talk most) - see "Items" in §3.7 and the payload in §7. Each of
+> the agent's powers is now its own token, so the "which power?" step is
+> gone (the `item-power` record is unchanged). Battery cards and talks
+> cards now tell a short story when tapped; still `label_speak { id }`.
+
+> **v82** changed no field and no event. Narration only: a power card,
+> when tapped, now says a short story of what it does (`nar-story-…`) and
+> a door introduces itself (`nar-door-…`). Both are still logged as
+> `label_speak { id }` with the card's own id.
+
+> **What changed in v81:** the 🔒 under each codename reel is gone, so
+> `codename_lock` is no longer logged and `codename_spin`'s `locks` are
+> always `false`. Nothing else in the data changed (v81 was sound, speed
+> and wording, and a fix that makes the adult panel reachable again).
+
+> **What changed in v80** (3 November, after Filip's first try of How my
+> agent talks, Powers and the bottle; all before session 3 ran, so no session data is
+> affected): "School wants us to…" has its own cards (§3.7 `suit`); ✏️ My own
+> left How my agent talks; Powers opens on the doors, so `inventedFirst` is
+> `null` and `powers_draw`, `powers_record` and `powers_ideas_open` are no
+> longer logged; a ✨ secret door (`powers_secret_open`); a power can name
+> its `devices`; "My favourite game" is said, not drawn; every recording in
+> a mystery bottle takes a spy voice; missions switched off are hidden, so
+> `locked_tap` is no longer logged; the power labels name school ("Pause my
+> school"). Ids are unchanged except where a section says so.
 
 ---
 
@@ -161,7 +195,7 @@ milestone first writes each one; until then it keeps its default.
 |---|---|---|---|
 | `likeMe` | `null` | `"likeme-like"` / `"likeme-bit"` / `"likeme-else"` — "Is your agent like you?". The LAST answer; every answer, including changes of mind, is in the log (`like_me`). `null` if never answered — `like_me_skip` says if it was asked and skipped. | P2 ✅ |
 | `base` | `null` | `"base-1"` … `"base-8"` (a ready agent from `Parts.BASES` in `parts.js`), or `"blank"`. Which one the child started from. The cover's `shapes` start as a copy of that base and change from there. `null` on agents made before v3. | P2 ✅ |
-| `suit` | see right | 🗣️ How my agent talks. Every card is sorted onto ONE of three piles, Talking-Mats style: 👍 Yes / 🤷 Not sure / 👎 No. **"My agent likes…"**: `likes` (👍), `likesUnsure` (🤷), `likesNot` (👎). **"School wants…"**: `school`, `schoolUnsure`, `schoolNot`. Each is a list of card ids, in the order they were put there. Cards: `mode-talk` (Talking), `mode-hands` (Signing), `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures` (Picture cards), `mode-write`, `mode-device`, and — in "School wants…" only — `mode-hand-up`, `mode-quiet`. `likesOwn` / `schoolOwn`: the child's ✏️ My own cards, each `{ png, audioId }`, which count as 👍. **`best`**: the one way the agent likes most — a card id from `likes`, or `"own-0"`, `"own-1"`… for an own card — or `null`. A card not yet sorted is on no pile. The app never compares the piles. Default `{ likes: [], likesUnsure: [], likesNot: [], likesOwn: [], school: [], schoolUnsure: [], schoolNot: [], schoolOwn: [], best: null }`. | P3 ✅ |
+| `suit` | see right | 🗣️ How my agent talks. Every card is sorted onto ONE of three piles, Talking-Mats style. The child answers with the agent itself — it nods ✓, tilts its head ? or shakes it ✗ — and the piles are saved as yes / unsure / no. **"My agent likes…"**: `likes` (✓), `likesUnsure` (?), `likesNot` (✗), with the cards `mode-talk` (Talking), `mode-hands` (Signing), `mode-handshake`, `mode-draw`, `mode-act`, `mode-pictures` (Picture cards), `mode-write`, `mode-device`. **"School wants us to…"**: `school`, `schoolUnsure`, `schoolNot`, with cards of its own since v80: `school-talk-lot` (Talk a lot), `school-only-talk` (Only talk), `school-makaton` (Learn Makaton), `school-look` (Look at who's talking), `school-quick` (Answer quickly), `school-speak-up` (Speak up), `school-write` (Write it down), `school-pictures` (Use picture cards), `school-device` (Use a device). **Five pairs can be compared** across the two questions: `school-talk-lot`↔`mode-talk`, `school-makaton`↔`mode-hands`, `school-write`↔`mode-write`, `school-pictures`↔`mode-pictures`, `school-device`↔`mode-device`. (Before v80 the school cards were the "likes" cards plus `mode-hand-up` and `mode-quiet`; no session ran with them.) Each pile is a list of card ids, in the order they were put there. `likesOwn` / `schoolOwn`: ✏️ My own cards `{ png, audioId }` — **no longer offered since v80** (nobody used My own in session 2), so they stay `[]`. **`best`**: "Which one does your agent like the most?" — a card id from `likes`, or `null`. (`"own-0"`… could only come from before v80.) A card not yet sorted is on no pile. The app never compares the piles. Default `{ likes: [], likesUnsure: [], likesNot: [], likesOwn: [], school: [], schoolUnsure: [], schoolNot: [], schoolOwn: [], best: null }`. | P3 ✅ |
 | `secretWord` | `null` | 🤫 An invented word the child said: `{ audioId, filter }`. `filter` is one of the six spy voices (`normal`, `squeaky`, `deep`, `robot`, `radio`, `echo` — `Voice.FILTERS` in `audio.js`). A new recording replaces the old one (the old clip is deleted) and keeps the chosen voice. | P3 ✅ |
 | `handshake` | `null` | The secret handshake: `{ taps: [0, 252, 504, 1206] }` — each tap in milliseconds from the first. Up to 8 taps, at most 6 seconds. The LAST one made; every one is in the log (`handshake_make`). Made on the handshake sheet, which Powers opens when a child turns on 🤝 "My secret handshake" in the 🔌 slot. | P5 ✅ |
 | `safe` | `{ talk: null, stops: null }` | 📍 Safe place. `talk`: "Where does your agent feel safe to talk?" `stops`: "Where does your agent's power stop working?" Each is `null` (not answered) or `{ id, png }`: `id` is one of the twelve HQ place ids or `"safe-nowhere"` (Nowhere, an equal choice); or `id: null` with `png` (a drawn place) and/or `audioId` (a place the child said) from the ✏️ sheet. The agent stands in `safe.talk` on every screen when it is a real place. Off in the session-3 preset. | P4 ✅ |
@@ -173,14 +207,15 @@ milestone first writes each one; until then it keeps its default.
 | Field | Meaning |
 |---|---|
 | `id` | Short random id (8 characters). Not linked to anything else. |
-| `power` | A power card id (`pow-…`, below), `"own"` for one the child made up, or `"v2"` for their session-2 power ("⏪ From last time"). |
-| `own` | `{ png, audioId }`. For `"own"`: the made-up power, drawn and/or said. For a card: whatever the child drew or said on ✨ BEFORE picking it, kept as that power's picture (§7.1) — both `null` if nothing. For `"v2"`: the session-2 drawing and recording, pointed at, never copied (they still belong to `powerup.power` and are never deleted from here). |
-| `inventedFirst` | `true` if the child drew or said something on ✨ before opening the ideas (💡 or 🚪), or never opened them at all; `false` if they opened the ideas first. |
+| `power` | A power card id (`pow-…`, below), `"own"` for one the child made up behind the ✨ secret door, or `"v2"` for their session-2 power ("⏪ Last time"). |
+| `own` | `{ png, audioId }`. For `"own"`: the made-up power, drawn and/or said. For `"v2"`: the session-2 drawing and recording, pointed at, never copied (they still belong to `powerup.power` and are never deleted from here). For a card: both `null` (before v80 it could hold a drawing made on the ✨ canvas before the card was picked). |
+| `inventedFirst` | **`null` since v80**: the doors come first, so the question "did the child invent before seeing the ideas?" cannot arise (an `"own"` power is still recognisable by `power`). Before v80: `true` if the child drew or said something on ✨ before opening the ideas, `false` if they opened the ideas first. |
+| `devices` | 🎛️ Only for `pow-control-devices` (v80, at Filip's request: "say which devices"): which ones — `dev-bell` (the school bell), `dev-alarm` (the fire alarm), `dev-lights`, `dev-speakers`, `dev-board` (the whiteboard), `dev-computers`. Any number, in the order picked. `[]` for every other power (and missing on powers made before v80). If a child changes a power away from "Control school devices", the list stays but means nothing. |
 | `when` / `whenOwn` | 🕐 Situation ids (the session-2 ids: `sit-too-loud`, `sit-not-understood`, `sit-waiting`, `sit-did-well`, `sit-asked-answer`, `sit-unkind`, `sit-plans-change`, `sit-new-place`, `sit-playtime`, `sit-tricky-work`) / own cards `{ png, audioId }`. **Three at most, cards and own together.** |
 | `who` / `whoOwn` | 👥 `who-me`, `who-friend`, `who-teacher` (any adult at school), `who-class`, `who-everyone`, `who-room` / own cards. Any number. |
 | `how` / `howOwn` | 🔌 How it switches on: `how-badge`, `how-handshake`, `how-hand-sign`, `how-word`, `how-drawing`, `how-button` / own cards. Any number. |
-| `soThat` | 🎯 `{ png, audioId }` from the ✏️ sheet, or `null`. |
-| `skipped` | The slots still EMPTY when the power was last switched on (⚡), e.g. `["sothat"]`. Set at every ⚡. `[]` until the first. |
+| `soThat` | 🎯 "What happens then?" (it asked "So that…" before v80) — `{ png, audioId }` from the ✏️ sheet, or `null`. |
+| `skipped` | The slots still EMPTY when the power was last switched on (⚡), e.g. `["sothat"]` — `devices` counts as a slot for "Control school devices". Set at every ⚡. `[]` until the first. |
 | `order` | The order the sentence was filled in: always `"power"` first, then each slot the first time something was put in it, e.g. `["power", "who", "when"]`. |
 
 **The power cards and their doors** (§7.2). The doors are always shown in
@@ -198,6 +233,15 @@ see the plain labels.
 
 ★ = from Filip's notes; these five have their own scenes on the agent.
 
+**Labels since v80** (the ids are unchanged): `pow-pause` "Pause my school"
+(was "Pause the world"), `pow-turn-down` "Turn the classroom down",
+`pow-dim-lights` "Dim the classroom lights", `pow-control-displays` "Control
+all school displays", `pow-control-devices` "Control school devices",
+`pow-change-rule` "Change a school rule" — Filip: the powers are about
+school, so they name it. The doors also have a ✨ secret door
+(`door-secret`), which is not a family: behind it the child makes up their
+own power.
+
 **One bottle** (v3 §10):
 
 | Field | Meaning |
@@ -206,8 +250,8 @@ see the plain labels.
 | `createdAt` | ISO date: when its first item went in. |
 | `items` | Up to 4, ONE of each kind, in the order they went in. See "Items" below. |
 | `to` | `"who-me"` (kept on this iPad), `"who-friend"`, `"who-teacher"` or `"who-everyone"` (the big screen); `null` while being filled. |
-| `toAgentId` | The friend's agent `id`, if the child tapped one on this iPad; else `null` ("a friend" on its own is fine). |
-| `signed` | `true` ✍️ with my agent; `false` 🎭 a mystery; `null` for `"who-me"` (not asked) or not yet chosen. |
+| `toAgentId` | The friend's agent `id`, if the child tapped one on this iPad; else `null` ("a friend" on its own is fine). **Always `null` from v84**, when the list of agents was removed. |
+| `signed` | "Who is it from?" (it asked "Show your agent?" before v80): `true` from my agent (the card shows the agent and its codename); `false` 🎭 a mystery; `null` for `"who-me"` (not asked) or not yet chosen. |
 | `state` | `"open"` while being filled (an addition to §10: it is saved at once so nothing is lost if the iPad is closed); `"kept"` (for me); `"sent"` (the moment the child sent it); `"waiting"` (the display link was off or failed — it goes by itself when the link works); `"delivered"` (the relay took it). **The child sees the same "🚀 Sent" for sent, waiting and delivered.** |
 | `sentAt` / `deliveredAt` | ISO dates, or `null`. |
 
@@ -217,8 +261,24 @@ see the plain labels.
 |---|---|
 | `item-power` | `power` (the power's place in `powers`, or `"v2"`), `powerId` (that power's `id` — an addition, so the item still knows which power if an earlier one is removed; if the power itself is removed, `power` becomes `null`) |
 | `item-handshake` | `taps` — a copy of the rhythm when it went in |
-| `item-drawing`, `item-game`, `item-cant-live` | `png` and/or `audioId`, from the ✏️ sheet |
-| `item-voice` | `audioId`, `filter` — one of the six spy voices. A mystery bottle cannot keep `"normal"`. |
+| `item-drawing`, `item-cant-live` | `png` and/or `audioId`, from the ✏️ sheet. `item-cant-live` is "Something my agent can't live without" since v80 (it said "I" before). |
+| `item-game` | "My favourite game" — **said, not drawn, since v80**: `audioId`, `filter` (recorded like a voice message, with a spy voice). Before v80: `png` and/or `audioId` from the ✏️ sheet. |
+| `item-voice` | `audioId`, `filter` — one of the six spy voices. |
+| `item-word` | v83. The agent's secret word: `audioId` — a COPY of `secretWord`'s recording, made when it goes in, so a new secret word later cannot empty the bottle — and `filter`, the secret word's spy voice at that moment (a mystery can change it). Only offered if the agent has a secret word. |
+| `item-talk` | v83. `mode` — the way the agent likes to talk most (`suit.best`, a `mode-…` id) at that moment. Only offered once ⭐ has been answered. |
+
+Since v83 the fill step has two groups: 🕵️ **From your agent** - each of
+its powers by name, its handshake, its secret word, its favourite way to
+talk and its safe place, each only if it exists - and ✨ **Make new**: a
+drawing, a voice message, a favourite game, something it can't live
+without. One of each KIND per bottle, as before: once one power is in, the
+others wait.
+
+**In a mystery bottle every recording takes a spy voice** (v80; before it,
+only `item-voice` did): any item with an `audioId` gets a `filter`, chosen
+once for all of them on the 🕵️ step, and `"normal"` is not offered. An item
+from the ✏️ sheet has no `filter` until then — read a missing `filter` as
+`"normal"`.
 | `item-safe` | `place: { id, png }` — a copy of `safe.talk` (only offered once Safe place has a real place) |
 
 ### 3.8 `legacy`
@@ -262,7 +322,7 @@ The "v3" column says whether the current app can still log the event.
 | Action | When | `detail` | v3 |
 |---|---|---|---|
 | `codename_spin` | The reels are rolled. | `{ word, animal, locks: { word, animal } }` — `animal` is the second reel (a spy word from v3) | ✅ |
-| `codename_lock` | A 🔒 under a reel is tapped. | `{ reel: "word"/"animal", on }` | ✅ |
+| `codename_lock` | A 🔒 under a reel is tapped. | `{ reel: "word"/"animal", on }` | — (before v81: the locks are gone, so `locks` in `codename_spin` is always false) |
 | `codename_speak` | The hero is tapped (it says the name): the big animal up to session 2, the empty agent from v3. | `{ codename }` | ✅ |
 | `codename_type` | A typed name is used. | `{ text }` | ✅ |
 | `emblem_choose` | A sticker is picked as the emblem for a typed name. | `{ value }` (emoji or asset id) | ✅ |
@@ -281,11 +341,11 @@ The "v3" column says whether the current app can still log the event.
 | `mission_leave` | Leaving a mission screen. | `{}` | ✅ |
 | `stamp` | Stamp it. | `{ mission }` | ✅ |
 | `pass` | Pass. | `{ mission }` | ✅ |
-| `locked_tap` | A locked pip is tapped. | `{ mission }` | ✅ |
+| `locked_tap` | A locked pip is tapped. | `{ mission }` | — (before v80: a mission that is not open is now not on the strip at all) |
 | `finish` | The flow ended and the app went back to the start. | `{}` | ✅ |
 | `go_home` | 🏠 tapped: saved as it stands, nothing stamped. | `{ from }` (the screen) | ✅ |
 | `speak` | 🔊 tapped for a mission's question. | `{ mission }` | ✅ |
-| `label_speak` | A picture card spoke its label. | `{ id }` (the card) | ✅ |
+| `label_speak` | A picture card spoke its label - for a power card (v82), its short story. | `{ id }` (the card) | ✅ |
 | `mute_toggle` | Sound on/off. | `{ muted }` | ✅ |
 | `agent_tap` | The agent's thumbnail was tapped (it reacts). | `{}` | ✅ |
 | `update_apply` | An adult tapped "New version ready". | `{}` | ✅ |
@@ -329,9 +389,9 @@ The "v3" column says whether the current app can still log the event.
 | `suit_sort` | A card was put on a pile. Putting it on another pile later (coming back, or ↩️) is another `suit_sort`, so changes of mind are kept. | `{ step: "likes"/"school", mode, pile: "yes"/"unsure"/"no" }` | ✅ |
 | `suit_back` | ↩️ — back one card. | `{ step }` | ✅ |
 | `suit_phase` | Another part opened. | `{ to: "likes"/"best"/"school"/"word", how: "auto"/"next"/"tab" }` — `auto` after the last card, `next` is ➡️, `tab` the 🗣️ ⭐ 🏫 🤫 buttons | ✅ |
-| `suit_best` | ⭐ A card was picked as the best one. | `{ best }` — a card id or `"own-0"`… | ✅ |
-| `suit_own` | A ✏️ My own card was kept. | `{ step, drawn, said }` | ✅ |
-| `suit_own_remove` | A ✏️ card was removed (second tap of two). | `{ step }` | ✅ |
+| `suit_best` | ⭐ "Which one does your agent like the most?" — a card was picked. | `{ best }` — a card id (`"own-0"`… only before v80) | ✅ |
+| `suit_own` | A ✏️ My own card was kept. | `{ step, drawn, said }` | — (before v80) |
+| `suit_own_remove` | A ✏️ card was removed (second tap of two). | `{ step }` | — (before v80) |
 | `secret_word_record` | 🎤 A secret word was recorded. | `{ ms, again }` — `again` if it replaced one | ✅ |
 | `secret_word_voice` | A spy voice was picked for it. | `{ filter }` | ✅ |
 | `handshake_open` | The handshake sheet was opened (from 🤝 in Powers' 🔌 slot). | `{}` | ✅ |
@@ -339,9 +399,12 @@ The "v3" column says whether the current app can still log the event.
 | `handshake_redo` | The pad was tapped again when a handshake already existed, starting a new one. | `{}` | ✅ |
 | `handshake_replay` | ▶️ Play it. (The automatic play-back after making one is not logged.) | `{}` | ✅ |
 
-Each card says its label as it appears (not logged); a TAP on the card is a
-`label_speak`. The agent acts every card out — it moves (Full motion), and
-the card's emoji appears by its head (always) — and that is not logged.
+Each card's sentence is said as it appears — "My agent likes…" / "School
+wants us to…" and then the card (not logged); a TAP on the card says it
+again and is a `label_speak`. The agent acts every card out — it moves
+(Full motion), and the card's emoji appears by its head (always) — and
+answers by nodding, tilting or shaking its head. None of that is logged:
+`suit_sort` is the answer.
 
 ### 4.3c Safe place (v3 P4)
 
@@ -358,19 +421,20 @@ Every place tapped is also a `label_speak`.
 
 | Action | When | `detail` | v3 |
 |---|---|---|---|
-| `powers_draw` | The first stroke on the ✨ canvas for a new power. (Every stroke is also a `draw_stroke` with `where: "power"`.) | `{}` | ✅ |
-| `powers_record` | 🎤 on ✨: the power was said. | `{ ms }` | ✅ |
-| `powers_ideas_open` | 💡 Need ideas? — or 🚪 — the FIRST time for this power. | `{ inventedFirst }` — had the child drawn or said anything first | ✅ |
-| `powers_door_open` | A door was opened. | `{ family }` | ✅ |
-| `powers_choose` | A power was chosen: a card, ✓ My power, ✏️ My own in a door, or ⏪ From last time. Choosing again changes it. | `{ power }`, plus `{ drawn, said }` for `"own"` | ✅ |
-| `powers_phase` | Another step opened (✨ 🚪 📝 ⚡). | `{ to, how: "next"/"tab" }` | ✅ |
-| `powers_slot_open` | Another slot of the sentence opened. | `{ slot, how: "next"/"tab" }` | ✅ |
-| `powers_slot` | A card in a slot turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
+| `powers_draw` | The first stroke on the ✨ canvas for a new power. (Every stroke was also a `draw_stroke` with `where: "power"`.) | `{}` | — (before v80: the ✨ canvas is gone) |
+| `powers_record` | 🎤 on ✨: the power was said. | `{ ms }` | — (before v80) |
+| `powers_ideas_open` | 💡 Need ideas? — or 🚪 — the FIRST time for this power. | `{ inventedFirst }` | — (before v80: the doors come first) |
+| `powers_door_open` | A family door was opened (it swings open, then its cards are dealt). | `{ family }` | ✅ |
+| `powers_secret_open` | The ✨ secret door was opened: the ✏️ sheet follows, to make up a power. Cancelling the sheet makes nothing. | `{}` | ✅ v80 |
+| `powers_choose` | A power was chosen: a card in a door, ✨ an own power from the secret door, or ⏪ Last time. Choosing again changes it. | `{ power }`, plus `{ drawn, said }` for `"own"` | ✅ |
+| `powers_phase` | Another step opened (🚪 🔋 ⚡). | `{ to: "doors"/"sentence"/"mine", how: "next"/"tab"/"back" }` — `back` is 🚪 back to all the doors from inside one (`to: "make"` only before v80) | ✅ |
+| `powers_slot_open` | Another question (a battery cell) opened. | `{ slot, how: "next"/"tab" }` — `tab` is tapping a cell | ✅ |
+| `powers_slot` | A card in a question turned on or off, or an own card kept or removed. | `{ slot, value, on }` — `slot` is `devices`/`when`/`who`/`how`; `value` is a card id or `"own"` (then also `drawn`, `said`) | ✅ |
 | `powers_slot_skip` | ➡️ on a slot that was still empty. | `{ slot }` | ✅ |
-| `powers_sothat` | 🎯 "So that…" was kept. | `{ drawn, said }` | ✅ |
+| `powers_sothat` | 🎯 "What happens then?" was kept (drawn or said). | `{ drawn, said }` | ✅ |
 | `powers_sothat_remove` | …and removed (two taps). | `{}` | ✅ |
 | `powers_fire` | ⚡ Power on! — the agent does the power and the sentence reads itself back. | `{ index }` — which of the agent's powers | ✅ |
-| `powers_edit` | 📝 on a kept power, to change its sentence. | `{ index }` | ✅ |
+| `powers_edit` | 🔋 on a kept power, to change its answers (📝 before v80). | `{ index }` | ✅ |
 | `powers_new` | ➕ Another power. | `{}` | ✅ |
 | `powers_remove` | 🗑️ A power was removed (two taps). | `{ index }` | ✅ |
 
@@ -380,12 +444,16 @@ Every place tapped is also a `label_speak`.
 |---|---|---|---|
 | `bottle_item_add` | An item went into the bottle. | `{ type }` | ✅ |
 | `bottle_item_remove` | An item was taken out (two taps on its chip). | `{ type }` | ✅ |
-| `bottle_voice_record` | 🎤 for a voice message. | `{ ms }` | ✅ |
-| `bottle_voice_filter` | A spy voice was picked for it. | `{ filter }`, plus `mystery: true` when the mystery step asked for it | ✅ |
-| `bottle_phase` | Another step opened (🍾 👥 ✍️ 🚀 🗂️). | `{ to, how: "next"/"tab" }` | ✅ |
+| `bottle_voice_record` | 🎤 for a voice message, or (v80) for the name of a favourite game. The `bottle_item_add` that follows says which. | `{ ms }` | ✅ |
+
+A token tapped is also a `label_speak { id }` with the token's KIND (e.g.
+`item-power`), as its story is told; `bottle_item_add { type }` says what
+went in.
+| `bottle_voice_filter` | A spy voice was picked. | `{ filter }`, plus `mystery: true` when the 🕵️ step asked for it — then it applies to EVERY recording in the bottle | ✅ |
+| `bottle_phase` | Another step opened (🍾 👥 🕵️ 🚀 🗂️; 🕵️ was ✍️ before v80). | `{ to, how: "next"/"tab" }` — `to: "sign"` is "Who is it from?" | ✅ |
 | `bottle_to` | Who it is for. | `{ who }` | ✅ |
-| `bottle_friend_pick` | A friend's agent was tapped (or tapped again to un-pick). | `{ toAgentId }` | ✅ |
-| `bottle_sign` | ✍️ or 🎭. | `{ signed }` | ✅ |
+| `bottle_friend_pick` | A friend's agent was tapped (or tapped again to un-pick). | `{ toAgentId }` | — (before v84: the list of agents is gone) |
+| `bottle_sign` | "Who is it from?": the agent, or 🎭 a mystery. | `{ signed }` | ✅ |
 | `bottle_cork` | The cork went in. | `{}` | ✅ |
 | `bottle_send` | Sent: swiped up, or 🚀 held. | `{ to, signed, items }` — `items` are the types | ✅ |
 | `bottle_keep` | 🔒 Kept (for me). | `{}` | ✅ |
@@ -410,7 +478,8 @@ Every place tapped is also a `label_speak`.
 > ✏️ sheet**, not a rule. The event's `mission` (`powerup` or `hq`) and the
 > keep event that follows (`power_draw`, `power_when_own`, `hq_draw`) say
 > which ✏️ it was. From v3 `where` is `"own_card"` for that sheet, and the
-> `mission` says which screen it was on (e.g. `suit`).
+> `mission` says which screen it was on (e.g. `suit`). `where: "power"` (the
+> ✨ Powers canvas) exists only in builds before v80.
 
 ### 4.5 Adult panel
 
@@ -539,6 +608,8 @@ display will show — never the agent's `id`, its event log, or any other agent:
   "items": [
     { "type": "item-power", "power": "pow-control-teachers", "picture": null, "soThat": null },
     { "type": "item-voice", "audio": "data:audio/wav…", "filter": "robot" },
+    { "type": "item-word", "audio": "data:audio/wav…", "filter": "deep" },
+    { "type": "item-talk", "mode": "mode-hands" },
     { "type": "item-drawing", "picture": "data:image/png… (≤512 px)", "audio": null },
     { "type": "item-handshake", "taps": [0, 250, 500] },
     { "type": "item-safe", "place": "hq-space", "picture": null }
@@ -555,8 +626,11 @@ display will show — never the agent's `id`, its event log, or any other agent:
 - **Voices are disguised ON THE iPAD** (the §9.1 choice): `Voice.render()` runs
   the same filter through an OfflineAudioContext and sends a WAV (mono,
   16 kHz), so the display plays exactly what the child heard — and a
-  mystery bottle's real voice never leaves the iPad. A drawing's or game's
-  spoken part is sent as recorded (`"normal"`).
+  mystery bottle's real voice never leaves the iPad. **Every** recording
+  is sent in its item's `filter` (v80: a game's name, and anything said on
+  the ✏️ sheet, too); in a mystery bottle they all have a spy voice, and a
+  recording that somehow still has none is left out (`audio: null`) rather
+  than sent in the child's real voice.
 - A bottle over 1.9 MB drops its sounds (`audio: null, audioDropped: true`)
   rather than not arriving.
 
@@ -595,8 +669,8 @@ for yes/no. Running it twice on the same files gives the same output.
 | `status_powerup`, `status_hq`, `status_voice` | the session-2 missions |
 | `suit_likes`, `suit_likes_unsure`, `suit_likes_not` | the 👍 🤷 👎 piles of "My agent likes…" |
 | `suit_likes_own`, `suit_school_own` | own cards: `drawn`, `said` or `drawn+said`, one per card |
-| `suit_school`, `suit_school_unsure`, `suit_school_not` | the piles of "School wants…" |
-| `suit_best` | ⭐ the best one |
+| `suit_school`, `suit_school_unsure`, `suit_school_not` | the piles of "School wants us to…" (its own `school-…` cards since v80) |
+| `suit_best` | ⭐ the one the agent likes the most |
 | `secret_word`, `secret_word_voice` | 1/0, and its spy voice |
 | `handshake_taps` | the rhythm, ms from the first tap |
 | `safe_talk`, `safe_stops` | a place id, `safe-nowhere`, or `own:drawn` etc. |
@@ -606,10 +680,11 @@ for yes/no. Running it twice on the same files gives the same output.
 
 **`powers.csv`** — one row per power: `agent_ref`, `codename`, `power_index`,
 `power_ref`, `power` (a card id, `own` or `v2`), `family` (the door, from §4
-of this file; empty for own/v2), `invented_first` (1/0), `own_drawn`,
-`own_said`, `when`, `when_own`, `who`, `who_own`, `how`, `how_own`, `so_that`
-(`drawn`/`said`/both), `skipped`, `order`, `times_fired` (its `powers_fire`
-events).
+of this file; empty for own/v2), `invented_first` (1/0; empty since v80,
+when the doors come first), `own_drawn`, `own_said`, `devices` (v80: the
+devices a "Control school devices" power controls), `when`, `when_own`,
+`who`, `who_own`, `how`, `how_own`, `so_that` (`drawn`/`said`/both),
+`skipped`, `order`, `times_fired` (its `powers_fire` events).
 
 **`bottles.csv`** — one row per bottle: `agent_ref`, `codename`,
 `bottle_index`, `bottle_ref`, `created_at`, `state`, `to`, `to_agent_ref`

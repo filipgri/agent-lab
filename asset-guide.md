@@ -177,10 +177,13 @@ arrives, so nothing waits for them.
 This card may show people, but only like this: simple round bean-shaped figures in soft grey-lilac with two dot eyes and rounded mitten hands. No skin colour, hair, gender cues or clothing details. A grown-up at school is a taller bean figure wearing a lanyard. Arrows, motion lines, speech bubbles, question marks and stars are fine. Still no writing, letters or numbers.
 ```
 
-- **Three are copies, not new pictures:** `who-teacher` is a copy of
+- **Some are copies, not new pictures:** `who-teacher` is a copy of
   `disp-teacher`, `mode-handshake` is a copy of `how-handshake`, and
-  `mode-device` is a copy of the existing `stk-aac-talker`. Copy the file under
-  the second name.
+  `mode-device` is a copy of the existing `stk-aac-talker`. Five school cards
+  are copies of the matching "likes" card (`school-talk-lot`,
+  `school-makaton`, `school-write`, `school-pictures`, `school-device`), so a
+  child sees the same picture in both questions. Copy the file under the
+  second name.
 - **To bring them in,** put the downloads in `assets/incoming/` and say
   **"Bring in the new assets."** Every v3 picture is the sticker kind (PNG,
   longest side 512, transparency kept), except `disp-shore` — the wide kind,
@@ -196,12 +199,12 @@ friends.
 | id | label | fallback | 👤 | picture |
 |---|---|---|---|---|
 | pow-slow-everybody | Slow everybody down | 🐢 | | A big friendly tortoise carrying a round clock on its shell, with soft wavy slow-motion lines behind it. |
-| pow-pause | Pause the world | ⏸️ | | A big round pause button with two bars, with tiny ice crystals frozen round its edge. |
+| pow-pause | Pause my school | ⏸️ | | A big round pause button with two bars, with tiny ice crystals frozen round its edge. |
 | pow-hold-turn | Hold my turn | 🎟️ | | A glowing golden ticket with a star in the middle, like a token that saves your turn. |
 | pow-warn-me | Warn me first | 🔔 | | A friendly bell ringing, with three dots in an arc beside it lighting up one after another. |
 | pow-say-again | Say it again | 🔁 | | A speech bubble with a curved replay arrow looping round it. |
-| pow-turn-down | Turn the room down | 🔉 | | A big volume knob turned down low, with sound waves getting smaller and softer. |
-| pow-dim-lights | Dim the lights | 🌙 | | A light bulb glowing softly beside a slider switch pushed halfway down. |
+| pow-turn-down | Turn the classroom down | 🔉 | | A big volume knob turned down low, with sound waves getting smaller and softer. |
+| pow-dim-lights | Dim the classroom lights | 🌙 | | A light bulb glowing softly beside a slider switch pushed halfway down. |
 | pow-quiet-bubble | Quiet bubble | 🫧 | 👤 | A bean figure sitting calmly inside a big shiny bubble, with jagged sound waves bouncing off the outside. |
 | pow-translator | Translator | 🔄 | | A small machine with two windows: a picture of a house goes in one side and comes out of the other as a speech bubble with a house in it, with arrows going both ways. |
 | pow-my-way | Everyone talks my way | 🌀 | 👤 | A row of bean figures all copying the same big wave as a leader bean figure in front. |
@@ -210,10 +213,10 @@ friends.
 | pow-question-swap | Question swap | 🔀 | 👤 | A small bean figure and a taller bean figure with a lanyard; two speech bubbles with question marks swap places between them along curved arrows. |
 | pow-pass | Pass | 🛑 | 👤 | A calm bean figure holding up a green card, with a curved arrow jumping over a dot above it. |
 | pow-invisible | Invisibility cloak | 👻 | | A flowing cloak whose lower half fades into sparkles and becomes see-through. |
-| pow-control-displays | Control all displays | 📺 | | A remote control pointing at a big wall screen that glows with bright swirls of colour. |
-| pow-control-devices | Control devices | 🎛️ | | A remote control in the middle, with a lamp, a speaker and a whiteboard around it, each joined to it by a little spark. |
+| pow-control-displays | Control all school displays | 📺 | | A remote control pointing at a big wall screen that glows with bright swirls of colour. |
+| pow-control-devices | Control school devices | 🎛️ | | A remote control in the middle, with a lamp, a speaker and a whiteboard around it, each joined to it by a little spark. |
 | pow-see-points | See my points | ⭐ | | A big gold star with one open eye in its middle. |
-| pow-change-rule | Change a rule | 📜 | | A paper scroll unrolling, with a pencil drawing new simple shapes on it. |
+| pow-change-rule | Change a school rule | 📜 | | A paper scroll unrolling, with a pencil drawing new simple shapes on it. |
 | pow-speak-for-friends | Speak for your friends | 💬 | 👤 | Two bean figures side by side holding mitten hands; one has a big speech bubble with a small heart in it. |
 | pow-call-ally | Call an ally | 📣 | 👤 | A megaphone sending out soft signal waves, and a second bean figure running in to help. |
 | pow-team-up | Team up | 🤝 | 👤 | Two bean figures doing a high five, with sparkles. |
@@ -231,6 +234,7 @@ but …"* for the rest.
 | fam-floor | Turns | ✋ | | The same door in purple, with two glowing curved arrows chasing each other in a circle. |
 | fam-screens | Screens | 📺 | | The same door in teal, with a glowing screen on it. |
 | fam-together | Together | 🤝 | | The same door in pink, with two glowing linked rings on it. |
+| door-secret | Secret door | ✨ | | The same door in gold, glowing brighter than the others, with a big sparkling question mark on it and light spilling out round its edges. |
 
 ### 3.8 Display ⭐ — `assets/img/display/`
 
@@ -260,8 +264,21 @@ Stickers project. The emoji are fine until these arrive.
 | mode-pictures | Picture cards | 🎴 | 👤 | A bean figure holding up one picture card (a cup) and pointing at it with a mitten hand, with three more picture cards (a ball, a house, a star) fanned beside it. The cards have thick white borders, like communication picture cards. |
 | mode-write | Writing | 📝 | | A pencil writing wavy lines, not letters, on lined paper. |
 | mode-device | A device | 📱 | | Copy of `stk-aac-talker`. |
-| mode-hand-up | Hand up | 🙋 | 👤 | A bean figure with one mitten hand raised high. |
-| mode-quiet | Being quiet | 🤫 | 👤 | A calm bean figure holding a mitten hand where its mouth would be, with a small crossed-out sound wave beside it. |
+| school-talk-lot | Talk a lot | 🗣️ | | Copy of `mode-talk`. |
+| school-only-talk | Only talk | 👄 | 👤 | A bean figure with a big speech bubble; beside it, a pencil, a picture card and a signing mitten hand, each faded and crossed out with a soft grey line. |
+| school-makaton | Learn Makaton | 🤟 | 👤 | Copy of `mode-hands`. |
+| school-look | Look at who's talking | 👀 | 👤 | A small bean figure with big round eyes looking up at a taller bean figure with a lanyard who has a speech bubble, with dotted lines from the eyes to the speaker. |
+| school-quick | Answer quickly | ⚡ | 👤 | A bean figure with a speech bubble shooting out fast, with speed lines and a small stopwatch beside it. |
+| school-speak-up | Speak up | 📢 | 👤 | A bean figure speaking into a megaphone, with big bold sound waves coming out. |
+| school-write | Write it down | 📝 | | Copy of `mode-write`. |
+| school-pictures | Use picture cards | 🎴 | 👤 | Copy of `mode-pictures`. |
+| school-device | Use a device | 📱 | | Copy of `mode-device`. |
+| dev-bell | The school bell | 🔔 | | A round red school bell on a wall bracket, ringing, with curved ring lines. |
+| dev-alarm | The fire alarm | 🚨 | | A red wall fire-alarm box with a flashing light on top and short alarm lines round it. |
+| dev-lights | The lights | 💡 | | A ceiling light hanging down, glowing, with soft rays. |
+| dev-speakers | The speakers | 🔊 | | A box speaker on a wall bracket with sound waves coming out. |
+| dev-board | The whiteboard | 📋 | | A classroom interactive whiteboard on a stand, its screen glowing blue. |
+| dev-computers | The computers | 💻 | | An open laptop with a glowing screen next to a small desktop screen. |
 | who-me | Me | 🙋 | 👤 | One bean figure pointing at itself with a mitten hand, with a small star above it. |
 | who-friend | A friend | 👫 | 👤 | Two bean figures side by side with linked arms. |
 | who-teacher | My teacher | 🧑‍🏫 | 👤 | Copy of `disp-teacher`. |
@@ -401,6 +418,12 @@ Lines starting with `[whispers]` keep the tag in the text.
 
 **Session 3: v3 instructions ◻️**
 
+The words on screen stay short; the narrator may say more (Filip, 4 November
+2026: "the writing is there to help, but deepen the narration"). The stories
+(`nar-story-…`: powers, battery cards, talks cards, bottle tokens) and door
+introductions (`nar-door-…`) say what a card or door DOES, all with the same warmth - never "good choice", because
+the app does not react to what a child chose (v3 §17).
+
 | id | plays when | text |
 |---|---|---|
 | nar-v3-welcome | Start screen 🔊 | Find your agent, or make a new one. |
@@ -409,31 +432,125 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-base-blank | Start blank | Or start from nothing. |
 | nar-likeme-ask | Like-me question | Is your agent like you? |
 | nar-suit-likes | Talking, step 1 | How does your agent like to talk? |
-| nar-suit-school | Talking, step 2 | How does school want your agent to talk? |
 | nar-handshake-make | Handshake | Tap a secret handshake for your agent. |
 | nar-handshake-listen | Handshake plays back | Listen. Tap again to make a new one. |
-| nar-suit-best | Talking: which is best | Which way does your agent like best? |
+| nar-likes-frame | Talking: said before every card | My agent likes… |
+| nar-school-frame | Talking: said before every school card | School wants us to… |
+| nar-suit-most | Talking: the favourite | Which one does your agent like the most? |
 | nar-word-make | Secret word | Make up a secret word. Tap the microphone and say it. |
 | nar-word-voice | Secret word: spy voice | Now pick a spy voice for it. |
 | nar-safe-talk | Safe place, step 1 | Where does your agent feel safe to talk? |
 | nar-safe-stops | Safe place, step 2 | Where does your agent's power stop working? |
-| nar-powers-make | Powers start | Make up a power. Draw it or say it. |
-| nar-powers-ideas | Need ideas? | Here are some ideas. Pick a door. |
-| nar-powers-when | When slot | When does your agent use it? |
-| nar-powers-who | Who slot | Who does your power work on? |
-| nar-powers-how | How slot | How do you switch it on? |
-| nar-powers-sothat | So-that slot | So that what? Draw it or say it. |
+| nar-powers-make | The secret door | Make up a power. Draw it or say it. |
+| nar-powers-doors | Powers start: the doors | [whispers] Secret doors… Each one hides a power. |
+| nar-door-what | A door creaks open (one of three, at random) | [whispers] What's behind this door? |
+| nar-door-peek | A door creaks open (one of three, at random) | [whispers] Shh… Let's take a peek. |
+| nar-door-creak | A door creaks open (one of three, at random) | [whispers] It's opening… slowly… |
+| nar-door-secret | The secret door creaks open | [whispers] The secret door… What will you make? |
+| nar-powers-charged | Every cell of the battery is full | Fully charged! Press Power on! |
+| nar-door-time | A family door has opened | The Time door! Powers to stop, slow and save time. |
+| nar-door-senses | A family door has opened | The Sound and light door! Powers for noise and brightness. |
+| nar-door-language | A family door has opened | The Words door! Powers that help everyone understand. |
+| nar-door-floor | A family door has opened | The Turns door! Powers for whose turn it is. |
+| nar-door-screens | A family door has opened | The Screens door! Powers over the school's machines. |
+| nar-door-together | A family door has opened | The Together door! Powers to share with friends. |
+| nar-story-slow-everybody | A power card is tapped | Slow everybody down! The whole school moves like a tortoise now. |
+| nar-story-pause | A power card is tapped | Pause my school! Freeze! Nobody moves. Not even the teachers. |
+| nar-story-hold-turn | A power card is tapped | Hold my turn! Your agent's turn is saved, like a ticket. Nobody can take it. |
+| nar-story-warn-me | A power card is tapped | Warn me first! A little bell rings before anything changes. |
+| nar-story-say-again | A power card is tapped | Say it again! Rewind! The words come back, nice and slow. |
+| nar-story-turn-down | A power card is tapped | Turn the classroom down! Shhh… All the noise fades away. |
+| nar-story-dim-lights | A power card is tapped | Dim the classroom lights! Click. Soft, calm light everywhere. |
+| nar-story-quiet-bubble | A power card is tapped | Quiet bubble! Your agent floats inside. The noise just bounces off. |
+| nar-story-translator | A power card is tapped | Translator! Pictures turn into words. Words turn into pictures. |
+| nar-story-my-way | A power card is tapped | Everyone talks my way! Now everyone talks your agent's way. |
+| nar-story-get-me | A power card is tapped | Get-what-I-mean ray! Zap! Now everyone understands your agent. |
+| nar-story-control-teachers | A power card is tapped | Control teachers! Press a button, and the teacher does it. |
+| nar-story-question-swap | A power card is tapped | Question swap! This time, the teacher answers the question. |
+| nar-story-pass | A power card is tapped | Pass! Your agent can skip this one. No problem. |
+| nar-story-invisible | A power card is tapped | Invisibility cloak! Whoosh. Nobody can see your agent now. |
+| nar-story-control-displays | A power card is tapped | Control all school displays! Every screen shows what your agent wants. |
+| nar-story-control-devices | A power card is tapped | Control school devices! The bell, the lights… your agent is in charge. |
+| nar-story-see-points | A power card is tapped | See my points! Your agent sees the points. Nothing is hidden. |
+| nar-story-change-rule | A power card is tapped | Change a school rule! Out with the old rule. In with a new one. |
+| nar-story-speak-for-friends | A power card is tapped | Speak for your friends! Your agent says it for them. |
+| nar-story-call-ally | A power card is tapped | Call an ally! A friend runs over to help. |
+| nar-story-team-up | A power card is tapped | Team up! Two agents together are even stronger. |
+| nar-story-mode-talk | A talks card, after "My agent likes…" | Talking! Saying it out loud, with words. |
+| nar-story-mode-hands | A talks card, after "My agent likes…" | Signing! Talking with hands, like Makaton. |
+| nar-story-mode-handshake | A talks card, after "My agent likes…" | A secret handshake! A rhythm only your agent knows. |
+| nar-story-mode-draw | A talks card, after "My agent likes…" | Drawing! Showing it with a picture. |
+| nar-story-mode-act | A talks card, after "My agent likes…" | Acting it out! Showing it with the whole body. |
+| nar-story-mode-pictures | A talks card, after "My agent likes…" | Picture cards! Pointing at a picture to say it. |
+| nar-story-mode-write | A talks card, after "My agent likes…" | Writing! Putting the words on paper. |
+| nar-story-mode-device | A talks card, after "My agent likes…" | A device! A tablet that talks for your agent. |
+| nar-story-school-talk-lot | A talks card, after "School wants us to…" | Talk a lot! Lots of talking, all day long. |
+| nar-story-school-only-talk | A talks card, after "School wants us to…" | Only talk! Words out loud, and nothing else. |
+| nar-story-school-makaton | A talks card, after "School wants us to…" | Learn Makaton! Signs that go with words. |
+| nar-story-school-look | A talks card, after "School wants us to…" | Look at who's talking! Eyes on the speaker. |
+| nar-story-school-quick | A talks card, after "School wants us to…" | Answer quickly! Say the answer straight away. |
+| nar-story-school-speak-up | A talks card, after "School wants us to…" | Speak up! Loud and clear, so everyone hears. |
+| nar-story-school-write | A talks card, after "School wants us to…" | Write it down! Put it on paper. |
+| nar-story-school-pictures | A talks card, after "School wants us to…" | Use picture cards! Point at pictures to say things. |
+| nar-story-school-device | A talks card, after "School wants us to…" | Use a device! A tablet that helps with talking. |
+| nar-story-sit-too-loud | A When card is picked | Too loud! When school gets noisy, the power kicks in. |
+| nar-story-sit-not-understood | A When card is picked | Nobody gets what your agent means? Then the power kicks in. |
+| nar-story-sit-waiting | A When card is picked | Waiting, and waiting… That's when your agent uses it. |
+| nar-story-sit-did-well | A When card is picked | I did it! When your agent wins, the power appears. |
+| nar-story-sit-asked-answer | A When card is picked | Asked to answer, with everyone looking. That's the moment. |
+| nar-story-sit-unkind | A When card is picked | Someone is unkind. Your agent's power is ready. |
+| nar-story-sit-plans-change | A When card is picked | Plans change! Something new, all of a sudden. Your agent is ready. |
+| nar-story-sit-new-place | A When card is picked | Somewhere new! A new room, new faces. The power helps. |
+| nar-story-sit-playtime | A When card is picked | Playtime! Out in the playground, the power is on. |
+| nar-story-sit-tricky-work | A When card is picked | Tricky work! When it gets hard, the power helps. |
+| nar-story-who-me | A Who card is picked | Me! The power works on your agent. |
+| nar-story-who-friend | A Who card is picked | A friend! The power works on a friend. |
+| nar-story-who-teacher | A Who card is picked | My teacher! The power works on the grown-ups at school. |
+| nar-story-who-class | A Who card is picked | My class! The whole class feels the power. |
+| nar-story-who-everyone | A Who card is picked | Everyone! The whole school feels the power. |
+| nar-story-who-room | A Who card is picked | The room! The lights, the sounds, the whole room changes. |
+| nar-story-how-badge | A Switch-on card is picked | My badge! Tap the badge, and on it goes. |
+| nar-story-how-handshake | A Switch-on card is picked | My secret handshake! Tap the rhythm, and the power wakes up. |
+| nar-story-how-hand-sign | A Switch-on card is picked | A hand sign! One secret sign, and the power switches on. |
+| nar-story-how-word | A Switch-on card is picked | A secret word! Say it, and the power switches on. |
+| nar-story-how-drawing | A Switch-on card is picked | A drawing! Draw the sign, and the power begins. |
+| nar-story-how-button | A Switch-on card is picked | A button! Press it, and the power switches on. |
+| nar-story-dev-bell | A device card is picked | The school bell! Your agent decides when it rings. |
+| nar-story-dev-alarm | A device card is picked | The fire alarm! Your agent controls how it sounds. |
+| nar-story-dev-lights | A device card is picked | The lights! Brighter, softer, on or off. Your agent decides. |
+| nar-story-dev-speakers | A device card is picked | The speakers! Louder or quieter. Your agent decides. |
+| nar-story-dev-board | A device card is picked | The whiteboard! Your agent chooses what it shows. |
+| nar-story-dev-computers | A device card is picked | The computers! Your agent is at the controls. |
+| nar-story-item-power | A bottle token is tapped | A power to give! Your agent gives one of its powers away. |
+| nar-story-item-handshake | A bottle token is tapped | My handshake! Your agent's secret rhythm goes inside. |
+| nar-story-item-drawing | A bottle token is tapped | A drawing! Draw something to put inside. |
+| nar-story-item-cant-live | A bottle token is tapped | Something your agent can't live without! Draw it or say it. |
+| nar-story-item-safe | A bottle token is tapped | Your agent's safe place! It goes inside the bottle. |
+| nar-story-item-word | A bottle token is tapped | My secret word! It goes inside, in its spy voice. |
+| nar-story-to-me | Who the bottle is for | For me! It stays safe on your shelf. |
+| nar-story-to-friend | Who the bottle is for | For a friend! It goes in the post for your friend. |
+| nar-story-to-teacher | Who the bottle is for | For my teacher! It goes in the post for your teacher. |
+| nar-story-to-everyone | Who the bottle is for | For everyone! It goes up on the big screen. |
+| nar-powers-when | When slot | When does your agent use this power? Pick up to three. |
+| nar-powers-who | Who slot | Who does the power work on? Pick as many as you like. |
+| nar-powers-how | How slot | How does your agent switch it on? A badge? A secret word? |
+| nar-powers-devices | Devices cell | Which ones does your agent control? Pick as many as you like. |
+| nar-powers-then | What-happens cell | And then what happens? Draw it, or say it. |
 | nar-powers-fire | Power fires | Power on! |
-| nar-powers-more | After a power | Make another power, or Stamp it. |
-| nar-bottle-intro | Bottle | What will your agent hand over? |
-| nar-bottle-full | Fourth item goes in | Your bottle is full. |
-| nar-bottle-to | Who it's for | Who is it for? |
-| nar-bottle-friend | Pick a friend | Tap your friend's agent. |
-| nar-bottle-sign | Sign or mystery | Show your agent, or send a mystery? |
-| nar-bottle-cork | Cork | Push the cork in. |
-| nar-bottle-send | Send | Swipe it up to send it. |
-| nar-bottle-sent | After sending | Your bottle is on its way. |
-| nar-bottle-kept | Kept | Your bottle stays on your shelf. |
+| nar-powers-more | After a power | Your power is ready. Make another, or Stamp it. |
+| nar-bottle-intro | Bottle | This is your agent's message bottle! Put things inside. Then choose who gets it, and send it! |
+| nar-bottle-full | Fourth item goes in | Your bottle is full to the top! |
+| nar-bottle-to | Who it's for | Who is this bottle for? Pick one. |
+| nar-bottle-from | Who it's from | Who is it from? Sign it with your agent? Or keep it a mystery? |
+| nar-game-say | Favourite game | Say the name of your favourite game. |
+| nar-voice-say | Voice message | Tap the microphone. Say your message. |
+| nar-bottle-cork | Cork | Now push the cork in, nice and tight. |
+| nar-bottle-send | Send | Swipe it up, or hold the rocket. Off it goes! |
+| nar-bottle-sent | After sending | Whoosh! Your bottle is on its way. |
+| nar-bottle-sent-everyone | Sent to everyone | Whoosh! It's on its way to the big screen. Look! |
+| nar-bottle-sent-friend | Sent to a friend | Whoosh! It's in the post for your friend. |
+| nar-bottle-sent-teacher | Sent to a teacher | Whoosh! It's in the post for your teacher. |
+| nar-bottle-kept | Kept | Your bottle stays safe on your shelf. |
 
 **Session 3: v3 card labels ◻️**
 
@@ -450,8 +567,15 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-mode-pictures | Picture cards. |
 | nar-mode-write | Writing. |
 | nar-mode-device | A device. |
-| nar-mode-hand-up | Hand up. |
-| nar-mode-quiet | Being quiet. |
+| nar-school-talk-lot | Talk a lot. |
+| nar-school-only-talk | Only talk. |
+| nar-school-makaton | Learn Makaton. |
+| nar-school-look | Look at who's talking. |
+| nar-school-quick | Answer quickly. |
+| nar-school-speak-up | Speak up. |
+| nar-school-write | Write it down. |
+| nar-school-pictures | Use picture cards. |
+| nar-school-device | Use a device. |
 | nar-safe-nowhere | Nowhere. |
 | nar-fam-time | Time. |
 | nar-fam-senses | Sound and light. |
@@ -460,12 +584,12 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-fam-screens | Screens. |
 | nar-fam-together | Together. |
 | nar-pow-slow-everybody | Slow everybody down. |
-| nar-pow-pause | Pause the world. |
+| nar-pow-pause | Pause my school. |
 | nar-pow-hold-turn | Hold my turn. |
 | nar-pow-warn-me | Warn me first. |
 | nar-pow-say-again | Say it again. |
-| nar-pow-turn-down | Turn the room down. |
-| nar-pow-dim-lights | Dim the lights. |
+| nar-pow-turn-down | Turn the classroom down. |
+| nar-pow-dim-lights | Dim the classroom lights. |
 | nar-pow-quiet-bubble | Quiet bubble. |
 | nar-pow-translator | Translator. |
 | nar-pow-my-way | Everyone talks my way. |
@@ -474,10 +598,10 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-pow-question-swap | Question swap. |
 | nar-pow-pass | Pass. |
 | nar-pow-invisible | Invisibility cloak. |
-| nar-pow-control-displays | Control all displays. |
-| nar-pow-control-devices | Control devices. |
+| nar-pow-control-displays | Control all school displays. |
+| nar-pow-control-devices | Control school devices. |
 | nar-pow-see-points | See my points. |
-| nar-pow-change-rule | Change a rule. |
+| nar-pow-change-rule | Change a school rule. |
 | nar-pow-speak-for-friends | Speak for your friends. |
 | nar-pow-call-ally | Call an ally. |
 | nar-pow-team-up | Team up. |
@@ -493,15 +617,69 @@ Lines starting with `[whispers]` keep the tag in the text.
 | nar-how-word | A secret word. |
 | nar-how-drawing | A drawing. |
 | nar-how-button | A button. |
+| nar-dev-bell | The school bell. |
+| nar-dev-alarm | The fire alarm. |
+| nar-dev-lights | The lights. |
+| nar-dev-speakers | The speakers. |
+| nar-dev-board | The whiteboard. |
+| nar-dev-computers | The computers. |
 | nar-item-power | A power to give. |
 | nar-item-handshake | My handshake. |
 | nar-item-drawing | A drawing. |
 | nar-item-voice | A voice message. |
 | nar-item-game | My favourite game. |
-| nar-item-cant-live | Something I can't live without. |
+| nar-item-cant-live | Something my agent can't live without. |
 | nar-item-safe | My safe place. |
-| nar-sign-agent | With my agent. |
+| nar-sign-agent | Signed! Everyone will see it's from your agent. |
 | nar-sign-mystery | Mystery. The big screen won't say who. |
+| nar-name-silent | Silent |
+| nar-name-swift | Swift |
+| nar-name-brave | Brave |
+| nar-name-clever | Clever |
+| nar-name-hidden | Hidden |
+| nar-name-golden | Golden |
+| nar-name-midnight | Midnight |
+| nar-name-lucky | Lucky |
+| nar-name-shadow | Shadow |
+| nar-name-bright | Bright |
+| nar-name-sneaky | Sneaky |
+| nar-name-mighty | Mighty |
+| nar-name-quiet | Quiet |
+| nar-name-wild | Wild |
+| nar-name-cosmic | Cosmic |
+| nar-name-electric | Electric |
+| nar-name-frosty | Frosty |
+| nar-name-turbo | Turbo |
+| nar-name-secret | Secret |
+| nar-name-jazzy | Jazzy |
+| nar-name-rapid | Rapid |
+| nar-name-steady | Steady |
+| nar-name-neon | Neon |
+| nar-name-royal | Royal |
+| nar-name-comet | Comet |
+| nar-name-storm | Storm |
+| nar-name-spark | Spark |
+| nar-name-rocket | Rocket |
+| nar-name-arrow | Arrow |
+| nar-name-thunder | Thunder |
+| nar-name-blaze | Blaze |
+| nar-name-wave | Wave |
+| nar-name-star | Star |
+| nar-name-moon | Moon |
+| nar-name-cloud | Cloud |
+| nar-name-breeze | Breeze |
+| nar-name-compass | Compass |
+| nar-name-lantern | Lantern |
+| nar-name-key | Key |
+| nar-name-diamond | Diamond |
+| nar-name-riddle | Riddle |
+| nar-name-orbit | Orbit |
+| nar-name-rainbow | Rainbow |
+| nar-name-signal | Signal |
+| nar-name-shield | Shield |
+| nar-name-magnet | Magnet |
+| nar-name-torch | Torch |
+| nar-name-crystal | Crystal |
 
 ### 4.6 Sound effects
 
@@ -534,7 +712,6 @@ The "stand-in" column is the generated sound the app plays until your file arriv
 | sfx-file-open | Card or dossier opens | A paper folder opening, pages rustling. | 1 | whoosh | ⭐ |
 | sfx-seal | Sealing the file | A wax seal pressed down, a soft squish and click. | 0.8 | stamp | ⭐ |
 | sfx-new | New stickers have arrived | A cheerful two-note chime. | 0.7 | sparkle | ⭐ |
-| sfx-handshake-tap | A handshake tap | One soft, very short knock on a wooden table, right at the start, then silence. | 0.5 | pop | ◻️ |
 | sfx-door-open | A power door opens | A small wooden door creaking open, short and friendly. | 0.7 | whoosh | ◻️ |
 | sfx-slow | Slow everybody down | A gentle sound slowing down and dropping in pitch, like a toy winding down. | 1.5 | whoosh | ◻️ |
 | sfx-bottle-drop | An item drops into the bottle | A small object dropping into a glass bottle, one soft clink. | 0.6 | pop | ◻️ |
@@ -543,6 +720,22 @@ The "stand-in" column is the generated sound the app plays until your file arriv
 | sfx-bottle-arrive | A bottle arrives on the display | A gentle splash of water, then a soft two-note chime. | 1.2 | sparkle | ◻️ |
 | sfx-gift | A power is given | A soft magical sparkle travelling from left to right. | 1 | sparkle | ◻️ |
 | sfx-timer-ring | A real-for-a-minute ring starts or ends | One soft, low bell ring. | 1.2 | sparkle | ◻️ |
+| sfx-ticket | Power: Hold my turn | A ticket machine printing a small ticket, then one soft ding. | 1 | pop | ◻️ |
+| sfx-warn | Power: Warn me first | Three gentle chime notes rising one after another, like a soft countdown. | 1.5 | sparkle | ◻️ |
+| sfx-rewind | Power: Say it again | A cassette tape rewinding quickly, ending in a playful little squeak. | 1 | whoosh | ◻️ |
+| sfx-turn-down | Power: Turn the classroom down | A busy buzzing hum that fades quickly away into calm quiet. | 1.5 | whoosh | ◻️ |
+| sfx-dim | Power: Dim the classroom lights | A light switch clicking, then a soft low hum gently fading down. | 1.2 | power | ◻️ |
+| sfx-translate | Power: Translator | A small friendly machine whirring, then two bright beeps. | 1.2 | sparkle | ◻️ |
+| sfx-ray | Power: Get-what-I-mean ray | A cartoon ray gun beam: a bright, rising, wobbly zap. | 1 | power | ◻️ |
+| sfx-remote | Power: Control teachers | A game controller button clicking, then a playful springy boing. | 1 | pop | ◻️ |
+| sfx-screens | Power: Control all school displays | An old television switching on: a soft fizz, then a bright hum. | 1.2 | power | ◻️ |
+| sfx-swap | Power: Question swap | Two quick soft whooshes passing each other, one left and one right. | 0.8 | whoosh | ◻️ |
+| sfx-pass | Power: Pass | One short, soft, friendly referee whistle. | 0.6 | sparkle | ◻️ |
+| sfx-star | Power: See my points | A sparkly twinkle with a soft bell ding at the end. | 1 | sparkle | ◻️ |
+| sfx-scroll | Power: Change a school rule | A paper scroll unrolling with a soft rustle, then a quick pencil scribble. | 1.2 | whoosh | ◻️ |
+| sfx-bubbles | Power: Speak for your friends | Two soft bubbly pops, one high and one low, like two speech bubbles appearing. | 0.8 | pop | ◻️ |
+| sfx-call | Power: Call an ally | A short cartoon megaphone honk, then quick light footsteps running in. | 1.2 | pop | ◻️ |
+| sfx-high-five | Power: Team up | A cartoon high-five clap with a little sparkle. | 0.8 | sparkle | ◻️ |
 
 ---
 
@@ -668,6 +861,31 @@ from earlier sessions stay where they are.
 | nar-badge-wall | The whole school can see the wall. |
 | nar-badge-vault | Anything you leave out stays in your vault. |
 | nar-dossier-flip | Flip your file. The back is top secret. |
+
+**Retired: v3, after Filip's first try (3 November 2026)**
+
+How my agent talks, Powers and the bottle were redesigned. These lines are no
+longer played; files already made stay where they are.
+
+| id | text | why |
+|---|---|---|
+| nar-suit-school | How does school want your agent to talk? | "School wants us to…" is said before every card instead |
+| nar-suit-best | Which way does your agent like best? | now `nar-suit-most` |
+| nar-powers-ideas | Here are some ideas. Pick a door. | the doors come first now: `nar-powers-doors` |
+| nar-powers-sothat | So that what? Draw it or say it. | now `nar-powers-then` |
+| nar-bottle-sign | Show your agent, or send a mystery? | now `nar-bottle-from` |
+| nar-mode-hand-up | Hand up. | school has its own cards now |
+| nar-mode-quiet | Being quiet. | school has its own cards now |
+| nar-bottle-friend | Tap your friend's agent. | v84: the list of every agent is gone - children did not know which was their friend's |
+
+| id | label | picture | why |
+|---|---|---|---|
+| mode-hand-up | Hand up | A bean figure with one mitten hand raised high. | school has its own cards now |
+| mode-quiet | Being quiet | A calm bean figure holding a mitten hand where its mouth would be, with a small crossed-out sound wave beside it. | school has its own cards now |
+
+| id | plays when | prompt | why |
+|---|---|---|---|
+| sfx-handshake-tap | A handshake tap | One soft, very short knock on a wooden table. | each tap is a note now, made by the app (`Voice.note`) - the knock "sounded like poking holes" |
 
 **Retired: sounds (v2; not made)**
 

@@ -534,6 +534,21 @@ const Voice = (function () {
     if (play) play();
   }
 
+  /* A soft marimba-like note: step 0 is the lowest. The steps walk up a
+     pentatonic scale (C D E G A, then the next C…), and any two notes of a
+     pentatonic scale sound fine together - so whatever rhythm a child taps,
+     it comes out as a little tune, never a wrong note (Filip, 3 November:
+     the handshake knock "sounded like poking holes"). A marimba is mostly
+     its own note plus a quiet, quickly-dying one four times higher. */
+  const PENTATONIC = [523.25, 587.33, 659.25, 783.99, 880.00,
+                      1046.50, 1174.66, 1318.51, 1567.98, 1760.00];
+  function note(step, length) {
+    const f = PENTATONIC[Math.max(0, Math.min(PENTATONIC.length - 1, step | 0))];
+    const len = length || 0.45;
+    tone({ type: 'sine', from: f, to: f, length: len, volume: 0.2 });
+    tone({ type: 'sine', from: f * 4, to: f * 4, length: 0.07, volume: 0.04 });
+  }
+
   /* ==========================================================================
      LOUDNESS WHILE A RECORDING PLAYS (spec §5a item 2)
      An AnalyserNode is a tap on the audio: it hands back the waveform as it
@@ -562,6 +577,7 @@ const Voice = (function () {
   // Everything listed here becomes available as Voice.<name> in app.js.
   return {
     sfx: sfx,
+    note: note,
     setMuted: setMuted,
     loudness: loudness,
     MAX_MS: MAX_MS,

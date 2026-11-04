@@ -103,6 +103,7 @@ chose; any promise of total secrecy.
 | `display/relay.py` | **v3 P1.** The laptop relay. Python standard library only |
 | `display/certs/` | **v3 P1.** The relay's https certificate. **Gitignored** |
 | `tools/analyse.py` | **v3 P9.** Exports → CSVs, drawings, recordings and agent cards. Run at home after a session |
+| `tools/layout-audit.js` | **v85.** Finds buttons and cards cut off by a clipping box or under the bottom bar. Loaded by hand in the browser; the app never loads it |
 
 v2 §1 also allows `parts.js` (V2) and `stickers.js` (V2) when those milestones
 arrive. **Authoring tools live in `tools/`**: they run on Filip's computer, may
@@ -559,6 +560,128 @@ to the start. No card screen.
   - **Cut-outs** were cropped in 4:3 cards (`.is-cutout` → `contain`).
   - **Power on! and ➡️** sat below the fold on a landscape iPad. Only the
     cards scroll now.
+- **Filip's first play-through (3 November 2026), v80.** "Great as a
+  concept, but gamify it a little." Built in one round:
+  - **How my agent talks.** One BIG card that moves (`anim` on each card:
+    talking beats and sends out rings, signing waves…), the sentence SAID
+    before every card ("My agent likes… Talking", `nar-likes-frame`), and
+    the child answers with the agent: three small copies of it nod ✓, tilt
+    ? or shake ✗, and the big agent does the same. ✏️ My own is gone (nobody
+    used it). "Which one does your agent like the most?" "School wants us
+    to…" has nine cards of its own (`SCHOOL_CARDS`), five of them paired
+    with a likes card for comparison (DATA.md).
+  - **The strip hides missions that are not open** — the 🔒 in the middle
+    was Safe place, switched off.
+  - **Powers starts with the doors** (no blank canvas). A door swings open
+    with a creak, and its cards are dealt face-down and flip over. A ✨
+    secret door is the way to make up an own power. **The sentence is a
+    battery** under the agent, one cell per question, each question said
+    aloud; a picked card sparks into its cell, which lights with a rising
+    note; ⚡ Power on! lights the cells in turn. Power labels name school
+    ("Pause my school", "Control all school displays"…), and "Control
+    school devices" asks which ones (`powers[].devices`, new).
+  - **The handshake plays notes** — each tap is the next note of a
+    pentatonic scale (`Voice.note`), on the iPad and on the display. The
+    knock `sfx-handshake-tap` is retired.
+  - **The bottle.** "My favourite game" is said (🎤 + spy voice), not
+    drawn; "Something my agent can't live without"; "Who is it from?" shows
+    the agent itself or the dashed mystery agent. Every recording in a
+    mystery bottle takes a spy voice, and `itemPayload()` leaves out any
+    that somehow has not.
+- **Filip's second play-through (4 November 2026), v81.**
+  - **The adult panel was unreachable since P6.** The bottle's 🚀 hold
+    was called `startHold`/`cancelHold` - the same names as the logo's
+    long press - and the later declaration replaced the earlier one, so
+    holding the logo ran the bottle's code and Export could not be
+    reached. Renamed `startRocketHold`/`cancelRocketHold`. The same trap
+    had hit `stageMove` (Powers replaced the Make editor's pixel-painting
+    handler): now `powerStageMove`. See the convention below.
+  - **Narration that was "not vocalised".** Two bugs: the iPad-voice
+    stand-in was judged finished before it had started (`sayAndWait` now
+    counts `pending` and listens for the utterance's `end`), and an
+    INTERRUPTED recording was treated as a MISSING one (see below).
+  - **ElevenLabs, run here at Filip's request:** 31 new lines, 10 remade
+    with new words, 16 new sounds - one per power (`POWER_SFX`, used by
+    app.js and display.js alike) - and 48 codename words
+    (`nar-name-…`), so a rolled name is said in the narrator's voice,
+    word by word (`sayCodename()`). About 1,400 credits. **Every line the
+    app says now has a recording**; the iPad's own voice is left only for
+    a name a child typed (and for an empty `assets/` folder).
+  - **Suspense at the doors:** a whispered welcome (`nar-powers-doors`), a
+    door that rattles and creaks open over 1.4 s while one of three
+    whispers plays, and only then its name. "Fully charged! Press Power
+    on!" when the battery fills (`announceCharged`).
+  - **Slower everywhere** (about 1.4×): card movements, dealing, the
+    answers, the agent's acting, the spark and the bottle.
+  - The 🔒 under the codename reels are gone. The heading "My agent
+    likes…" sits over the card in landscape. 🚪 is as big as ✓ This one.
+    A chosen card's outline is no longer cut off at the top of a list.
+    An armed chip or power shows a wobbling 🗑️, not "?". The game step
+    shows its name and a pulsing 🎤, and says what to do.
+- **v82 (4 November 2026): the narrator says more than the screen.**
+  Filip: "the writing is there to help, but deepen the narration". Every
+  power card tapped tells a tiny story ("Pause my school! Freeze! Nobody
+  moves. Not even the teachers." - `sayPowerStory()`, `nar-story-…`), every
+  door introduces itself (`nar-door-time` …), and the battery questions and
+  bottle steps say what to do as well as what is asked. Same warmth for
+  every card, no "good choice" (v3 §17). 42 more lines from ElevenLabs.
+  - **Fingerprinted assets.** A remade file kept its name, so Filip's
+    browser went on playing "Pause the world" after it became "Pause my
+    school". `sync-assets.py` now writes a `rev` (8 characters of the
+    file's MD5) for every file that exists; `assets.js` and `sw.js` ask for
+    `…mp3?r=<rev>`, and the service worker fetches with `cache: 'reload'`.
+    The relay sends `Cache-Control: no-cache` for files.
+  - The step tabs (🚪 🔋 ⚡ …) are 72px with 34px icons; the battery's
+    icons 30px.
+- **v83 (4 November 2026): every card tells a story, and the bottle is
+  filled from the agent's own work.**
+  - **Stories everywhere a card is tapped**: the battery's When / Who /
+    Switch-on / device cards ("Too loud! When school gets noisy, the power
+    kicks in."), the talks cards after their frame ("My agent likes…
+    Signing! Talking with hands, like Makaton." - plain descriptions,
+    because a Talking Mat must not lean), the bottle tokens and "who is it
+    for". `storyId(id)` → `nar-story-…`; the read-back after ⚡ keeps the
+    short labels. 55 more lines from ElevenLabs.
+  - **The bottle's fill step** (Filip: "fill the bottle with what they
+    have chosen"): 🕵️ From your agent - each power by name, the
+    handshake, the secret word (`item-word`, a copied recording), the
+    favourite way to talk (`item-talk`), the safe place, each only if it
+    exists - and ✨ Make new. The "which power?" sub-step is gone. In a
+    mystery bottle the secret word, like every recording, must be
+    disguised. The display plays `item-word` and shows `item-talk`'s card.
+- **v84 (4 November 2026): the bottle explains itself, and Next is
+  obvious.**
+  - **Green "Next ➜" everywhere a child carries on** (`.btn-next`): big,
+    pulsing, and a colour used for nothing else. Children were reaching
+    for the big yellow Stamp it first, so **Stamp it now waits** - grey
+    and a little smaller - until `missionReady()` says the mission has
+    been done (a face; every "likes" card sorted; a safe place; a power;
+    a bottle kept or sent), then pops yellow. It is never locked.
+  - **The bottle narrates every step** through one queue, `bottleSay()`:
+    what the bottle is on arrival, each step's question as it opens, a
+    confirmation for each choice, the agent's name when it is signed, and
+    WHERE it went ("It's in the post for your friend"). A new step drops
+    whatever the last was still to say; "full" waits for the item's story.
+  - "Who is it from?" cards read "From Swift Arrow" / "🎭 Mystery".
+  - **The list of every agent, to pick a friend's, is gone** (children do
+    not know them). Filip suggested recording the friend's or teacher's
+    name instead - NOT built: it would store real names, which §3 forbids.
+    Waiting on his decision.
+  - The four item chips sit in one row under a slightly smaller bottle.
+- **v85 (4 November 2026): nothing cut off.** Filip saw the bottom of
+  Next sliced off, "and on many other screens". Every right-hand column
+  scrolls, and a scrolling box cuts off whatever spills past its edge - a
+  drop shadow, a chosen card's outline, a pulsing button. New tool
+  `tools/layout-audit.js` finds every clipped button and card; the fixes:
+  room inside each column's edge; in landscape the buttons sit outside the
+  part that scrolls on the doors, the favourite and the mystery steps too;
+  compact cards where they did not fit; My powers as one row per power;
+  in portrait the bottle's items beside it and the column sized to its
+  contents (with `flex: 1` it was squeezed below them, so the page could
+  not scroll to its last button). A list that is genuinely longer than
+  its space (When's eleven photos) FADES at the bottom (`.has-more`,
+  `updateFades()`). Next pulses by growing, not with a ring. Audited clean
+  at 1180×734 and 820×1180.
 - **Next: P8** — Rehearsal: a full run on two iPads and the display, then
   bump every version number. Needs v3 deployed and the room set up — it is
   Filip's, with the iPads.
@@ -571,6 +694,10 @@ in `asset-guide.md` §4.5 and §4.6 *directly* — not the manifest — and writ
 straight to `assets/audio/narrator/<id>.mp3` and `assets/audio/sfx/<id>.mp3`
 under the exact manifest names. **So audio normally bypasses "bring in"
 entirely**; only hand-made audio goes through that tool.
+
+**After making or remaking files, run `python3 tools/sync-assets.py`**: it
+fingerprints every file (`rev`), and a remade file keeps its old fingerprint
+- and so its old, cached sound on every iPad - until it is synced.
 
 If the shape of those two tables ever changes, update the script's
 `read_guide()` to match, and check it still agrees with the manifest:
@@ -607,8 +734,9 @@ Then, by hand:
    On 3 November the noticeboard arrived as `disp-bottle`. The tool also
    deletes the original, so a misfiled picture has already been converted
    at the wrong size by the time anyone sees it.
-4. **Bump `CACHE_VERSION` in `sw.js` and every `?v=` in `index.html`,** or the
-   iPads will not pick the new files up.
+4. **Run `python3 tools/sync-assets.py`** so the new files get their
+   fingerprints (`rev`), then **bump `CACHE_VERSION` in `sw.js` and every
+   `?v=` in `index.html`,** or the iPads will not pick the new files up.
 
 **"Sync the asset list"** means `python3 tools/sync-assets.py`, which rebuilds
 `assets/manifest.json` from `asset-guide.md`. The guide is the source: never
@@ -620,7 +748,18 @@ hand-edit the manifest, and never edit both.
   Filip's first try: a loud room means nothing may depend on hearing or
   reading, and the agent must be big and do the thing. One card at a time,
   sorted 👍 🤷 👎, then one favourite. This departs from v3 §5 (any number
-  of cards, and a handshake on this screen).
+  of cards, and a handshake on this screen). **Second round, same day:** the
+  answers are the agent nodding, tilting or shaking its head, not thumbs;
+  no ✏️ My own; and "School wants us to…" has its own cards, because a
+  handshake, drawing or acting are not things school asks for. This departs
+  from v3 §5's "the same cards, plus two".
+- **Powers: the doors come first (3 November 2026).** Filip: a blank canvas
+  first left children not knowing what to do. This departs from v3 §7.1
+  ("invent first"); `inventedFirst` is `null` from v80. Making up an own
+  power is still there, behind the ✨ secret door.
+- **Powers are about school (3 November 2026).** Filip: "I am locating the
+  interventions". Labels name the place ("Pause my school"), and "Control
+  school devices" asks which devices. The ids did not change.
 - **Spy words, not animals (3 November 2026).** A big dolphin on the Start
   screen promised children they would be working with a dolphin, and nothing
   in the app ever mentioned it again. The second reel is now a spy word that
@@ -667,6 +806,75 @@ hand-edit the manifest, and never edit both.
 
 Many of these name screens v3 retired. They stay, because the lesson still
 applies (v3 §13).
+
+### v3 conventions (from v85, "nothing cut off")
+
+- **A scrolling box clips everything at its edges, shadows included.** A
+  button that sits exactly on the bottom edge of a scrolling column loses
+  its drop shadow and the bottom of its pulse. Every column keeps room
+  inside its edge (`.suit-side` padding), and lists that scroll leave
+  their buttons outside. Run `tools/layout-audit.js` on every screen, at
+  1180×734 and 820×1180, after any layout change - eyes miss 4px.
+- **`flex: 1` in a scrolling column means "the space left", not "my
+  contents".** In portrait the right-hand column took what was left and
+  squeezed below its contents, so the page had nothing to scroll and the
+  last button was cut. A child of a column that scrolls as a whole is
+  `flex: 0 0 auto`.
+
+### v3 conventions (from Filip's second play-through)
+
+- **The screen says little; the narrator may say more.** Labels stay short
+  (they are read back, and they help children who read), but a card's
+  spoken line can be a little story. Keep both in the asset guide, and
+  keep every story equally warm: describe what it does, never praise the
+  choice.
+- **A file that changes must change its address.** Browsers and the
+  service worker keep files by URL, so a remade sound with the same name
+  is not fetched again. The manifest's `rev` does this for every asset -
+  as long as `sync-assets.py` is run after the files change.
+
+- **Never give two top-level functions the same name.** `app.js` is one
+  classic script, so every top-level `function` is global, and a second
+  declaration with the same name silently REPLACES the first everywhere -
+  no error, no warning. The bottle's `startHold` took over the logo's long
+  press for two days. Before a release, check for duplicates (a short
+  script listing `^function name` and `^const/let name` that appear twice).
+- **An interrupted recording is not a missing one.** When a new line
+  starts before the last has begun, the last one's `play()` rejects with
+  an `AbortError`. `Assets.say()` used to read that as "no file", speak the
+  line in the iPad's voice over the new one, and use the iPad's voice for
+  it from then on. Only errors other than `AbortError` / `NotAllowedError`
+  mean the file is missing (`interrupted()` in `assets.js`).
+- **This preview browser stops drawing frames while a script runs**, so a
+  CSS animation can sit at its first frame (the screens' 20 px slide-in
+  measured as a 20 px shift). Take a screenshot - which draws a frame -
+  before trusting a measurement made just after a screen change.
+
+### v3 conventions (from Filip's first play-through)
+
+- **A card's label comes from the asset guide, not the code.** `Assets.card()`
+  shows the manifest's label whenever the id is there; the label in
+  `POWER_CARDS` is only the stand-in. Renaming "Pause the world" in the code
+  alone changed nothing on screen. Rename in `asset-guide.md`, sync, and
+  remember the old RECORDING still says the old words until it is remade
+  with `--force`.
+- **A wrapping row inside a centred column must be told to stretch.** In a
+  `flex-direction: column` with `align-items: center`, a `flex-wrap` row
+  sizes itself to every card in one line, so "Which one…" ran off the right
+  of the screen and pushed the whole page sideways. `align-self: stretch`.
+- **A props layer covers the stage, not the column.** Props are placed in %
+  of the agent's square. Once the battery joined the same column, `inset: 0`
+  made the layer taller than the agent and the tortoise walked along the
+  battery. `#powers-fx` is a square as wide as the stage.
+- **Deal cards when they ARRIVE, not on every repaint.** Choosing a card
+  repaints the screen; without `dealNext` every card was dealt again on every
+  tap.
+- **A transition that moves the child on must swallow a second tap.** A card
+  flies to its pile for 380 ms before the next is dealt; a quick double tap
+  used to sort the same card twice and skip the next. `suitUi.moving`.
+- **A spoken sentence in two halves needs a token.** "My agent likes…" then
+  "Talking." — if the child answers during the first half, the second half
+  must not follow on the next card. `suitSayToken`.
 
 ### v3 conventions (from the v3 pictures)
 

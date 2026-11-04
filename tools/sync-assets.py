@@ -15,6 +15,7 @@ Standard library only, like every tool here. It runs on Filip's computer; the
 app never loads anything from tools/.
 """
 
+import hashlib
 import json
 import os
 import re
@@ -122,12 +123,31 @@ def main():
             "fallback": r[4], "prompt": r[2], "seconds": r[3], "tier": r[5],
         })
 
+    # --- A fingerprint for every file that exists (4 November 2026) ---
+    # A remade line or picture keeps its file name, so a browser or an iPad
+    # that has the old one saved goes on playing it ("Pause the world" after
+    # it was remade as "Pause my school"). `rev` is the first 8 characters
+    # of the file's MD5: assets.js and sw.js add it to the address
+    # (…mp3?r=1a2b3c4d), so a changed file is a new address and is fetched
+    # fresh. Missing files get no rev. Run this again after making or
+    # bringing in files, or the old fingerprint stays.
+    revs = 0
+    for group, entries in manifest.items():
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            path = os.path.join(ROOT, "assets", entry.get("file", ""))
+            if entry.get("file") and os.path.isfile(path):
+                with open(path, "rb") as fh:
+                    entry["rev"] = hashlib.md5(fh.read()).hexdigest()[:8]
+                revs += 1
+
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    print("wrote assets/manifest.json")
+    print("wrote assets/manifest.json (%d files present, fingerprinted)" % revs)
     for key in ("hq", "situations", "stickers", "powers", "doors",
                 "display", "cards", "narrator", "sfx"):
         print("  %-11s %d" % (key, len(manifest[key])))

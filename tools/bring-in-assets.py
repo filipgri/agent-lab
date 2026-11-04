@@ -233,7 +233,8 @@ def main():
     if missing[:12]:
         print("  e.g.", ", ".join(missing[:12]))
     if not DRY and brought:
-        print("\nNow bump CACHE_VERSION in sw.js and the ?v= numbers in "
+        print("\nNow run python3 tools/sync-assets.py (it fingerprints the new "
+              "files), then bump CACHE_VERSION in sw.js and the ?v= numbers in "
               "index.html so the iPads pick the new files up.")
 
 
